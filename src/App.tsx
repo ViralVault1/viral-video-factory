@@ -4,9 +4,11 @@ import { Footer } from './components/Footer';
 import { HomePage } from './components/HomePage';
 import { Sidebar } from './components/Sidebar';
 import { VideoGenerator } from './components/VideoGenerator';
+import { AIAgentsHub } from './components/AIAgentsHub';
+import { AuthPage } from './components/AuthPage';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState('video-generator');
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page);
@@ -19,6 +21,10 @@ function App() {
         return <HomePage />;
       case 'video-generator':
         return <VideoGenerator />;
+      case 'ai-agents':
+        return <AIAgentsHub onNavigate={handleNavigate} />;
+      case 'auth':
+        return <AuthPage onNavigate={handleNavigate} />;
       case 'pricing':
         return (
           <div className="flex items-center justify-center flex-1 py-20">
