@@ -2,9 +2,11 @@
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { HomePage } from './components/HomePage';
+import { Sidebar } from './components/Sidebar';
+import { VideoGenerator } from './components/VideoGenerator';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState('dashboard');
 
   const handleNavigate = (page: string) => {
     setCurrentPage(page);
@@ -12,8 +14,11 @@ function App() {
 
   const renderPage = () => {
     switch (currentPage) {
+      case 'dashboard':
       case 'home':
         return <HomePage />;
+      case 'video-generator':
+        return <VideoGenerator />;
       case 'pricing':
         return (
           <div className="flex items-center justify-center flex-1 py-20">
@@ -42,15 +47,27 @@ function App() {
           </div>
         );
       default:
-        return <HomePage />;
+        return (
+          <div className="flex items-center justify-center flex-1 py-20">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold mb-4">{currentPage.replace('-', ' ').toUpperCase()}</h1>
+              <p className="text-gray-400">This feature is coming soon!</p>
+            </div>
+          </div>
+        );
     }
   };
 
   return (
-    <div className="bg-gray-800 text-white min-h-screen flex flex-col">
-      <Header onNavigate={handleNavigate} />
-      {renderPage()}
-      <Footer />
+    <div className="bg-gray-800 text-white min-h-screen flex">
+      <Sidebar currentPage={currentPage} onNavigate={handleNavigate} />
+      <div className="flex-1 flex flex-col">
+        <Header onNavigate={handleNavigate} />
+        <main className="flex-1">
+          {renderPage()}
+        </main>
+        <Footer />
+      </div>
     </div>
   );
 }
