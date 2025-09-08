@@ -1,6 +1,4 @@
-
-
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { HomePage } from './components/HomePage';
@@ -30,7 +28,6 @@ import { SocialStudioPage } from './components/SocialStudioPage';
 import { WelcomeModal } from './components/WelcomeModal';
 import { AIAgentsHub } from './components/AIAgentsHub';
 import { ErrorBoundary } from './components/ErrorBoundary';
-
 
 const AppContent: React.FC = () => {
     const { user, error, loading } = useAuth();
@@ -67,12 +64,11 @@ const AppContent: React.FC = () => {
                 <div className="max-w-4xl w-full text-left">
                     <h1 className="text-3xl font-bold text-red-500 mb-4">Application Setup Error</h1>
                     <p className="text-lg text-gray-400 mb-6">
-                        A critical error occurred while initializing your application's backend. This often means a required database table or function is missing.
+                        A critical error occurred while initializing your application's backend.
                     </p>
                     <div className="text-left bg-gray-900 p-4 rounded-md font-mono text-sm text-gray-400 whitespace-pre-wrap overflow-x-auto">
                         {error}
                     </div>
-                    <p className="text-gray-500 mt-6 text-sm">Please follow the instructions in the error message above by running the provided SQL script in your Supabase project's SQL Editor. The application will not function correctly until this is resolved.</p>
                 </div>
             </div>
         );
@@ -84,7 +80,7 @@ const AppContent: React.FC = () => {
         setInitialImageUrl(payload?.imageUrl ?? null);
         setInitialFile(payload?.file ?? null);
         window.scrollTo(0, 0);
-        setIsSidebarOpen(false); // Close sidebar on navigation
+        setIsSidebarOpen(false);
     };
     
     const renderPage = () => {
@@ -153,7 +149,6 @@ const AppContent: React.FC = () => {
     );
 };
 
-
 const App: React.FC = () => {
   if (!isGeminiConfigured) {
     return (
@@ -161,13 +156,8 @@ const App: React.FC = () => {
             <div className="max-w-2xl w-full text-center">
                 <h1 className="text-3xl font-bold text-red-500 mb-4">Configuration Error</h1>
                 <p className="text-lg text-gray-400 mb-6">
-                    The required Gemini API Key is not configured in your project's environment.
+                    The required Gemini API Key is not configured.
                 </p>
-                <div className="text-left bg-gray-900 p-4 rounded-md font-mono text-sm text-gray-400">
-                    <p>1. Go to Google AI Studio to get your API key.</p>
-                    <p>2. Set it as the <code className="bg-gray-700 text-white font-semibold px-1.5 py-0.5 rounded">API_KEY</code> secret or environment variable in your deployment settings.</p>
-                </div>
-                <p className="text-gray-500 mt-6 text-sm">The application will not function until this is configured.</p>
             </div>
         </div>
     );
@@ -179,16 +169,8 @@ const App: React.FC = () => {
             <div className="max-w-3xl w-full text-center">
                 <h1 className="text-3xl font-bold text-red-500 mb-4">Supabase Configuration Required</h1>
                 <p className="text-lg text-gray-400 mb-6">
-                    Your application cannot connect to the database because it is using placeholder credentials. You must provide your own Supabase project's keys as environment variables.
+                    Database connection required.
                 </p>
-                <div className="text-left bg-gray-900 p-4 rounded-md font-mono text-sm text-gray-400 space-y-2">
-                    <p className="font-bold text-white">Action Required:</p>
-                    <p>Set the following environment variables or secrets in your project's deployment settings:</p>
-                    <p>1. Go to your Supabase project dashboard and navigate to <span className="font-semibold text-white">Project Settings &gt; API</span>.</p>
-                    <p>2. Set <code className="bg-gray-700 text-white font-semibold px-1.5 py-0.5 rounded">SUPABASE_URL</code> to your Project URL.</p>
-                    <p>3. Set <code className="bg-gray-700 text-white font-semibold px-1.5 py-0.5 rounded">SUPABASE_ANON_KEY</code> to your `anon` public key.</p>
-                </div>
-                <p className="text-gray-500 mt-6 text-sm">The application will not function until this is resolved. The login page will appear once the credentials are correct.</p>
             </div>
         </div>
     );
