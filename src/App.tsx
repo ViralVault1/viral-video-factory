@@ -46,11 +46,13 @@ function App() {
         return <AuthPage onNavigate={handleNavigate} />;
       case 'pricing':
         return (
-          <div className="flex items-center justify-center flex-1 py-20">
-            <div className="text-center">
-              <h1 className="text-4xl font-bold mb-4">Pricing Plans</h1>
-              <p className="text-gray-400 mb-8">Choose the plan that works for you</p>
-              <div className="grid md:grid-cols-3 gap-8 max-w-6xl">
+          <div className="p-8">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center mb-12">
+                <h1 className="text-4xl font-bold text-white mb-4">Pricing Plans</h1>
+                <p className="text-gray-400">Choose the plan that works for you</p>
+              </div>
+              <div className="grid md:grid-cols-3 gap-8">
                 <div className="bg-gray-700 p-8 rounded-lg">
                   <h3 className="text-2xl font-bold mb-4">Starter</h3>
                   <p className="text-3xl font-bold mb-4">$19<span className="text-base text-gray-400">/month</span></p>
@@ -98,9 +100,9 @@ function App() {
         );
       default:
         return (
-          <div className="flex items-center justify-center flex-1 py-20">
+          <div className="p-8">
             <div className="text-center">
-              <h1 className="text-4xl font-bold mb-4">{currentPage.replace('-', ' ').toUpperCase()}</h1>
+              <h1 className="text-4xl font-bold text-white mb-4">{currentPage.replace('-', ' ').toUpperCase()}</h1>
               <p className="text-gray-400">This feature is coming soon!</p>
             </div>
           </div>
@@ -109,11 +111,11 @@ function App() {
   };
 
   return (
-    <div className="bg-gray-800 text-white min-h-screen flex">
+    <div className="flex h-screen bg-gray-800 text-white">
       <Sidebar currentPage={currentPage} onNavigate={handleNavigate} />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <Header onNavigate={handleNavigate} />
-        <main className="flex-1">
+        <main className="flex-1 overflow-y-auto">
           {renderPage()}
         </main>
         <Footer />

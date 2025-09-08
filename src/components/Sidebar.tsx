@@ -43,19 +43,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => 
         <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd"></path>
       </svg>
     )},
-    { id: 'image-remix-studio', label: 'Image Remix Studio', icon: (
+    { id: 'ai-agents', label: 'AI Agents', icon: (
       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
         <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
       </svg>
     )},
-    { id: 'video-to-gif', label: 'Video to GIF', icon: (
+    { id: 'license-generator', label: 'License Generator', icon: (
       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm1 5v4h3V8H5zm5 0v4h3V8h-3z"></path>
-      </svg>
-    )},
-    { id: 'product-hunt-kit', label: 'Product Hunt Kit', icon: (
-      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+        <path fillRule="evenodd" d="M5 5a3 3 0 015-2.236A3 3 0 0114.83 6H16a2 2 0 110 4h-5V9a1 1 0 10-2 0v1H4a2 2 0 110-4h1.17C5.06 5.687 5 5.35 5 5zm4 1V5a1 1 0 10-1 1h1zm3 0a1 1 0 10-1-1v1h1z" clipRule="evenodd"></path>
+        <path d="M9 11H3v5a2 2 0 002 2h4v-7zM11 18h4a2 2 0 002-2v-5h-6v7z"></path>
       </svg>
     )},
     { id: 'pricing', label: 'Pricing', icon: (
@@ -64,16 +60,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => 
         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd"></path>
       </svg>
     )},
-    { id: 'redeem-license', label: 'Redeem License', icon: (
-      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M5 5a3 3 0 015-2.236A3 3 0 0114.83 6H16a2 2 0 110 4h-5V9a1 1 0 10-2 0v1H4a2 2 0 110-4h1.17C5.06 5.687 5 5.35 5 5zm4 1V5a1 1 0 10-1 1h1zm3 0a1 1 0 10-1-1v1h1z" clipRule="evenodd"></path>
-        <path d="M9 11H3v5a2 2 0 002 2h4v-7zM11 18h4a2 2 0 002-2v-5h-6v7z"></path>
-      </svg>
-    )},
   ];
 
   return (
-    <div className="w-64 bg-gray-900 min-h-screen flex flex-col">
+    <div className="w-64 bg-gray-900 h-full flex flex-col border-r border-gray-700">
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center space-x-2">
           <div className="w-6 h-6 bg-purple-600 rounded"></div>
@@ -81,58 +71,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => 
         </div>
       </div>
       
-      <div className="flex-1 p-4">
+      <div className="flex-1 overflow-y-auto p-4">
         <div className="space-y-6">
           <div>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
               Creator Tools
             </h3>
             <nav className="space-y-1">
-              {menuItems.slice(0, 9).map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => onNavigate(item.id)}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-3 transition-colors ${
-                    currentPage === item.id
-                      ? 'bg-gray-800 text-white'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                  }`}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              Launch Tools
-            </h3>
-            <nav className="space-y-1">
-              {menuItems.slice(9, 10).map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => onNavigate(item.id)}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-3 transition-colors ${
-                    currentPage === item.id
-                      ? 'bg-gray-800 text-white'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                  }`}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              Account
-            </h3>
-            <nav className="space-y-1">
-              {menuItems.slice(10).map((item) => (
+              {menuItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => onNavigate(item.id)}
