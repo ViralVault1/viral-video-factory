@@ -6,26 +6,25 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   return (
-    <header className="bg-gray-900 border-b border-gray-700">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <h1 className="text-xl font-bold text-white">Viral Video Factory</h1>
+    <header className="bg-gray-900 border-b border-gray-700 h-16">
+      <div className="flex justify-between items-center h-full px-6">
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-purple-600 rounded"></div>
+            <span className="text-white font-semibold">Viral Video Factory</span>
           </div>
-          <nav className="flex space-x-4">
-            <button
-              onClick={() => onNavigate('home')}
-              className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-            >
-              Home
-            </button>
-            <button
-              onClick={() => onNavigate('pricing')}
-              className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-            >
-              Pricing
-            </button>
-          </nav>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 text-gray-400">
+            <span>Viral</span>
+            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+            <span>Pixar</span>
+            <span>Guest</span>
+          </div>
+          <button className="text-gray-400 hover:text-white px-3 py-1 rounded">
+            Sign Out
+          </button>
         </div>
       </div>
     </header>
