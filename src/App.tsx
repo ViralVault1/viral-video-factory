@@ -6,6 +6,8 @@ import { Sidebar } from './components/Sidebar';
 import { VideoGenerator } from './components/VideoGenerator';
 import { AIAgentsHub } from './components/AIAgentsHub';
 import { AuthPage } from './components/AuthPage';
+import { ProductAdStudioPage } from './components/ProductAdStudioPage';
+import { LicenseGeneratorPage } from './components/LicenseGeneratorPage';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('video-generator');
@@ -25,6 +27,10 @@ function App() {
         return <AIAgentsHub onNavigate={handleNavigate} />;
       case 'auth':
         return <AuthPage onNavigate={handleNavigate} />;
+      case 'product-ad-studio':
+        return <ProductAdStudioPage onNavigate={handleNavigate} />;
+      case 'license-generator':
+        return <LicenseGeneratorPage onNavigate={handleNavigate} />;
       case 'pricing':
         return (
           <div className="flex items-center justify-center flex-1 py-20">
