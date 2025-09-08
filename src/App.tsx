@@ -8,6 +8,8 @@ import { AIAgentsHub } from './components/AIAgentsHub';
 import { AuthPage } from './components/AuthPage';
 import { ProductAdStudioPage } from './components/ProductAdStudioPage';
 import { LicenseGeneratorPage } from './components/LicenseGeneratorPage';
+import { ImageGeneratorPage } from './components/ImageGeneratorPage';
+import { SocialMediaSuitePage } from './components/SocialMediaSuitePage';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('video-generator');
@@ -31,6 +33,10 @@ function App() {
         return <ProductAdStudioPage onNavigate={handleNavigate} />;
       case 'license-generator':
         return <LicenseGeneratorPage onNavigate={handleNavigate} />;
+      case 'image-generator':
+        return <ImageGeneratorPage onNavigate={handleNavigate} />;
+      case 'social-media-suite':
+        return <SocialMediaSuitePage onNavigate={handleNavigate} />;
       case 'pricing':
         return (
           <div className="flex items-center justify-center flex-1 py-20">
