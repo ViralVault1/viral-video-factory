@@ -1,0 +1,7 @@
+{
+  "name": "Viral Video Factory",
+  "description": "Create faceless AI videos in minutes. No filming needed. Natural voices, dynamic visuals for any topic. Ultimate faceless video tool for creators.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
