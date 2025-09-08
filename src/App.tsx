@@ -1,5 +1,7 @@
 ﻿import React, { useState } from 'react';
 import { Header } from './components/Header';
+import { Footer } from './components/Footer';
+import { HomePage } from './components/HomePage';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
@@ -11,38 +13,36 @@ function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
-        return (
-          <div className="flex items-center justify-center flex-1">
-            <div className="text-center">
-              <h1 className="text-5xl font-bold mb-4">
-                Create Viral Videos with AI
-              </h1>
-              <p className="text-gray-400 mb-8">
-                Generate engaging content in minutes with our AI-powered platform
-              </p>
-              <button className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg">
-                Get Started
-              </button>
-            </div>
-          </div>
-        );
+        return <HomePage />;
       case 'pricing':
         return (
-          <div className="flex items-center justify-center flex-1">
+          <div className="flex items-center justify-center flex-1 py-20">
             <div className="text-center">
               <h1 className="text-4xl font-bold mb-4">Pricing Plans</h1>
-              <p className="text-gray-400">Choose the plan that works for you</p>
+              <p className="text-gray-400 mb-8">Choose the plan that works for you</p>
+              <div className="grid md:grid-cols-2 gap-8 max-w-4xl">
+                <div className="bg-gray-700 p-8 rounded-lg">
+                  <h3 className="text-2xl font-bold mb-4">Starter</h3>
+                  <p className="text-3xl font-bold mb-4">$19<span className="text-base text-gray-400">/month</span></p>
+                  <p className="text-gray-400 mb-6">Perfect for beginners</p>
+                  <button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    Get Started
+                  </button>
+                </div>
+                <div className="bg-gray-700 p-8 rounded-lg border-2 border-green-600">
+                  <h3 className="text-2xl font-bold mb-4">Pro</h3>
+                  <p className="text-3xl font-bold mb-4">$49<span className="text-base text-gray-400">/month</span></p>
+                  <p className="text-gray-400 mb-6">For serious creators</p>
+                  <button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    Get Started
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         );
       default:
-        return (
-          <div className="flex items-center justify-center flex-1">
-            <div className="text-center">
-              <h1 className="text-4xl font-bold mb-4">Page Not Found</h1>
-            </div>
-          </div>
-        );
+        return <HomePage />;
     }
   };
 
@@ -50,6 +50,7 @@ function App() {
     <div className="bg-gray-800 text-white min-h-screen flex flex-col">
       <Header onNavigate={handleNavigate} />
       {renderPage()}
+      <Footer />
     </div>
   );
 }
