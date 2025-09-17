@@ -1,0 +1,66 @@
+{
+  "version": 2,
+  "name": "viral-video-factory",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "REACT_APP_SUPABASE_URL": "@supabase_url",
+    "REACT_APP_SUPABASE_ANON_KEY": "@supabase_anon_key",
+    "REACT_APP_STRIPE_PUBLISHABLE_KEY": "@stripe_publishable_key",
+    "REACT_APP_MANUS_API_BASE": "@manus_api_base"
+  },
+  "build": {
+    "env": {
+      "REACT_APP_SUPABASE_URL": "@supabase_url",
+      "REACT_APP_SUPABASE_ANON_KEY": "@supabase_anon_key",
+      "REACT_APP_STRIPE_PUBLISHABLE_KEY": "@stripe_publishable_key",
+      "REACT_APP_MANUS_API_BASE": "@manus_api_base"
+    }
+  },
+  "functions": {
+    "app/api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
+    }
+  ]
+}
+
