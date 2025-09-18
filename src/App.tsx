@@ -103,7 +103,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 // Main App component
 const App: React.FC = () => {
-  useEffect(() => {
+useEffect(() => {
   console.log('Viral Video Factory initialized');
   
   // Test API connections
@@ -137,6 +137,9 @@ const App: React.FC = () => {
       console.error('❌ Gemini error:', err);
     }
   };
+
+  testConnections();
+}, []);
 
   testConnections();
 }, []);
