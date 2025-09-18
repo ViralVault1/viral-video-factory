@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+effect OK import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import './App.css';
@@ -104,7 +104,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 // Main App component
 const App: React.FC = () => {
 useEffect(() => {
-    console.log('Viral Video Factory initialized');
+  console.log('Viral Video Factory initialized');
   
   // Test API connections
   const testConnections = async () => {
@@ -137,9 +137,6 @@ useEffect(() => {
       console.error('❌ Gemini error:', err);
     }
   };
-
-  testConnections();
-}, []);
 
   testConnections();
 }, []);
