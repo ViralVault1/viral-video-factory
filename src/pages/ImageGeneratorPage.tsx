@@ -47,85 +47,61 @@ export const ImageGeneratorPage: React.FC = () => {
   };
 
   const handleDownload = async (imageUrl: string, index: number) => {
-  try {
-    // Method 1: Direct link approach (fallback)
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `ai-generated-image-${index + 1}.png`;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch (error) {
-    console.error('Download failed:', error);
-    // Fallback: Open in new tab so user can right-click save
-    window.open(imageUrl, '_blank');
-    alert('Download failed. The image has opened in a new tab - you can right-click and "Save image as..." to download it.');
-  }
-};
+    try {
+      // Method 1: Direct link approach (fallback)
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      link.download = `ai-generated-image-${index + 1}.png`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback: Open in new tab so user can right-click save
+      window.open(imageUrl, '_blank');
+      alert('Download failed. The image has opened in a new tab - you can right-click and "Save image as..." to download it.');
+    }
+  };
 
   const handleGenerateImage = async () => {
-  if (!formData.prompt.trim()) {
-    alert('Please enter a prompt to generate an image.');
-    return;
-  }
-
-  setIsGenerating(true);
-  
-  try {
-    // Map aspect ratios to DALL-E 3 supported sizes
-    let size: "1024x1024" | "1792x1024" | "1024x1792";
-    
-    switch (formData.aspectRatio) {
-      case 'landscape':
-        size = "1792x1024"; // 16:9 landscape
-        break;
-      case 'portrait':
-      case 'portrait_alt':
-        size = "1024x1792"; // 9:16 portrait
-        break;
-      default:
-        size = "1024x1024"; // 1:1 square
-        break;
+    if (!formData.prompt.trim()) {
+      alert('Please enter a prompt to generate an image.');
+      return;
     }
-
-    const response = await openai.images.generate({
-      model: "dall-e-3",
-      prompt: formData.prompt,
-      n: 1,
-      size: size,
-    });
-    
-    const imageUrl = response.data?.[0]?.url;
-    if (!imageUrl) {
-      throw new Error('No image URL returned from OpenAI');
-    }
-    setGeneratedImages([imageUrl, ...generatedImages.slice(0, 3)]);
-    
-  } catch (error) {
-    console.error('Image generation error:', error);
-    alert('Failed to generate image. Please check your API key and try again.');
-  } finally {
-    setIsGenerating(false);
-  }
-};
 
     setIsGenerating(true);
     
     try {
+      // Map aspect ratios to DALL-E 3 supported sizes
+      let size: "1024x1024" | "1792x1024" | "1024x1792";
+      
+      switch (formData.aspectRatio) {
+        case 'landscape':
+          size = "1792x1024"; // 16:9 landscape
+          break;
+        case 'portrait':
+        case 'portrait_alt':
+          size = "1024x1792"; // 9:16 portrait
+          break;
+        default:
+          size = "1024x1024"; // 1:1 square
+          break;
+      }
+
       const response = await openai.images.generate({
         model: "dall-e-3",
         prompt: formData.prompt,
         n: 1,
-        size: "1024x1024",
+        size: size,
       });
       
       const imageUrl = response.data?.[0]?.url;
       if (!imageUrl) {
         throw new Error('No image URL returned from OpenAI');
       }
-      setGeneratedImages([imageUrl, ...generatedImages.slice(0, 3)]); // Keep latest 4 images
+      setGeneratedImages([imageUrl, ...generatedImages.slice(0, 3)]);
       
     } catch (error) {
       console.error('Image generation error:', error);
