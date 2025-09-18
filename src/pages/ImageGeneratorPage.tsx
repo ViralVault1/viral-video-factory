@@ -66,10 +66,50 @@ export const ImageGeneratorPage: React.FC = () => {
 };
 
   const handleGenerateImage = async () => {
-    if (!formData.prompt.trim()) {
-      alert('Please enter a prompt to generate an image.');
-      return;
+  if (!formData.prompt.trim()) {
+    alert('Please enter a prompt to generate an image.');
+    return;
+  }
+
+  setIsGenerating(true);
+  
+  try {
+    // Map aspect ratios to DALL-E 3 supported sizes
+    let size: "1024x1024" | "1792x1024" | "1024x1792";
+    
+    switch (formData.aspectRatio) {
+      case 'landscape':
+        size = "1792x1024"; // 16:9 landscape
+        break;
+      case 'portrait':
+      case 'portrait_alt':
+        size = "1024x1792"; // 9:16 portrait
+        break;
+      default:
+        size = "1024x1024"; // 1:1 square
+        break;
     }
+
+    const response = await openai.images.generate({
+      model: "dall-e-3",
+      prompt: formData.prompt,
+      n: 1,
+      size: size,
+    });
+    
+    const imageUrl = response.data?.[0]?.url;
+    if (!imageUrl) {
+      throw new Error('No image URL returned from OpenAI');
+    }
+    setGeneratedImages([imageUrl, ...generatedImages.slice(0, 3)]);
+    
+  } catch (error) {
+    console.error('Image generation error:', error);
+    alert('Failed to generate image. Please check your API key and try again.');
+  } finally {
+    setIsGenerating(false);
+  }
+};
 
     setIsGenerating(true);
     
