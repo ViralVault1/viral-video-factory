@@ -1,4 +1,4 @@
-effect OK import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import './App.css';
@@ -103,43 +103,43 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 // Main App component
 const App: React.FC = () => {
-useEffect(() => {
-  console.log('Viral Video Factory initialized');
-  
-  // Test API connections
-  const testConnections = async () => {
-    console.log('🧪 Testing API connections...');
+  useEffect(() => {
+    console.log('Viral Video Factory initialized');
     
-    try {
-      // Test Supabase
-      const { supabase } = await import('./config/supabase');
-      const { data, error } = await supabase.auth.getSession();
-      console.log('✅ Supabase connected:', !error);
-    } catch (err) {
-      console.error('❌ Supabase error:', err);
-    }
+    // Test API connections
+    const testConnections = async () => {
+      console.log('🧪 Testing API connections...');
+      
+      try {
+        // Test Supabase
+        const { supabase } = await import('./config/supabase');
+        const { data, error } = await supabase.auth.getSession();
+        console.log('✅ Supabase connected:', !error);
+      } catch (err) {
+        console.error('❌ Supabase error:', err);
+      }
 
-    try {
-      // Test Stripe
-      const stripePromise = await import('./config/stripe');
-      const stripe = await stripePromise.default;
-      console.log('✅ Stripe loaded:', !!stripe);
-    } catch (err) {
-      console.error('❌ Stripe error:', err);
-    }
+      try {
+        // Test Stripe
+        const stripePromise = await import('./config/stripe');
+        const stripe = await stripePromise.default;
+        console.log('✅ Stripe loaded:', !!stripe);
+      } catch (err) {
+        console.error('❌ Stripe error:', err);
+      }
 
-    try {
-      // Test Gemini
-      const { model } = await import('./config/gemini');
-      const result = await model.generateContent("Hello");
-      console.log('✅ Gemini connected:', !!result);
-    } catch (err) {
-      console.error('❌ Gemini error:', err);
-    }
-  };
+      try {
+        // Test Gemini
+        const { model } = await import('./config/gemini');
+        const result = await model.generateContent("Hello");
+        console.log('✅ Gemini connected:', !!result);
+      } catch (err) {
+        console.error('❌ Gemini error:', err);
+      }
+    };
 
-  testConnections();
-}, []);
+    testConnections();
+  }, []);
 
   return (
     <Router>
