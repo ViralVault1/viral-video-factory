@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Image, Sparkles } from 'lucide-react';
+import openai from '../config/openai';
 
 interface ImageGenerationRequest {
   prompt: string;
@@ -54,21 +55,19 @@ export const ImageGeneratorPage: React.FC = () => {
     setIsGenerating(true);
     
     try {
-      // Simulate image generation
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      const response = await openai.images.generate({
+        model: "dall-e-3",
+        prompt: formData.prompt,
+        n: 1,
+        size: "1024x1024",
+      });
       
-      // For demo purposes, we'll use placeholder images
-      const newImages = [
-        'https://via.placeholder.com/512x512/4F46E5/FFFFFF?text=Generated+Image+1',
-        'https://via.placeholder.com/512x512/7C3AED/FFFFFF?text=Generated+Image+2',
-        'https://via.placeholder.com/512x512/059669/FFFFFF?text=Generated+Image+3',
-        'https://via.placeholder.com/512x512/DC2626/FFFFFF?text=Generated+Image+4'
-      ];
+      const imageUrl = response.data[0].url;
+      setGeneratedImages([imageUrl, ...generatedImages.slice(0, 3)]); // Keep latest 4 images
       
-      setGeneratedImages(newImages);
-      alert(`Successfully generated images for: "${formData.prompt}"`);
     } catch (error) {
-      alert('Failed to generate image. Please try again.');
+      console.error('Image generation error:', error);
+      alert('Failed to generate image. Please check your API key and try again.');
     } finally {
       setIsGenerating(false);
     }
