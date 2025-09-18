@@ -47,24 +47,23 @@ export const ImageGeneratorPage: React.FC = () => {
   };
 
   const handleDownload = async (imageUrl: string, index: number) => {
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `ai-generated-image-${index + 1}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Download failed:', error);
-      alert('Failed to download image. Please try again.');
-    }
-  };
+  try {
+    // Method 1: Direct link approach (fallback)
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = `ai-generated-image-${index + 1}.png`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error('Download failed:', error);
+    // Fallback: Open in new tab so user can right-click save
+    window.open(imageUrl, '_blank');
+    alert('Download failed. The image has opened in a new tab - you can right-click and "Save image as..." to download it.');
+  }
+};
 
   const handleGenerateImage = async () => {
     if (!formData.prompt.trim()) {
