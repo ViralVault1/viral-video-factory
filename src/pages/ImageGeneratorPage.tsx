@@ -46,6 +46,26 @@ export const ImageGeneratorPage: React.FC = () => {
     }
   };
 
+  const handleDownload = async (imageUrl: string, index: number) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ai-generated-image-${index + 1}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Failed to download image. Please try again.');
+    }
+  };
+
   const handleGenerateImage = async () => {
     if (!formData.prompt.trim()) {
       alert('Please enter a prompt to generate an image.');
@@ -63,9 +83,9 @@ export const ImageGeneratorPage: React.FC = () => {
       });
       
       const imageUrl = response.data?.[0]?.url;
-if (!imageUrl) {
-  throw new Error('No image URL returned from OpenAI');
-}
+      if (!imageUrl) {
+        throw new Error('No image URL returned from OpenAI');
+      }
       setGeneratedImages([imageUrl, ...generatedImages.slice(0, 3)]); // Keep latest 4 images
       
     } catch (error) {
@@ -189,17 +209,27 @@ if (!imageUrl) {
                 <p className="text-sm">Enter a prompt and click "Generate Image" to create your first image.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 {generatedImages.map((image, index) => (
                   <div key={index} className="relative group">
                     <img
                       src={image}
-                      alt={`Generated image ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg border border-slate-600"
+                      alt={`AI generated artwork ${index + 1}`}
+                      className="w-full h-64 object-cover rounded-lg border border-slate-600 cursor-pointer"
+                      onClick={() => window.open(image, '_blank')}
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                      <button className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors">
+                    <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-3">
+                      <button 
+                        onClick={() => handleDownload(image, index)}
+                        className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                      >
                         Download
+                      </button>
+                      <button 
+                        onClick={() => window.open(image, '_blank')}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                      >
+                        View Full Size
                       </button>
                     </div>
                   </div>
@@ -219,11 +249,21 @@ if (!imageUrl) {
                   <img
                     src={image}
                     alt={`Recent generation ${index + 1}`}
-                    className="w-full h-24 object-cover rounded-lg border border-slate-600"
+                    className="w-full h-32 object-cover rounded-lg border border-slate-600 cursor-pointer"
+                    onClick={() => window.open(image, '_blank')}
                   />
-                  <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                    <button className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors">
-                      Use
+                  <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                    <button 
+                      onClick={() => handleDownload(image, index)}
+                      className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                    >
+                      Download
+                    </button>
+                    <button 
+                      onClick={() => window.open(image, '_blank')}
+                      className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                    >
+                      View
                     </button>
                   </div>
                 </div>
