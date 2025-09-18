@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Plus, Trash2 } from 'lucide-react';
+import { FileText, Plus, Trash2, Sparkles, Copy, Download } from 'lucide-react';
 
 interface ArticleTitle {
   id: string;
@@ -16,10 +16,22 @@ interface ArticleConfig {
   photoStyle: string;
 }
 
+interface GeneratedContent {
+  id: string;
+  title: string;
+  content: string;
+  wordCount: number;
+  generatedAt: Date;
+}
+
 const AutoWriterPage: React.FC = () => {
   const [topic, setTopic] = useState('');
   const [customTitles, setCustomTitles] = useState('');
   const [articleQueue, setArticleQueue] = useState<ArticleTitle[]>([]);
+  const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
+  const [isGeneratingTitles, setIsGeneratingTitles] = useState(false);
+  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+  const [selectedContent, setSelectedContent] = useState<GeneratedContent | null>(null);
   const [config, setConfig] = useState<ArticleConfig>({
     niche: 'Pets and pet care',
     articleStyle: 'Informative',
@@ -30,19 +42,38 @@ const AutoWriterPage: React.FC = () => {
     photoStyle: 'Photographic'
   });
 
-  const handleGenerateTitles = () => {
+  const handleGenerateTitles = async () => {
     if (!topic.trim()) return;
     
-    // Simulate generating titles
-    const generatedTitles = [
-      `Ultimate Guide to ${topic}: Everything You Need to Know`,
-      `10 Essential Tips for ${topic} Success`,
-      `Common ${topic} Mistakes and How to Avoid Them`,
-      `The Complete ${topic} Checklist for Beginners`,
-      `Advanced ${topic} Strategies That Actually Work`
-    ];
+    setIsGeneratingTitles(true);
     
-    setCustomTitles(generatedTitles.join('\n'));
+    try {
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY!);
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      
+      const prompt = `Generate 5 compelling article titles about "${topic}" in the ${config.niche} niche. 
+      Style: ${config.articleStyle}
+      Target audience: People interested in ${config.niche}
+      
+      Requirements:
+      - Make titles engaging and click-worthy
+      - Include keywords related to ${topic}
+      - Vary the title formats (how-to, lists, guides, etc.)
+      - Keep titles under 60 characters when possible
+      
+      Return only the titles, one per line, without numbers or bullets.`;
+
+      const result = await model.generateContent(prompt);
+      const generatedTitles = result.response.text().trim().split('\n').filter(title => title.trim());
+      
+      setCustomTitles(generatedTitles.join('\n'));
+    } catch (error) {
+      console.error('Title generation failed:', error);
+      alert('Failed to generate titles. Please check your API key and try again.');
+    } finally {
+      setIsGeneratingTitles(false);
+    }
   };
 
   const handleAddTitlesToQueue = () => {
@@ -73,12 +104,96 @@ const AutoWriterPage: React.FC = () => {
     return articleQueue.length * creditsPerArticle;
   };
 
-  const handleGenerateArticles = () => {
+  const getWordCountTarget = () => {
+    if (config.articleLength.includes('500')) return 500;
+    if (config.articleLength.includes('1500')) return 1500;
+    if (config.articleLength.includes('3500')) return 3500;
+    return 1500;
+  };
+
+  const handleGenerateArticles = async () => {
     if (articleQueue.length === 0) return;
     
-    // Simulate article generation
-    alert(`Generating ${articleQueue.length} articles with ${calculateCredits()} credits!`);
-    setArticleQueue([]);
+    setIsGeneratingContent(true);
+    
+    try {
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY!);
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      
+      const wordTarget = getWordCountTarget();
+      const generatedArticles: GeneratedContent[] = [];
+      
+      for (const article of articleQueue) {
+        try {
+          const prompt = `Write a comprehensive ${config.articleStyle.toLowerCase()} article about: "${article.title}"
+
+          Requirements:
+          - Niche: ${config.niche}
+          - Writing style: ${config.articleStyle}
+          - Point of view: ${config.pointOfView}
+          - Target word count: ~${wordTarget} words
+          - Include proper headings (H2, H3)
+          - Make it SEO-friendly with natural keyword usage
+          - Write engaging introduction and conclusion
+          - Include practical tips and actionable advice
+          - Use ${config.pointOfView} perspective throughout
+          
+          Structure the article with:
+          1. Engaging introduction
+          2. Multiple main sections with H2 headings
+          3. Subsections with H3 headings where appropriate
+          4. Practical examples and tips
+          5. Strong conclusion with key takeaways
+          
+          Write in ${config.articleStyle.toLowerCase()} tone and make it valuable for readers interested in ${config.niche}.`;
+
+          const result = await model.generateContent(prompt);
+          const content = result.response.text();
+          const wordCount = content.split(/\s+/).length;
+          
+          generatedArticles.push({
+            id: article.id,
+            title: article.title,
+            content: content,
+            wordCount: wordCount,
+            generatedAt: new Date()
+          });
+          
+          // Small delay between generations to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error) {
+          console.error(`Failed to generate article for "${article.title}":`, error);
+        }
+      }
+      
+      setGeneratedContent(prev => [...generatedArticles, ...prev]);
+      setArticleQueue([]);
+      
+      if (generatedArticles.length > 0) {
+        alert(`Successfully generated ${generatedArticles.length} articles!`);
+      }
+    } catch (error) {
+      console.error('Article generation failed:', error);
+      alert('Failed to generate articles. Please check your API key and try again.');
+    } finally {
+      setIsGeneratingContent(false);
+    }
+  };
+
+  const handleCopyContent = (content: string) => {
+    navigator.clipboard.writeText(content);
+    alert('Content copied to clipboard!');
+  };
+
+  const handleDownloadContent = (article: GeneratedContent) => {
+    const element = document.createElement('a');
+    const file = new Blob([article.content], { type: 'text/plain' });
+    element.href = URL.createObjectURL(file);
+    element.download = `${article.title.replace(/[^a-z0-9]/gi, '_')}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
   };
 
   return (
@@ -92,7 +207,7 @@ const AutoWriterPage: React.FC = () => {
         </div>
         <h1 className="text-4xl font-bold mb-2">Auto Writer Studio</h1>
         <p className="text-slate-400 max-w-2xl mx-auto">
-          Generate hundreds of high-quality, SEO-optimized articles in the background. From title 
+          Generate hundreds of high-quality, SEO-optimized articles powered by AI. From title 
           generation to final content, automate your entire writing workflow.
         </p>
       </div>
@@ -117,9 +232,20 @@ const AutoWriterPage: React.FC = () => {
                 />
                 <button
                   onClick={handleGenerateTitles}
-                  className="mt-3 px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
+                  disabled={isGeneratingTitles || !topic.trim()}
+                  className="mt-3 px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors flex items-center gap-2"
                 >
-                  ✨ Generate
+                  {isGeneratingTitles ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Generate Titles
+                    </>
+                  )}
                 </button>
               </div>
 
@@ -174,6 +300,8 @@ const AutoWriterPage: React.FC = () => {
                     <option>Conversational</option>
                     <option>Formal</option>
                     <option>Humorous</option>
+                    <option>Professional</option>
+                    <option>Casual</option>
                   </select>
                 </div>
 
@@ -253,16 +381,25 @@ const AutoWriterPage: React.FC = () => {
 
               <button
                 onClick={handleGenerateArticles}
-                disabled={articleQueue.length === 0}
-                className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-slate-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
+                disabled={articleQueue.length === 0 || isGeneratingContent}
+                className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-slate-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
               >
-                ✨ Generate {articleQueue.length} Articles ({calculateCredits()} Credits)
+                {isGeneratingContent ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Generating Articles...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    Generate {articleQueue.length} Articles ({calculateCredits()} Credits)
+                  </>
+                )}
               </button>
               
               {articleQueue.length === 0 && (
                 <p className="text-xs text-slate-400 text-center">
-                  After you press "START" the article generation happens in the background and
-                  automatically.
+                  Add article titles to the queue to start generating content.
                 </p>
               )}
             </div>
@@ -270,7 +407,7 @@ const AutoWriterPage: React.FC = () => {
         </div>
 
         {/* Queue Section */}
-        <div className="bg-slate-800 rounded-lg p-6">
+        <div className="bg-slate-800 rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Queue of Articles to Generate</h2>
           
           {articleQueue.length === 0 ? (
@@ -297,6 +434,59 @@ const AutoWriterPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Generated Content Section */}
+        {generatedContent.length > 0 && (
+          <div className="bg-slate-800 rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Generated Articles ({generatedContent.length})</h2>
+            
+            <div className="space-y-4">
+              {generatedContent.map((article) => (
+                <div key={article.id} className="bg-slate-700 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-medium text-green-400">{article.title}</h3>
+                    <div className="flex items-center gap-2 text-sm text-slate-400">
+                      <span>{article.wordCount} words</span>
+                      <span>•</span>
+                      <span>{article.generatedAt.toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 mb-3">
+                    <button
+                      onClick={() => setSelectedContent(selectedContent?.id === article.id ? null : article)}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+                    >
+                      {selectedContent?.id === article.id ? 'Hide' : 'View'} Content
+                    </button>
+                    <button
+                      onClick={() => handleCopyContent(article.content)}
+                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors flex items-center gap-1"
+                    >
+                      <Copy className="w-3 h-3" />
+                      Copy
+                    </button>
+                    <button
+                      onClick={() => handleDownloadContent(article)}
+                      className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded transition-colors flex items-center gap-1"
+                    >
+                      <Download className="w-3 h-3" />
+                      Download
+                    </button>
+                  </div>
+                  
+                  {selectedContent?.id === article.id && (
+                    <div className="bg-slate-800 p-4 rounded-lg mt-3">
+                      <pre className="whitespace-pre-wrap text-sm text-slate-300 font-mono max-h-96 overflow-y-auto">
+                        {article.content}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer */}
@@ -340,4 +530,3 @@ const AutoWriterPage: React.FC = () => {
 };
 
 export default AutoWriterPage;
-
