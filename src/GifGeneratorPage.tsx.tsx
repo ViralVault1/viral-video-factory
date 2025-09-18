@@ -1,6 +1,12 @@
 import React from 'react';
 
-export function GifGeneratorPage({ onNavigate, initialFile, onFileConsumed }) {
+interface GifGeneratorPageProps {
+  onNavigate: (page: string) => void;
+  initialFile?: File | null;
+  onFileConsumed?: () => void;
+}
+
+export function GifGeneratorPage({ onNavigate, initialFile, onFileConsumed }: GifGeneratorPageProps) {
   return (
     <div>
       <h2>Gif Generator Page</h2>
