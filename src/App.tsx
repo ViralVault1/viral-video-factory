@@ -103,7 +103,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 // Main App component
 const App: React.FC = () => {
-  10. 6.useEffect(() => {
+  useEffect(() => {
   console.log('Viral Video Factory initialized');
   
   // Test API connections
