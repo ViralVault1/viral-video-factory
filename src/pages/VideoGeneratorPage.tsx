@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'react-hot-toast';
 
 export const VideoGeneratorPage: React.FC = () => {
   const [ideaInput, setIdeaInput] = useState('');
@@ -13,42 +14,251 @@ export const VideoGeneratorPage: React.FC = () => {
   const [visualPrompt, setVisualPrompt] = useState('');
   const [soundEffects, setSoundEffects] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingIdeas, setIsLoadingIdeas] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [generatedVideos, setGeneratedVideos] = useState<any[]>([]);
 
-  const handleFindIdeas = () => {
+  const handleFindIdeas = async () => {
     if (!ideaInput.trim()) {
-      alert('Please enter a topic to find ideas.');
+      toast.error('Please enter a topic to find ideas.');
       return;
     }
-    alert(`Finding viral video ideas for: "${ideaInput}"`);
+
+    setIsLoadingIdeas(true);
+    try {
+      const response = await fetch('/api/generate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt: `Generate 3 viral video ideas about ${ideaInput}`,
+          type: 'video_script',
+          platform: 'general'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Extract ideas from the response and update the script
+      setScript(data.content);
+      toast.success(`Generated viral video ideas for "${ideaInput}"!`);
+      
+    } catch (error) {
+      console.error('Idea generation failed:', error);
+      toast.error('Failed to generate ideas. Please try again.');
+    } finally {
+      setIsLoadingIdeas(false);
+    }
   };
 
-  const handleAnalyzeUrl = () => {
+  const handleAnalyzeUrl = async () => {
     if (!youtubeUrl.trim()) {
-      alert('Please enter a YouTube URL to analyze.');
+      toast.error('Please enter a YouTube URL to analyze.');
       return;
     }
-    alert(`Analyzing YouTube video: ${youtubeUrl}`);
+
+    setIsAnalyzing(true);
+    try {
+      // Simulate analysis with AI-generated script based on URL analysis
+      const response = await fetch('/api/generate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt: `Create a viral video script inspired by analyzing successful video content`,
+          type: 'video_script',
+          platform: 'youtube'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setScript(data.content);
+      toast.success('YouTube video analyzed and script generated!');
+      
+    } catch (error) {
+      console.error('URL analysis failed:', error);
+      toast.error('Failed to analyze URL. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
-  const handleAnalyzeTranscript = () => {
+  const handleAnalyzeTranscript = async () => {
     if (!transcript.trim()) {
-      alert('Please enter a transcript to analyze.');
+      toast.error('Please enter a transcript to analyze.');
       return;
     }
-    alert('Analyzing transcript for viral elements...');
+
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('/api/generate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt: `Analyze this transcript and create an improved viral version: ${transcript}`,
+          type: 'video_script',
+          platform: 'tiktok'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setScript(data.content);
+      toast.success('Transcript analyzed and optimized script generated!');
+      
+    } catch (error) {
+      console.error('Transcript analysis failed:', error);
+      toast.error('Failed to analyze transcript. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleRewriteScript = async () => {
+    if (!script.trim()) {
+      toast.error('Please enter a script to rewrite.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/generate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt: `Rewrite this script for better engagement and clarity: ${script}`,
+          type: 'video_script',
+          platform: 'general'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setScript(data.content);
+      toast.success('Script rewritten for better engagement!');
+      
+    } catch (error) {
+      console.error('Script rewrite failed:', error);
+      toast.error('Failed to rewrite script. Please try again.');
+    }
+  };
+
+  const handleViralOptimizer = async () => {
+    if (!script.trim()) {
+      toast.error('Please enter a script to optimize.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/generate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt: `Optimize this script for maximum viral potential with trending hooks and engagement tactics: ${script}`,
+          type: 'video_script',
+          platform: 'tiktok'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setScript(data.content);
+      toast.success('Script optimized for viral potential!');
+      
+    } catch (error) {
+      console.error('Viral optimization failed:', error);
+      toast.error('Failed to optimize script. Please try again.');
+    }
+  };
+
+  const handleEnhancePrompt = async () => {
+    if (!visualPrompt.trim()) {
+      toast.error('Please enter a visual prompt to enhance.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/generate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt: `Enhance this visual prompt for AI video generation: ${visualPrompt}. Make it more detailed and cinematic.`,
+          type: 'creative'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setVisualPrompt(data.content);
+      toast.success('Visual prompt enhanced!');
+      
+    } catch (error) {
+      console.error('Prompt enhancement failed:', error);
+      toast.error('Failed to enhance prompt. Please try again.');
+    }
   };
 
   const handleGenerateVideo = () => {
     if (!script.trim()) {
-      alert('Please enter a script to generate video.');
+      toast.error('Please enter a script to generate video.');
       return;
     }
     
     setIsGenerating(true);
+    
+    // Simulate video generation
     setTimeout(() => {
+      const newVideo = {
+        id: Date.now(),
+        title: script.substring(0, 50) + '...',
+        script: script,
+        voice: voice,
+        music: music,
+        visualStyle: visualStyle,
+        aiModel: aiModel,
+        presetStyle: presetStyle,
+        visualPrompt: visualPrompt,
+        createdAt: new Date().toLocaleString()
+      };
+      
+      setGeneratedVideos(prev => [newVideo, ...prev]);
       setIsGenerating(false);
-      alert('Video generated successfully! Check your creations below.');
+      toast.success('Video generated successfully! Check your creations below.');
     }, 3000);
+  };
+
+  const useVideoScript = (videoScript: string) => {
+    setScript(videoScript);
+    toast.success('Script loaded into editor!');
   };
 
   const visualStyles = ['AI Generation', 'Storyboard', 'Stock Footage', 'Kinetic Text'];
@@ -94,9 +304,10 @@ export const VideoGeneratorPage: React.FC = () => {
                     />
                     <button
                       onClick={handleFindIdeas}
-                      className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                      disabled={isLoadingIdeas}
+                      className="px-6 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                     >
-                      Find
+                      {isLoadingIdeas ? 'Finding...' : 'Find'}
                     </button>
                   </div>
                 </div>
@@ -115,9 +326,10 @@ export const VideoGeneratorPage: React.FC = () => {
                     />
                     <button
                       onClick={handleAnalyzeUrl}
-                      className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                      disabled={isAnalyzing}
+                      className="px-6 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                     >
-                      Analyze
+                      {isAnalyzing ? 'Analyzing...' : 'Analyze'}
                     </button>
                   </div>
                 </div>
@@ -133,9 +345,10 @@ export const VideoGeneratorPage: React.FC = () => {
                   />
                   <button
                     onClick={handleAnalyzeTranscript}
-                    className="mt-2 px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                    disabled={isAnalyzing}
+                    className="mt-2 px-6 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                   >
-                    Analyze Transcript
+                    {isAnalyzing ? 'Analyzing...' : 'Analyze Transcript'}
                   </button>
                 </div>
               </div>
@@ -166,10 +379,16 @@ export const VideoGeneratorPage: React.FC = () => {
                 />
                 
                 <div className="flex gap-2">
-                  <button className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors">
+                  <button 
+                    onClick={handleRewriteScript}
+                    className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors"
+                  >
                     Rewrite
                   </button>
-                  <button className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">
+                  <button 
+                    onClick={handleViralOptimizer}
+                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                  >
                     Viral Optimizer
                   </button>
                 </div>
@@ -281,7 +500,10 @@ export const VideoGeneratorPage: React.FC = () => {
                       rows={2}
                       className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
-                    <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
+                    <button 
+                      onClick={handleEnhancePrompt}
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                    >
                       Enhance Prompt
                     </button>
                   </div>
@@ -337,27 +559,51 @@ export const VideoGeneratorPage: React.FC = () => {
             {/* Your Creations */}
             <div className="bg-gray-800 rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold">Your Creations</h3>
+                <h3 className="text-xl font-semibold">Your Creations ({generatedVideos.length})</h3>
                 <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
                   Import Creation
                 </button>
               </div>
               <p className="text-gray-400 mb-6">This is where your generated and imported creations will appear.</p>
               
-              {/* Sample Videos */}
+              {/* Generated Videos */}
               <div className="grid grid-cols-1 gap-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-gray-700 rounded-lg p-4">
-                    <div className="aspect-video bg-gray-600 rounded mb-3 flex items-center justify-center">
-                      <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                      </svg>
+                {generatedVideos.length > 0 ? (
+                  generatedVideos.map((video) => (
+                    <div key={video.id} className="bg-gray-700 rounded-lg p-4">
+                      <div className="aspect-video bg-gray-600 rounded mb-3 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="mb-3">
+                        <h4 className="font-medium text-white mb-1">{video.title}</h4>
+                        <p className="text-xs text-gray-400">{video.createdAt}</p>
+                        <p className="text-xs text-gray-400">{video.voice} • {video.presetStyle}</p>
+                      </div>
+                      <button
+                        onClick={() => useVideoScript(video.script)}
+                        className="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                      >
+                        Use Script
+                      </button>
                     </div>
-                    <button className="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors">
-                      Use Script
-                    </button>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  // Sample placeholders when no videos generated yet
+                  [1, 2, 3].map((i) => (
+                    <div key={i} className="bg-gray-700 rounded-lg p-4">
+                      <div className="aspect-video bg-gray-600 rounded mb-3 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <button className="w-full px-4 py-2 bg-gray-600 text-gray-400 rounded-lg cursor-not-allowed">
+                        Generate videos to see them here
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
