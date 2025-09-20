@@ -1,5 +1,10 @@
-// api/generate-content.js
+// api/generate-content.js (Fixed with Debug)
 export default async function handler(req, res) {
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -11,6 +16,12 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Debug logging
+    console.log('API called with:', { prompt: prompt.substring(0, 100), type, provider });
+    console.log('Environment variables check:');
+    console.log('OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
+    console.log('GEMINI_API exists:', !!process.env.GEMINI_API);
+
     let result;
 
     // Choose provider based on type
@@ -18,11 +29,15 @@ export default async function handler(req, res) {
       ? (type === 'analysis' || type === 'technical' ? 'openai' : 'gemini')
       : provider;
 
+    console.log('Selected provider:', selectedProvider);
+
     if (selectedProvider === 'openai') {
       result = await generateWithOpenAI(prompt, type);
     } else {
       result = await generateWithGemini(prompt, type);
     }
+
+    console.log('Generation successful, content length:', result.content.length);
 
     res.status(200).json({
       content: result.content,
@@ -35,7 +50,8 @@ export default async function handler(req, res) {
     console.error('Content generation error:', error);
     res.status(500).json({ 
       error: 'Content generation failed',
-      details: error.message 
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }
@@ -46,6 +62,8 @@ async function generateWithOpenAI(prompt, type) {
   if (!apiKey) {
     throw new Error('OpenAI API key not configured');
   }
+
+  console.log('Calling OpenAI API...');
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -61,12 +79,17 @@ async function generateWithOpenAI(prompt, type) {
     })
   });
 
+  console.log('OpenAI response status:', response.status);
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(`OpenAI API error: ${response.status} ${error.error?.message || ''}`);
+    const errorText = await response.text();
+    console.error('OpenAI API error:', response.status, errorText);
+    throw new Error(`OpenAI API error: ${response.status}`);
   }
 
   const data = await response.json();
+  console.log('OpenAI response received, usage:', data.usage);
+
   return {
     content: data.choices[0].message.content,
     tokens: data.usage.total_tokens,
@@ -80,6 +103,8 @@ async function generateWithGemini(prompt, type) {
   if (!apiKey) {
     throw new Error('Gemini API key not configured');
   }
+
+  console.log('Calling Gemini API...');
 
   const optimizedPrompt = optimizePromptForType(prompt, type);
 
@@ -99,14 +124,19 @@ async function generateWithGemini(prompt, type) {
     })
   });
 
+  console.log('Gemini response status:', response.status);
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(`Gemini API error: ${response.status} ${error.error?.message || ''}`);
+    const errorText = await response.text();
+    console.error('Gemini API error:', response.status, errorText);
+    throw new Error(`Gemini API error: ${response.status}`);
   }
 
   const data = await response.json();
-  
+  console.log('Gemini response received');
+
   if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+    console.error('Invalid Gemini response structure:', JSON.stringify(data));
     throw new Error('Invalid response from Gemini API');
   }
 
