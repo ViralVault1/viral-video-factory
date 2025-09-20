@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Settings, Play, Download, Copy, Wand2, Zap } from 'lucide-react';
+import { FileText, Settings, Download, Copy, Wand2, Zap } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const AutoWriterPage = () => {
@@ -117,28 +117,6 @@ const AutoWriterPage = () => {
     } catch (error) {
       console.error('Article generation failed:', error);
       toast.error(`Failed to generate article: ${error.message}`);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  // Generate batch articles
-  const generateBatchArticles = async () => {
-    if (titles.length === 0) {
-      toast.error('Generate titles first');
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      for (const title of titles.slice(0, 3)) { // Limit to 3 for demo
-        await generateArticle(title);
-        // Add delay between requests
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-      toast.success('Batch generation completed!');
-    } catch (error) {
-      toast.error('Batch generation failed');
     } finally {
       setIsGenerating(false);
     }
@@ -337,46 +315,35 @@ const AutoWriterPage = () => {
                     <p className="text-gray-600">Configure your settings and click "Generate Titles" to get started.</p>
                   </div>
                 ) : (
-                  <>
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-medium">Generated Titles ({titles.length})</h3>
-                      <button
-                        onClick={generateBatchArticles}
-                        disabled={isGenerating}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                      >
-                        Generate All Articles
-                      </button>
-                    </div>
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-medium">Generated Titles ({titles.length})</h3>
                     
-                    <div className="space-y-3">
-                      {titles.map((title, index) => (
-                        <div key={index} className="bg-white rounded-lg border p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900 mb-2">{title}</h4>
-                            </div>
-                            <div className="flex gap-2 ml-4">
-                              <button
-                                onClick={() => copyToClipboard(title)}
-                                className="p-2 text-gray-500 hover:text-blue-500"
-                                title="Copy title"
-                              >
-                                <Copy className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => generateArticle(title)}
-                                disabled={isGenerating}
-                                className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-sm"
-                              >
-                                Generate Article
-                              </button>
-                            </div>
+                    {titles.map((title, index) => (
+                      <div key={index} className="bg-white rounded-lg border p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900 mb-2">{title}</h4>
+                          </div>
+                          <div className="flex gap-2 ml-4">
+                            <button
+                              onClick={() => copyToClipboard(title)}
+                              className="p-2 text-gray-500 hover:text-blue-500"
+                              title="Copy title"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => generateArticle(title)}
+                              disabled={isGenerating}
+                              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-sm"
+                            >
+                              Generate Article
+                            </button>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
@@ -423,7 +390,7 @@ const AutoWriterPage = () => {
                         
                         <div className="prose max-w-none">
                           <div className="text-gray-700 whitespace-pre-wrap">
-                            {article.content.substring(0, 300)}...
+                            {article.content.substring(0, 500)}...
                           </div>
                         </div>
                       </div>
