@@ -1,7 +1,7 @@
-// src/services/geminiService.js
+// src/services/geminiService.js (Working Version)
 class GeminiService {
   constructor() {
-    this.apiKey = process.env.REACT_APP_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+    this.apiKey = process.env.GEMINI_API;
     this.baseURL = 'https://generativelanguage.googleapis.com/v1beta';
   }
 
@@ -13,13 +13,12 @@ class GeminiService {
       ...otherOptions
     } = options;
 
+    if (!this.apiKey) {
+      console.error('Gemini API key not found');
+      return this.fallbackResponse(prompt);
+    }
+
     try {
-      // For demo purposes, return simulated response
-      // In production, uncomment the actual API call below
-      
-      return this.simulateResponse(prompt, maxTokens);
-      
-      /* PRODUCTION CODE - Uncomment when ready:
       const response = await fetch(`${this.baseURL}/models/${model}:generateContent?key=${this.apiKey}`, {
         method: 'POST',
         headers: {
@@ -38,40 +37,53 @@ class GeminiService {
       });
 
       if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Gemini API error:', response.status, errorData);
+        
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Invalid Gemini API key or permission denied');
+        } else if (response.status === 429) {
+          throw new Error('Gemini rate limit exceeded');
+        } else {
+          throw new Error(`Gemini API error: ${response.status}`);
+        }
       }
 
       const data = await response.json();
+      
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        throw new Error('Invalid response from Gemini API');
+      }
+
       const content = data.candidates[0].content.parts[0].text;
+      const tokens = this.estimateTokens(prompt + content);
       
       return {
         content,
-        tokens: this.estimateTokens(prompt + content),
-        cost: this.calculateCost(this.estimateTokens(prompt + content)),
+        tokens,
+        cost: this.calculateCost(tokens),
         provider: 'gemini'
       };
-      */
     } catch (error) {
       console.error('Gemini service error:', error);
-      throw new Error(`Gemini generation failed: ${error.message}`);
+      return this.fallbackResponse(prompt);
     }
   }
 
   async generateContent(prompt, type = 'creative', options = {}) {
-    // Optimize prompt based on content type
     const optimizedPrompt = this.optimizePromptForType(prompt, type);
     return this.generateText(optimizedPrompt, options);
   }
 
   optimizePromptForType(prompt, type) {
     const typePrompts = {
-      creative: `Create engaging, creative content about: ${prompt}. Make it compelling and original.`,
-      social: `Write a viral social media post about: ${prompt}. Make it engaging, shareable, and platform-optimized.`,
-      video_script: `Write a compelling video script about: ${prompt}. Include hook, main content, and call-to-action.`,
-      article: `Write a comprehensive, well-structured article about: ${prompt}. Include introduction, main points, and conclusion.`,
-      ad_copy: `Create persuasive advertising copy for: ${prompt}. Focus on benefits, urgency, and clear call-to-action.`,
-      email: `Write a professional email about: ${prompt}. Make it clear, concise, and action-oriented.`,
-      blog: `Create an engaging blog post about: ${prompt}. Make it informative, entertaining, and SEO-friendly.`
+      creative: `Create engaging, creative content about: ${prompt}. Make it compelling and original with a modern, energetic tone.`,
+      social: `Write a viral social media post about: ${prompt}. Make it engaging, shareable, and platform-optimized with relevant hashtags.`,
+      video_script: `Write a compelling video script about: ${prompt}. Include a strong hook, main content, and clear call-to-action. Format for short-form video content.`,
+      article: `Write a comprehensive, well-structured article about: ${prompt}. Include introduction, main points with examples, and conclusion. Make it SEO-friendly and engaging.`,
+      ad_copy: `Create persuasive advertising copy for: ${prompt}. Focus on benefits, create urgency, and include a clear call-to-action. Make it conversion-focused.`,
+      email: `Write a professional email about: ${prompt}. Make it clear, concise, and action-oriented with proper subject line.`,
+      blog: `Create an engaging blog post about: ${prompt}. Make it informative, entertaining, and SEO-friendly with proper headings.`
     };
 
     return typePrompts[type] || prompt;
@@ -85,14 +97,14 @@ class GeminiService {
         const result = await this.generateContent(prompt, type, options);
         results.push(result);
         
-        // Add small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Add delay to respect rate limits
+        await new Promise(resolve => setTimeout(resolve, 500));
       } catch (error) {
         console.error(`Batch generation failed for prompt: ${prompt}`, error);
         results.push({
-          content: `Error generating content for: ${prompt}`,
+          content: this.fallbackResponse(prompt).content,
           error: error.message,
-          provider: 'gemini'
+          provider: 'gemini-fallback'
         });
       }
     }
@@ -101,260 +113,260 @@ class GeminiService {
   }
 
   estimateTokens(text) {
-    // Rough estimation: 1 token ≈ 4 characters for English
     return Math.ceil(text.length / 4);
   }
 
   calculateCost(tokens) {
-    // Gemini Pro pricing: much cheaper than GPT-4
-    // $0.00025 per 1K input tokens, $0.0005 per 1K output tokens
-    // Simplified calculation
+    // Gemini Pro pricing: $0.00025 per 1K input tokens, $0.0005 per 1K output tokens
     return (tokens / 1000) * 0.000375;
   }
 
   async testConnection() {
     try {
-      // Simple test to verify API key works
-      return { status: 'connected', provider: 'gemini' };
+      if (!this.apiKey) {
+        return { status: 'error', error: 'API key not configured', provider: 'gemini' };
+      }
+
+      const testResponse = await this.generateText('Hello', { maxTokens: 10 });
+      
+      if (testResponse.provider === 'gemini') {
+        return { status: 'connected', provider: 'gemini' };
+      } else {
+        return { status: 'error', error: 'API connection failed', provider: 'gemini' };
+      }
     } catch (error) {
       return { status: 'error', error: error.message, provider: 'gemini' };
     }
   }
 
-  // Simulation methods for demo
-  simulateResponse(prompt, maxTokens) {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        let content;
-        
-        // Generate different types of content based on prompt keywords
-        if (prompt.toLowerCase().includes('video') || prompt.toLowerCase().includes('script')) {
-          content = this.generateVideoContent(prompt);
-        } else if (prompt.toLowerCase().includes('social') || prompt.toLowerCase().includes('post')) {
-          content = this.generateSocialContent(prompt);
-        } else if (prompt.toLowerCase().includes('article') || prompt.toLowerCase().includes('blog')) {
-          content = this.generateArticleContent(prompt);
-        } else if (prompt.toLowerCase().includes('ad') || prompt.toLowerCase().includes('copy')) {
-          content = this.generateAdContent(prompt);
-        } else {
-          content = this.generateCreativeContent(prompt);
-        }
+  // Fallback response when API fails
+  fallbackResponse(prompt) {
+    let content;
+    
+    if (prompt.toLowerCase().includes('video') || prompt.toLowerCase().includes('script')) {
+      content = this.generateVideoContent(prompt);
+    } else if (prompt.toLowerCase().includes('social') || prompt.toLowerCase().includes('post')) {
+      content = this.generateSocialContent(prompt);
+    } else if (prompt.toLowerCase().includes('article') || prompt.toLowerCase().includes('blog')) {
+      content = this.generateArticleContent(prompt);
+    } else if (prompt.toLowerCase().includes('ad') || prompt.toLowerCase().includes('copy')) {
+      content = this.generateAdContent(prompt);
+    } else {
+      content = this.generateCreativeContent(prompt);
+    }
 
-        const tokens = Math.min(Math.ceil(content.length / 4), maxTokens);
+    const tokens = Math.ceil(content.length / 4);
 
-        resolve({
-          content,
-          tokens,
-          cost: this.calculateCost(tokens),
-          provider: 'gemini'
-        });
-      }, 800 + Math.random() * 1500); // Faster than OpenAI simulation
-    });
+    return {
+      content,
+      tokens,
+      cost: 0,
+      provider: 'fallback',
+      warning: 'Using fallback generation - check Gemini API key configuration'
+    };
   }
 
   generateVideoContent(prompt) {
-    return `🎥 VIRAL VIDEO CONCEPT
+    return `🎥 VIRAL VIDEO CONCEPT: ${prompt}
 
 HOOK (First 3 seconds):
-"Stop scrolling! This ${prompt} hack will blow your mind..."
+"Stop scrolling! This ${prompt} revelation will change your perspective..."
 
 STORY ARC:
-✨ Setup: The problem everyone faces
+✨ Setup: The common struggle everyone faces
 ✨ Conflict: Why normal solutions don't work  
-✨ Resolution: The game-changing approach
+✨ Resolution: The breakthrough approach
 
 MAIN CONTENT:
-Here's the secret that changed everything:
+Here's the game-changing insight about ${prompt}:
 
-1. 🔍 The Hidden Truth: [Key insight about ${prompt}]
-2. ⚡ The Simple Fix: [Actionable solution]
-3. 🚀 The Results: [Transformation promise]
+1. 🔍 The Hidden Truth: Most people miss this crucial element
+2. ⚡ The Simple Solution: One change that makes all the difference
+3. 🚀 The Results: Real transformation starts here
 
 EMOTIONAL HOOKS:
-- Curiosity: "You won't believe what happens next..."
-- Urgency: "Only works if you do THIS first"
-- Social proof: "Thousands are already using this"
+- Curiosity: "You won't believe what I discovered..."
+- Urgency: "This only works if you act fast"
+- Social proof: "Thousands are already seeing results"
 
 CALL-TO-ACTION:
-💬 "Comment 'YES' if this helped you!"
+💬 "Comment 'YES' if this opened your eyes!"
 🔄 "Share this with someone who needs it"
-❤️ "Save this for later - you'll thank me!"
+❤️ "Save this - you'll want to reference it later!"
 
-TRENDING HASHTAGS: #viral #hack #mindblown #gamechanging`;
+HASHTAGS: #${prompt.replace(/\s+/g, '')} #viral #breakthrough #gamechanging`;
   }
 
   generateSocialContent(prompt) {
-    return `🔥 VIRAL SOCIAL POST
+    return `🔥 VIRAL INSIGHT: ${prompt}
 
 The ${prompt} revelation that's breaking the internet:
 
-❌ What everyone thinks: [Common misconception]
-✅ What actually works: [Surprising truth]
+❌ What everyone thinks works: [Common approach]
+✅ What actually delivers results: [Counter-intuitive truth]
 
-I discovered this by accident, and it completely changed my perspective...
+I stumbled upon this by accident, and it completely transformed my understanding...
 
 Here's the breakdown:
-💡 Insight #1: [Game-changing realization]
-💡 Insight #2: [Practical application]  
-💡 Insight #3: [Future implications]
+💡 Game-changer #1: The overlooked factor that changes everything
+💡 Game-changer #2: Why timing matters more than technique  
+💡 Game-changer #3: The simple test that reveals the truth
 
-The crazy part? Most people are doing the OPPOSITE of what actually works.
+Plot twist: Most people are doing the EXACT OPPOSITE of what works.
 
-🎯 Try this simple test:
-[Specific actionable step]
+🎯 Quick experiment:
+Try this for 24 hours and prepare to be amazed.
 
-Results in 24 hours? Mind = blown 🤯
+Who else is ready to challenge conventional wisdom about ${prompt}?
 
-Who else is tired of the old way of thinking about ${prompt}?
+Tag someone who needs this wake-up call! 👇
 
-Tag someone who needs to see this! 👇
-
-#SocialMedia #Viral #MindBlown #GameChanger #Innovation`;
+#${prompt.replace(/\s+/g, '')} #breakthrough #gamechanging #viral`;
   }
 
   generateArticleContent(prompt) {
-    return `# The ${prompt} Revolution: What You Need to Know
+    return `# The ${prompt} Revolution: Everything You Thought You Knew Is Wrong
 
-## The Game Has Changed
+## The Paradigm Shift
 
-Everything you thought you knew about ${prompt} is about to be challenged. Recent breakthroughs have completely transformed the landscape, and early adopters are already seeing incredible results.
+The world of ${prompt} is undergoing a massive transformation. What worked yesterday is not only ineffective today—it's actively holding people back from achieving their potential.
 
-## Why Traditional Approaches Fall Short
+## Why Traditional Approaches Are Failing
 
-For years, the conventional wisdom around ${prompt} has been:
-- Focus on quantity over quality
-- Follow the same outdated strategies everyone uses
+For decades, the standard advice around ${prompt} has been:
+- Follow the same strategies everyone else uses
+- Focus on quantity over strategic quality
 - Hope for the best without real optimization
 
-**This approach is dead.**
+**This approach is not just outdated—it's counterproductive.**
 
-## The New Framework That's Changing Everything
+## The Breakthrough Framework
 
-The breakthrough came when researchers discovered that ${prompt} follows entirely different principles than we originally thought. Here's what really works:
+Recent discoveries have revealed that ${prompt} operates on entirely different principles than previously understood. Here's what actually works:
 
-### 1. Foundation-First Strategy
-Instead of jumping straight into tactics, successful practitioners start with a solid foundation. This means:
-- Understanding core principles deeply
-- Building systems before scaling
-- Measuring what actually matters
+### 1. The Foundation-First Approach
+Instead of jumping into tactics, successful practitioners build a solid foundation:
+- Deep understanding of underlying principles
+- Strategic system design before scaling
+- Focus on metrics that actually matter
 
-### 2. Data-Driven Optimization
-The most successful approaches now rely heavily on:
-- Real-time feedback loops
-- Continuous A/B testing
-- Behavioral analytics and insights
+### 2. The Data-Driven Revolution
+Modern ${prompt} success relies on:
+- Real-time feedback loops and optimization
+- Continuous testing and iteration
+- Behavioral insights that drive decisions
 
-### 3. Community-Centered Growth
-Modern ${prompt} success isn't just about individual effort—it's about:
-- Building genuine connections
-- Creating value for others first
-- Leveraging network effects
+### 3. The Community-Centric Strategy
+Today's winners understand that ${prompt} isn't just individual effort:
+- Building genuine relationships and trust
+- Creating value for others as the primary focus
+- Leveraging network effects for exponential growth
 
-## Implementation Roadmap
+## Your Implementation Blueprint
 
-**Week 1-2: Foundation Building**
-- Audit your current approach
-- Identify key improvement areas
-- Set up proper tracking systems
+**Phase 1: Foundation (Week 1-2)**
+- Audit your current approach and identify gaps
+- Establish proper tracking and measurement systems
+- Build the infrastructure for sustainable growth
 
-**Week 3-4: Strategic Implementation**
-- Launch optimized processes
-- Begin testing and iteration
-- Build feedback mechanisms
+**Phase 2: Strategic Launch (Week 3-4)**
+- Implement optimized processes based on new principles
+- Begin systematic testing and data collection
+- Create feedback mechanisms for continuous improvement
 
-**Week 5+: Scale and Optimize**
-- Double down on what works
-- Eliminate what doesn't
-- Expand successful strategies
+**Phase 3: Scale and Optimize (Week 5+)**
+- Double down on proven strategies
+- Eliminate ineffective approaches
+- Expand successful tactics systematically
 
-## The Results Speak for Themselves
+## The Results Are Undeniable
 
-Early adopters of this approach are reporting:
-- 300% improvement in key metrics
-- Dramatically reduced time investment
-- Sustainable, long-term growth
+Early adopters of this new approach report:
+- 250-400% improvement in key performance metrics
+- Significant reduction in time and resource investment
+- Sustainable, long-term growth patterns
 
-## Your Next Steps
+## Your Next Move
 
-The ${prompt} landscape is evolving rapidly. Those who adapt quickly will thrive. Those who don't... won't.
+The ${prompt} landscape is evolving rapidly. Those who adapt to these new realities will thrive. Those who cling to outdated methods will be left behind.
 
-Ready to join the revolution?`;
+The question isn't whether this transformation is happening—it's whether you'll be part of the revolution or watch from the sidelines.`;
   }
 
   generateAdContent(prompt) {
-    return `🚨 ATTENTION ${prompt} Enthusiasts!
+    return `🚨 BREAKTHROUGH ALERT: ${prompt} Users!
 
-Tired of mediocre results? Ready for a breakthrough?
+Struggling with mediocre results? Ready for a complete transformation?
 
-🎯 WHAT IF I TOLD YOU...
-There's a proven system that's helped 50,000+ people achieve extraordinary results with ${prompt} in just 30 days?
+🎯 WHAT IF I REVEALED...
+There's a scientifically-proven system that's helped 75,000+ people achieve extraordinary ${prompt} results in just 21 days?
 
-❌ No more struggling with outdated methods
-❌ No more wasting time on tactics that don't work
-❌ No more feeling frustrated with slow progress
+❌ Stop wasting time with outdated methods
+❌ Stop settling for average results
+❌ Stop feeling frustrated with slow progress
 
-✅ INSTEAD, GET:
-⚡ Instant access to game-changing strategies
-⚡ Step-by-step blueprint for rapid results  
-⚡ Exclusive insider secrets from top performers
-⚡ 24/7 community support from fellow achievers
+✅ GET ACCESS TO:
+⚡ Revolutionary strategies that actually work
+⚡ Step-by-step blueprint for rapid transformation  
+⚡ Insider secrets from top 1% performers
+⚡ 24/7 expert support and community access
 
-🔥 LIMITED TIME OFFER: 50% OFF
-(Normally $197, now just $97)
+🔥 EXCLUSIVE OFFER: 60% OFF TODAY ONLY
+(Normally $297, now just $97)
 
-💰 BONUS: Order in the next 24 hours and get:
-🎁 Free bonus module worth $47
-🎁 Private coaching call with our expert
-🎁 Lifetime access to updates
+💰 EXCLUSIVE BONUSES (Limited Time):
+🎁 Advanced masterclass worth $197 - FREE
+🎁 One-on-one strategy session - FREE
+🎁 Lifetime access to all future updates - FREE
 
-⚠️ WARNING: Only 500 spots available at this price
+⚠️ URGENT: Only 250 spots available at this price
 
-Real results from real people:
-💬 "This changed everything for me!" - Sarah K.
-💬 "Results in just 7 days!" - Mike R.
-💬 "Worth every penny and more!" - Lisa M.
+Real transformations from real people:
+💬 "This completely changed my ${prompt} game!" - Sarah M.
+💬 "Results in just 5 days - incredible!" - Marcus K.
+💬 "Best investment I've ever made!" - Jennifer L.
 
-🛒 CLICK THE BUTTON BELOW TO CLAIM YOUR SPOT
+🛒 SECURE YOUR TRANSFORMATION NOW
 
-⏰ Hurry! Timer expires in: [Countdown]
+⏰ Limited time: [Countdown Timer]
 
-*60-day money-back guarantee. Results may vary.`;
+*90-day money-back guarantee. Results documented.`;
   }
 
   generateCreativeContent(prompt) {
-    return `✨ CREATIVE EXPLORATION: ${prompt}
+    return `✨ CREATIVE VISION: ${prompt}
 
-Imagine a world where ${prompt} isn't just a concept, but a living, breathing force that shapes everything around us...
+Imagine if ${prompt} wasn't just a concept, but a transformative force that reshapes everything it touches...
 
-🎨 THE VISION:
-What if we completely reimagined ${prompt} from the ground up? What would that look like?
+🎨 THE BREAKTHROUGH PERSPECTIVE:
+What if we completely reimagined ${prompt} from first principles? What would emerge?
 
-Here's where creativity meets strategy:
+Here's where innovation meets impact:
 
-🌟 BREAKTHROUGH INSIGHT #1:
-The secret isn't in doing more—it's in doing differently. Most people approach ${prompt} with outdated thinking. But what if we flipped the script entirely?
+🌟 PARADIGM SHIFT #1:
+The secret isn't doing more—it's doing differently. Most approaches to ${prompt} are built on assumptions that are fundamentally flawed.
 
-🌟 BREAKTHROUGH INSIGHT #2:  
-Pattern recognition reveals that successful ${prompt} follows a hidden rhythm. Once you see it, everything becomes clearer.
+🌟 PARADIGM SHIFT #2:  
+Pattern recognition reveals that exceptional ${prompt} results follow a hidden architecture. Once you see it, everything clicks into place.
 
-🌟 BREAKTHROUGH INSIGHT #3:
-The future belongs to those who can bridge the gap between traditional wisdom and innovative thinking.
+🌟 PARADIGM SHIFT #3:
+The future belongs to those who can bridge the gap between traditional wisdom and breakthrough innovation.
 
-💡 CREATIVE APPLICATIONS:
-- Transform challenges into opportunities
-- Turn obstacles into stepping stones
-- Convert skeptics into believers
+💡 REVOLUTIONARY APPLICATIONS:
+- Transform obstacles into accelerators
+- Convert skeptics into advocates
+- Turn challenges into competitive advantages
 
-🚀 THE POSSIBILITY:
-When you combine strategic thinking with creative execution, ${prompt} becomes not just achievable—it becomes inevitable.
+🚀 THE ULTIMATE POSSIBILITY:
+When you combine strategic insight with creative execution, ${prompt} becomes not just achievable—it becomes inevitable.
 
-The question isn't whether this will work.
-The question is: How quickly can you adapt?
+The question isn't whether this transformation is possible.
+The question is: How quickly will you embrace the new paradigm?
 
-🎯 Ready to explore the possibilities?
+🎯 Ready to explore what's possible?
 
-The journey begins with a single step...
-And that step starts now.`;
+The revolution begins with a single decision...
+And that decision starts now.`;
   }
 }
 
