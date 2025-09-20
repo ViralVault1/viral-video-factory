@@ -17,6 +17,35 @@ const AutoWriterPage = () => {
     photoStyle: 'Photographic'
   });
 
+  const testAPI = async () => {
+    console.log('Testing API with POST request...');
+    try {
+      const response = await fetch('/api/generate-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: 'Generate 3 article titles about cats',
+          type: 'creative'
+        })
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
+      const data = await response.json();
+      console.log('Response data:', data);
+      
+      if (response.ok) {
+        alert('API works! Check console for details.');
+      } else {
+        alert(`API failed with status ${response.status}: ${data.error || data.details || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Request failed:', error);
+      alert(`Request failed: ${error.message}`);
+    }
+  };
+
   const handleGenerateTitles = async () => {
     if (!topic.trim()) {
       toast.error('Please enter a topic');
@@ -124,7 +153,20 @@ const AutoWriterPage = () => {
         </p>
       </div>
 
+      {/* Test Button */}
       <div className="max-w-7xl mx-auto p-6">
+        <div className="mb-6 text-center">
+          <button 
+            onClick={testAPI} 
+            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium"
+          >
+            Test API Connection
+          </button>
+          <p className="text-xs text-slate-400 mt-2">Click to test if API is working properly</p>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Left Column - Generate Article Titles */}
           <div className="bg-slate-800 rounded-lg p-6">
