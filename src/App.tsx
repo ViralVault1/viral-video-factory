@@ -12,7 +12,7 @@ import { AIInfluencerStudioPage } from './pages/AIInfluencerStudioPage';
 import { SocialMediaSuitePage } from './pages/SocialMediaSuitePage';
 import { SocialStudioPage } from './pages/SocialStudioPage';
 import { ImageGeneratorPage } from './pages/ImageGeneratorPage';
-import { ImageRemixStudioPage } from './pages/ImageRemixStudioPage';
+import ImageRemixStudioPage from './pages/ImageRemixStudioPage';
 import { GifGeneratorPage } from './pages/GifGeneratorPage';
 import { ProductAdStudioPage } from './pages/ProductAdStudioPage';
 import { ProductHuntPage } from './pages/ProductHuntPage';
