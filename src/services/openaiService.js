@@ -1,7 +1,7 @@
-// src/services/openaiService.js
+// src/services/openaiService.js (Working Version)
 class OpenAIService {
   constructor() {
-    this.apiKey = process.env.REACT_APP_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    this.apiKey = process.env.REACT_APP_OPENAI_API_KEY;
     this.baseURL = 'https://api.openai.com/v1';
   }
 
@@ -13,13 +13,12 @@ class OpenAIService {
       ...otherOptions
     } = options;
 
+    if (!this.apiKey) {
+      console.error('OpenAI API key not found');
+      return this.fallbackResponse(prompt);
+    }
+
     try {
-      // For demo purposes, return simulated response
-      // In production, uncomment the actual API call below
-      
-      return this.simulateResponse(prompt, maxTokens);
-      
-      /* PRODUCTION CODE - Uncomment when ready:
       const response = await fetch(`${this.baseURL}/chat/completions`, {
         method: 'POST',
         headers: {
@@ -36,7 +35,16 @@ class OpenAIService {
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('OpenAI API error:', response.status, errorData);
+        
+        if (response.status === 401) {
+          throw new Error('Invalid OpenAI API key');
+        } else if (response.status === 429) {
+          throw new Error('OpenAI rate limit exceeded');
+        } else {
+          throw new Error(`OpenAI API error: ${response.status}`);
+        }
       }
 
       const data = await response.json();
@@ -46,10 +54,10 @@ class OpenAIService {
         cost: this.calculateCost(data.usage.total_tokens),
         provider: 'openai'
       };
-      */
     } catch (error) {
       console.error('OpenAI service error:', error);
-      throw new Error(`OpenAI generation failed: ${error.message}`);
+      // Fall back to local generation if API fails
+      return this.fallbackResponse(prompt);
     }
   }
 
@@ -60,11 +68,12 @@ class OpenAIService {
       ...otherOptions
     } = options;
 
+    if (!this.apiKey) {
+      console.error('OpenAI API key not found');
+      return this.fallbackImageResponse(prompt);
+    }
+
     try {
-      // Simulate image generation
-      return this.simulateImageResponse(prompt);
-      
-      /* PRODUCTION CODE:
       const response = await fetch(`${this.baseURL}/images/generations`, {
         method: 'POST',
         headers: {
@@ -81,7 +90,9 @@ class OpenAIService {
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI Image API error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('OpenAI Image API error:', response.status, errorData);
+        throw new Error(`OpenAI image generation failed: ${response.status}`);
       }
 
       const data = await response.json();
@@ -91,19 +102,19 @@ class OpenAIService {
         cost: this.calculateImageCost(size, quality),
         provider: 'openai'
       };
-      */
     } catch (error) {
       console.error('OpenAI image service error:', error);
-      throw new Error(`OpenAI image generation failed: ${error.message}`);
+      return this.fallbackImageResponse(prompt);
     }
   }
 
   async analyzeImage(imageUrl, prompt = "Describe this image") {
+    if (!this.apiKey) {
+      console.error('OpenAI API key not found');
+      return this.fallbackAnalysisResponse(prompt);
+    }
+
     try {
-      // Simulate image analysis
-      return this.simulateImageAnalysis(prompt);
-      
-      /* PRODUCTION CODE:
       const response = await fetch(`${this.baseURL}/chat/completions`, {
         method: 'POST',
         headers: {
@@ -134,16 +145,14 @@ class OpenAIService {
         cost: this.calculateCost(data.usage.total_tokens),
         provider: 'openai'
       };
-      */
     } catch (error) {
       console.error('OpenAI image analysis error:', error);
-      throw new Error(`OpenAI image analysis failed: ${error.message}`);
+      return this.fallbackAnalysisResponse(prompt);
     }
   }
 
   calculateCost(tokens) {
     // GPT-4 pricing: $0.03 per 1K tokens input, $0.06 per 1K tokens output
-    // Simplified calculation assuming 50/50 split
     return (tokens / 1000) * 0.045;
   }
 
@@ -151,215 +160,165 @@ class OpenAIService {
     // DALL-E 3 pricing
     if (size === '1024x1024') return quality === 'hd' ? 0.08 : 0.04;
     if (size === '1792x1024' || size === '1024x1792') return quality === 'hd' ? 0.12 : 0.08;
-    return 0.04; // Default
+    return 0.04;
   }
 
   async testConnection() {
     try {
-      // Simple test to verify API key works
-      return { status: 'connected', provider: 'openai' };
+      if (!this.apiKey) {
+        return { status: 'error', error: 'API key not configured', provider: 'openai' };
+      }
+
+      const response = await fetch(`${this.baseURL}/models`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+        }
+      });
+
+      if (response.ok) {
+        return { status: 'connected', provider: 'openai' };
+      } else {
+        return { status: 'error', error: `HTTP ${response.status}`, provider: 'openai' };
+      }
     } catch (error) {
       return { status: 'error', error: error.message, provider: 'openai' };
     }
   }
 
-  // Simulation methods for demo
-  simulateResponse(prompt, maxTokens) {
-    const responses = {
-      'video_script': this.generateVideoScriptResponse(prompt),
-      'social_post': this.generateSocialPostResponse(prompt),
-      'article': this.generateArticleResponse(prompt),
-      'analysis': this.generateAnalysisResponse(prompt)
+  // Fallback methods when API fails
+  fallbackResponse(prompt) {
+    const fallbacks = {
+      video: this.generateVideoScript(prompt),
+      social: this.generateSocialPost(prompt),
+      article: this.generateArticle(prompt),
+      default: this.generateGenericContent(prompt)
     };
 
-    // Determine response type based on prompt content
-    let responseType = 'analysis';
-    if (prompt.toLowerCase().includes('video') || prompt.toLowerCase().includes('script')) {
-      responseType = 'video_script';
-    } else if (prompt.toLowerCase().includes('social') || prompt.toLowerCase().includes('post')) {
-      responseType = 'social_post';
-    } else if (prompt.toLowerCase().includes('article') || prompt.toLowerCase().includes('blog')) {
-      responseType = 'article';
-    }
+    let type = 'default';
+    if (prompt.toLowerCase().includes('video') || prompt.toLowerCase().includes('script')) type = 'video';
+    else if (prompt.toLowerCase().includes('social') || prompt.toLowerCase().includes('post')) type = 'social';
+    else if (prompt.toLowerCase().includes('article') || prompt.toLowerCase().includes('blog')) type = 'article';
 
-    const content = responses[responseType] || this.generateGenericResponse(prompt);
-    const tokens = Math.min(Math.ceil(content.length / 4), maxTokens);
-
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({
-          content,
-          tokens,
-          cost: this.calculateCost(tokens),
-          provider: 'openai'
-        });
-      }, 1000 + Math.random() * 2000);
-    });
+    const content = fallbacks[type];
+    return {
+      content,
+      tokens: Math.ceil(content.length / 4),
+      cost: 0,
+      provider: 'fallback',
+      warning: 'Using fallback generation - check API key configuration'
+    };
   }
 
-  simulateImageResponse(prompt) {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({
-          imageUrl: `https://picsum.photos/1024/1024?random=${Date.now()}`,
-          prompt,
-          cost: 0.04,
-          provider: 'openai'
-        });
-      }, 3000 + Math.random() * 2000);
-    });
+  fallbackImageResponse(prompt) {
+    return {
+      imageUrl: `https://picsum.photos/1024/1024?random=${Date.now()}`,
+      prompt,
+      cost: 0,
+      provider: 'fallback',
+      warning: 'Using placeholder image - check API key configuration'
+    };
   }
 
-  simulateImageAnalysis(prompt) {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({
-          analysis: `This image appears to show ${prompt.toLowerCase()}. The composition is well-balanced with strong visual elements. Key features include professional lighting, clear focus, and appealing colors that would work well for social media or marketing purposes.`,
-          tokens: 150,
-          cost: this.calculateCost(150),
-          provider: 'openai'
-        });
-      }, 1500);
-    });
+  fallbackAnalysisResponse(prompt) {
+    return {
+      analysis: `Analysis for: ${prompt}. This image appears to contain visual elements suitable for the requested analysis. For detailed AI-powered analysis, please ensure your OpenAI API key is properly configured.`,
+      tokens: 50,
+      cost: 0,
+      provider: 'fallback',
+      warning: 'Using fallback analysis - check API key configuration'
+    };
   }
 
-  generateVideoScriptResponse(prompt) {
-    return `🎬 PROFESSIONAL VIDEO SCRIPT
+  generateVideoScript(prompt) {
+    return `🎬 VIDEO SCRIPT: ${prompt}
 
 HOOK (0-3 seconds):
-"Here's something that will completely change how you think about ${prompt}..."
+"Wait... this ${prompt} technique will change everything!"
 
-PROBLEM SETUP (3-10 seconds):
-Most people struggle with ${prompt} because they're missing this one crucial element.
+MAIN CONTENT (3-45 seconds):
+Here's what most people don't know about ${prompt}:
 
-SOLUTION (10-45 seconds):
-Here's the breakthrough approach:
-
-1. FIRST: Identify the core challenge
-2. THEN: Apply this proven framework
-3. FINALLY: Implement with consistent action
+1. The hidden factor that makes all the difference
+2. Why traditional approaches fall short
+3. The breakthrough method that actually works
 
 PROOF (45-50 seconds):
-This method has helped thousands of people achieve remarkable results in just weeks.
+This approach has helped thousands achieve remarkable results.
 
 CALL TO ACTION (50-60 seconds):
-Ready to transform your approach? Follow for more game-changing strategies!
+Try this technique and see the transformation yourself!
+Follow for more game-changing insights!
 
-#VideoScript #ContentCreation #Strategy`;
+#${prompt.replace(/\s+/g, '')} #viral #gamechanging`;
   }
 
-  generateSocialPostResponse(prompt) {
-    return `🚀 BREAKTHROUGH INSIGHT about ${prompt}:
+  generateSocialPost(prompt) {
+    return `🚀 Game-changing insight about ${prompt}:
 
-The game just changed, and here's what you need to know:
+Most people completely miss this crucial element...
 
-💡 Most people get this completely wrong
-💡 The real secret isn't what you think
-💡 This simple shift makes all the difference
+The breakthrough? ${prompt} isn't just about the obvious factors - it's about understanding the hidden dynamics that drive real results.
 
-I've been studying ${prompt} for years, and this revelation was a total game-changer.
+Here's what I've discovered:
+✨ The counter-intuitive approach that works
+✨ Why conventional wisdom falls short  
+✨ The simple shift that changes everything
 
-The key? [Insert specific actionable insight here]
+Ready to transform your approach to ${prompt}?
 
-Try this approach and watch everything transform.
-
-What's been your biggest challenge with ${prompt}? Drop a comment! 👇
-
-#Growth #Strategy #Success #GameChanger`;
+#${prompt.replace(/\s+/g, '')} #breakthrough #gamechanging`;
   }
 
-  generateArticleResponse(prompt) {
-    return `# The Complete Guide to Mastering ${prompt}
+  generateArticle(prompt) {
+    return `# The Ultimate Guide to ${prompt}
 
 ## Introduction
 
-In today's rapidly evolving landscape, understanding ${prompt} has become more critical than ever. This comprehensive analysis will provide you with the insights and strategies needed to excel.
+Understanding ${prompt} has become crucial in today's landscape. This comprehensive guide explores the key strategies and insights you need to succeed.
 
-## Current State of ${prompt}
+## Why ${prompt} Matters
 
-Recent developments have fundamentally shifted how we approach ${prompt}. Key trends include:
+The significance of ${prompt} cannot be overstated. Recent developments have shown that those who master these principles achieve substantially better outcomes.
 
-- **Increased sophistication** in methodologies
-- **Greater emphasis** on data-driven decisions  
-- **Rising importance** of strategic implementation
+## Key Strategies
 
-## Advanced Strategies
+### 1. Foundation Building
+Start with a solid understanding of core principles. This involves:
+- Comprehensive research and analysis
+- Strategic planning and goal setting
+- Implementation of best practices
 
-### Strategy 1: Foundation-First Approach
-Building a solid foundation is crucial for long-term success. This involves:
-- Comprehensive understanding of core principles
-- Systematic implementation of best practices
-- Continuous monitoring and optimization
-
-### Strategy 2: Data-Driven Optimization
-Leveraging analytics and insights to drive decisions:
-- Establishing clear metrics and KPIs
-- Regular performance analysis
-- Iterative improvement processes
+### 2. Advanced Techniques
+Once you've mastered the basics, focus on:
+- Optimization and refinement
+- Scaling successful approaches
+- Continuous improvement processes
 
 ## Implementation Framework
 
-1. **Assessment Phase**: Evaluate current state
-2. **Planning Phase**: Develop strategic roadmap
-3. **Execution Phase**: Implement with precision
-4. **Optimization Phase**: Refine and improve
+Follow this step-by-step approach:
+1. Assessment and planning phase
+2. Strategic implementation
+3. Monitoring and optimization
+4. Scaling and expansion
 
 ## Conclusion
 
-Success with ${prompt} requires a combination of strategic thinking, tactical execution, and continuous learning. By following this framework, you'll be well-positioned to achieve exceptional results.`;
+Success with ${prompt} requires dedication, strategic thinking, and consistent execution. By following these principles, you'll be well-positioned to achieve exceptional results.`;
   }
 
-  generateAnalysisResponse(prompt) {
-    return `## Comprehensive Analysis: ${prompt}
+  generateGenericContent(prompt) {
+    return `Comprehensive analysis of ${prompt}:
 
-### Executive Summary
-This analysis examines the key factors, implications, and strategic considerations related to ${prompt}.
+This topic represents a significant opportunity for growth and development. Key considerations include understanding the fundamental principles, implementing strategic approaches, and maintaining consistent execution.
 
-### Key Findings
-1. **Primary Factor**: The most significant element influencing outcomes
-2. **Secondary Considerations**: Supporting factors that impact results
-3. **Risk Assessment**: Potential challenges and mitigation strategies
+The most effective strategy involves:
+- Thorough research and preparation
+- Strategic planning and implementation  
+- Continuous monitoring and optimization
+- Adaptation based on results and feedback
 
-### Strategic Implications
-- **Short-term Impact**: Immediate effects and considerations
-- **Long-term Consequences**: Sustained implications for growth
-- **Competitive Advantages**: Opportunities for differentiation
-
-### Recommendations
-Based on this analysis, the following actions are recommended:
-1. Prioritize foundation-building activities
-2. Implement monitoring and measurement systems
-3. Develop contingency plans for identified risks
-4. Establish clear success metrics and timelines
-
-### Conclusion
-The analysis indicates significant potential for positive outcomes when approached strategically and executed with precision.`;
-  }
-
-  generateGenericResponse(prompt) {
-    return `Thank you for your inquiry about "${prompt}". 
-
-This is a complex topic that requires careful consideration of multiple factors. Based on current best practices and industry standards, here are the key points to consider:
-
-**Primary Considerations:**
-- Understanding the foundational elements
-- Identifying key success factors
-- Developing a systematic approach
-- Implementing with consistency
-
-**Strategic Approach:**
-1. Begin with thorough research and planning
-2. Develop a clear implementation strategy
-3. Execute with attention to detail
-4. Monitor progress and adjust as needed
-
-**Best Practices:**
-- Maintain focus on core objectives
-- Leverage proven methodologies
-- Stay adaptable to changing conditions
-- Measure results and optimize continuously
-
-This approach has proven effective across various scenarios and can be adapted to meet specific requirements and constraints.`;
+Success in this area requires both strategic thinking and tactical execution, combined with the flexibility to adapt as conditions change.`;
   }
 }
 
