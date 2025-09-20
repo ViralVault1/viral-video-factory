@@ -164,4 +164,81 @@ const useLLM = () => {
     });
   }, [generateContent]);
 
-  const generateAdCopy = useCallback(async (
+  const generateAdCopy = useCallback(async (prompt, options = {}) => {
+    return generateContent(prompt, {
+      type: 'ad_copy',
+      provider: 'gemini',
+      ...options
+    });
+  }, [generateContent]);
+
+  const generateImage = useCallback(async (prompt, options = {}) => {
+    try {
+      setIsLoading(true);
+      const result = await openaiService.generateImage(prompt, options);
+      setCostEstimate(result.cost || 0);
+      
+      if (result.warning) {
+        toast.warning(result.warning);
+      } else {
+        toast.success('Image generated successfully');
+      }
+      
+      return result;
+    } catch (error) {
+      toast.error(`Image generation failed: ${error.message}`);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return {
+    generateContent,
+    generateBatch,
+    generateVideoScript,
+    generateSocialPost,
+    generateArticle,
+    generateAdCopy,
+    generateImage,
+    checkProviderHealth,
+    isLoading,
+    error,
+    costEstimate
+  };
+};
+
+// Helper functions
+const getRoutingReason = (provider, type) => {
+  const reasons = {
+    openai: {
+      analysis: 'OpenAI selected for superior analytical capabilities',
+      technical: 'OpenAI chosen for technical accuracy',
+      complex: 'OpenAI preferred for complex reasoning'
+    },
+    gemini: {
+      creative: 'Gemini selected for cost-effective creative content',
+      social: 'Gemini chosen for social media optimization',
+      video_script: 'Gemini selected for creative video content',
+      article: 'Gemini chosen for efficient article generation',
+      ad_copy: 'Gemini preferred for marketing copy'
+    }
+  };
+
+  return reasons[provider]?.[type] || `${provider} selected by intelligent routing`;
+};
+
+const optimizeForPlatform = (prompt, platform) => {
+  const platformOptimizations = {
+    twitter: `Create a Twitter post about: ${prompt}. Keep it under 280 characters, engaging, and include relevant hashtags.`,
+    instagram: `Create an Instagram post about: ${prompt}. Make it visually descriptive, engaging, and include popular hashtags.`,
+    linkedin: `Create a professional LinkedIn post about: ${prompt}. Make it business-focused, valuable, and network-oriented.`,
+    facebook: `Create a Facebook post about: ${prompt}. Make it conversational, community-engaging, and shareable.`,
+    tiktok: `Create a TikTok video script about: ${prompt}. Make it trendy, engaging, and optimized for viral potential.`,
+    youtube: `Create YouTube content about: ${prompt}. Include compelling title, description, and key talking points.`
+  };
+
+  return platformOptimizations[platform] || prompt;
+};
+
+export default useLLM;
