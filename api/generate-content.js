@@ -232,25 +232,86 @@ function generateConclusion(title, style, niche, pointOfView) {
   return conclusion;
 }
 
-async function generateTitles(topic, type) {
-  // Generate sample titles based on topic and type
+async function generateTitles(prompt, type) {
+  // Extract the actual topic from the prompt
+  const topicMatch = prompt.match(/about ["']([^"']+)["']/i);
+  const topic = topicMatch ? topicMatch[1] : extractTopicFromPrompt(prompt);
+  
+  // Extract niche if available
+  const nicheMatch = prompt.match(/Niche: ([^\n]+)/i);
+  const niche = nicheMatch ? nicheMatch[1].trim() : '';
+  
+  // Generate contextual titles based on the topic and niche
+  const titles = generateContextualTitles(topic, niche, type);
+  
+  // Return as numbered list as requested
+  return titles.map((title, index) => `${index + 1}. ${title}`).join('\n');
+}
+
+function extractTopicFromPrompt(prompt) {
+  // Try to extract topic from various patterns
+  const patterns = [
+    /Generate.*titles about ["']([^"']+)["']/i,
+    /titles about ([^.\n]+)/i,
+    /about ([^.\n]+)/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = prompt.match(pattern);
+    if (match) {
+      return match[1].trim();
+    }
+  }
+  
+  return 'your topic'; // fallback
+}
+
+function generateContextualTitles(topic, niche, type) {
   const templates = {
     creative: [
-      `The Ultimate Guide to ${topic}`,
-      `10 Surprising Facts About ${topic}`,
-      `How ${topic} Changed Everything`,
-      `The Future of ${topic}: What You Need to Know`,
-      `${topic} Secrets That Actually Work`
+      `The Ultimate Beginner's Guide to ${topic}`,
+      `10 Essential Tips for Mastering ${topic}`,
+      `${topic}: A Complete Step-by-Step Guide for Beginners`,
+      `Common ${topic} Mistakes and How to Avoid Them`,
+      `The Secret to Perfect ${topic} Every Time`,
+      `${topic} Made Simple: Tips from Professional Chefs`,
+      `From Novice to Expert: Your ${topic} Journey`,
+      `5 Game-Changing ${topic} Techniques You Need to Know`,
+      `The Science Behind Perfect ${topic}`,
+      `${topic} Troubleshooting: Fixing Common Problems`
+    ],
+    informative: [
+      `Essential ${topic} Techniques for Beginners`,
+      `Understanding the Basics of ${topic}`,
+      `${topic} Fundamentals: What Every Beginner Should Know`,
+      `Step-by-Step ${topic} Instructions for New Bakers`,
+      `${topic} Equipment and Ingredients Guide`,
+      `Common ${topic} Problems and Solutions`,
+      `${topic} Temperature and Timing Guide`,
+      `Building Your ${topic} Skills: A Progressive Approach`,
+      `${topic} Safety Tips and Best Practices`,
+      `Advanced ${topic} Techniques for Confident Bakers`
     ],
     professional: [
-      `Strategic Approaches to ${topic}`,
-      `${topic} Best Practices for Modern Organizations`,
-      `ROI Analysis: Investing in ${topic}`,
-      `${topic} Implementation Framework`,
-      `Industry Insights: ${topic} Trends and Opportunities`
+      `Professional ${topic} Techniques for Home Bakers`,
+      `Commercial-Quality ${topic} at Home`,
+      `${topic} Standards and Best Practices`,
+      `Scaling ${topic} Recipes for Different Occasions`,
+      `${topic} Quality Control and Consistency`,
+      `Cost-Effective ${topic} for Small Businesses`,
+      `${topic} Workflow and Kitchen Management`,
+      `${topic} Presentation and Plating Techniques`,
+      `Seasonal ${topic} Menu Planning`,
+      `${topic} Certification and Skill Development`
     ]
   };
 
   const selectedTemplates = templates[type] || templates.creative;
-  return selectedTemplates.join('\n');
+  
+  // If it's food-related, use more specific food templates
+  if (niche && niche.toLowerCase().includes('food')) {
+    return selectedTemplates.slice(0, 5); // Return 5 titles as requested
+  }
+  
+  return selectedTemplates.slice(0, 5);
 }
