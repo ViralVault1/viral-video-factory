@@ -377,7 +377,7 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
       {/* LLM Status and Test */}
       <div className="max-w-7xl mx-auto p-6">
         <div className="mb-6 text-center space-y-4">
-          <LLMStatus 
+ 
             taskType={TaskType.SCRIPT_WRITING}
             provider={llmRouter.getProviderForTask(TaskType.SCRIPT_WRITING)}
             isLoading={isGenerating || isGeneratingArticles}
