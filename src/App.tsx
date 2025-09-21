@@ -22,7 +22,7 @@ import RedeemLicensePage from './pages/RedeemLicensePage';
 import VideoToGifPage from './pages/VideoToGifPage';
 import AuthPage from './pages/AuthPage';
 import AutoWriterPage from './pages/AutoWriterPage';
-import LoadingSpinner from './components/LoadingSpinner';
+import { LoadingSpinner } from './components/LoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Contexts
