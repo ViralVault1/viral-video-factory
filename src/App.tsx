@@ -3,27 +3,27 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import './App.css';
 
-// Components - ALL IMPORTS CORRECTED
-import { Sidebar } from './components/Sidebar';                    // Named export
-import { Header } from './components/Header';                      // Named export
-import { HomePage } from './pages/HomePage';                       // Named export - FIXED
-import VideoGeneratorPage from './pages/VideoGeneratorPage';      // Default export - CORRECT
-import { AIInfluencerStudioPage } from './pages/AIInfluencerStudioPage';  // Named export - FIXED
-import { SocialMediaSuitePage } from './pages/SocialMediaSuitePage';      // Named export - FIXED
-import { SocialStudioPage } from './pages/SocialStudioPage';              // Named export - FIXED
-import { ImageGeneratorPage } from './pages/ImageGeneratorPage';          // Named export - FIXED
-import ImageRemixStudioPage from './pages/ImageRemixStudioPage';          // Default export - CORRECT
-import { GifGeneratorPage } from './pages/GifGeneratorPage';              // Named export - FIXED
-import { ProductAdStudioPage } from './pages/ProductAdStudioPage';        // Named export - FIXED
-import { ProductHuntPage } from './pages/ProductHuntPage';                // Named export - FIXED
-import { PricingPage } from './pages/PricingPage';                        // Named export - FIXED
-import { LicenseRedemptionPage } from './pages/LicenseRedemptionPage';    // Named export - FIXED
-import { RedeemLicensePage } from './pages/RedeemLicensePage';            // Named export - FIXED
-import { VideoToGifPage } from './pages/VideoToGifPage';                  // Named export - FIXED
-import { AuthPage } from './pages/AuthPage';                              // Named export - ALREADY FIXED
-import AutoWriterPage from './pages/AutoWriterPage';                      // Default export - CORRECT
-import { LoadingSpinner } from './components/LoadingSpinner';             // Named export - CORRECT
-import { ErrorBoundary } from './components/ErrorBoundary';               // Named export - CORRECT
+// Components
+import { Sidebar } from './components/Sidebar';
+import { Header } from './components/Header';
+import { HomePage } from './pages/HomePage';
+import VideoGeneratorPage from './pages/VideoGeneratorPage';
+import { AIInfluencerStudioPage } from './pages/AIInfluencerStudioPage';
+import { SocialMediaSuitePage } from './pages/SocialMediaSuitePage';
+import { SocialStudioPage } from './pages/SocialStudioPage';
+import { ImageGeneratorPage } from './pages/ImageGeneratorPage';
+import ImageRemixStudioPage from './pages/ImageRemixStudioPage';
+import { GifGeneratorPage } from './pages/GifGeneratorPage';
+import { ProductAdStudioPage } from './pages/ProductAdStudioPage';
+import { ProductHuntPage } from './pages/ProductHuntPage';
+import { PricingPage } from './pages/PricingPage';
+import { LicenseRedemptionPage } from './pages/LicenseRedemptionPage';
+import { RedeemLicensePage } from './pages/RedeemLicensePage';
+import { VideoToGifPage } from './pages/VideoToGifPage';
+import { AuthPage } from './pages/AuthPage';
+import AutoWriterPage from './pages/AutoWriterPage';
+import { LoadingSpinner } from './components/LoadingSpinner';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Contexts
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -56,13 +56,11 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-900 flex">
-      {/* Sidebar */}
       <Sidebar 
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)} 
       />
       
-      {/* Main content */}
       <div className="flex-1 flex flex-col lg:ml-64">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         
@@ -71,7 +69,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </main>
       </div>
       
-      {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
@@ -115,7 +112,6 @@ const App: React.FC = () => {
             <ErrorBoundary>
               <div className="App">
                 <Routes>
-                  {/* Public routes */}
                   <Route 
                     path="/auth" 
                     element={
@@ -134,7 +130,6 @@ const App: React.FC = () => {
                     } 
                   />
 
-                  {/* Protected routes */}
                   <Route 
                     path="/" 
                     element={
@@ -267,11 +262,9 @@ const App: React.FC = () => {
                     } 
                   />
 
-                  {/* Catch all route */}
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
 
-                {/* Global toast notifications */}
                 <Toaster
                   position="top-right"
                   toastOptions={{
@@ -279,20 +272,20 @@ const App: React.FC = () => {
                     style: {
                       background: '#374151',
                       color: '#ffffff',
-                      border: '1px solid '#4b5563',
+                      border: '1px solid #4b5563'
                     },
                     success: {
                       iconTheme: {
                         primary: '#10b981',
-                        secondary: '#ffffff',
-                      },
+                        secondary: '#ffffff'
+                      }
                     },
                     error: {
                       iconTheme: {
                         primary: '#ef4444',
-                        secondary: '#ffffff',
-                      },
-                    },
+                        secondary: '#ffffff'
+                      }
+                    }
                   }}
                 />
               </div>
