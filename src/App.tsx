@@ -3,27 +3,27 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import './App.css';
 
-// Components - ALL CORRECTED BASED ON ACTUAL EXPORTS
+// Components - ALL IMPORTS CORRECTED
 import { Sidebar } from './components/Sidebar';                    // Named export
 import { Header } from './components/Header';                      // Named export
-import HomePage from './pages/HomePage';
-import VideoGeneratorPage from './pages/VideoGeneratorPage';
-import AIInfluencerStudioPage from './pages/AIInfluencerStudioPage';
-import SocialMediaSuitePage from './pages/SocialMediaSuitePage';
-import SocialStudioPage from './pages/SocialStudioPage';
-import ImageGeneratorPage from './pages/ImageGeneratorPage';
-import ImageRemixStudioPage from './pages/ImageRemixStudioPage';
-import GifGeneratorPage from './pages/GifGeneratorPage';
-import ProductAdStudioPage from './pages/ProductAdStudioPage';
-import ProductHuntPage from './pages/ProductHuntPage';
-import PricingPage from './pages/PricingPage';
-import LicenseRedemptionPage from './pages/LicenseRedemptionPage';
-import RedeemLicensePage from './pages/RedeemLicensePage';
-import VideoToGifPage from './pages/VideoToGifPage';
-import { AuthPage } from './pages/AuthPage';
-import AutoWriterPage from './pages/AutoWriterPage';
-import { LoadingSpinner } from './components/LoadingSpinner';      // Named export
-import { ErrorBoundary } from './components/ErrorBoundary';        // Named export
+import { HomePage } from './pages/HomePage';                       // Named export - FIXED
+import VideoGeneratorPage from './pages/VideoGeneratorPage';      // Default export - CORRECT
+import { AIInfluencerStudioPage } from './pages/AIInfluencerStudioPage';  // Named export - FIXED
+import { SocialMediaSuitePage } from './pages/SocialMediaSuitePage';      // Named export - FIXED
+import { SocialStudioPage } from './pages/SocialStudioPage';              // Named export - FIXED
+import { ImageGeneratorPage } from './pages/ImageGeneratorPage';          // Named export - FIXED
+import ImageRemixStudioPage from './pages/ImageRemixStudioPage';          // Default export - CORRECT
+import { GifGeneratorPage } from './pages/GifGeneratorPage';              // Named export - FIXED
+import { ProductAdStudioPage } from './pages/ProductAdStudioPage';        // Named export - FIXED
+import { ProductHuntPage } from './pages/ProductHuntPage';                // Named export - FIXED
+import { PricingPage } from './pages/PricingPage';                        // Named export - FIXED
+import { LicenseRedemptionPage } from './pages/LicenseRedemptionPage';    // Named export - FIXED
+import { RedeemLicensePage } from './pages/RedeemLicensePage';            // Named export - FIXED
+import { VideoToGifPage } from './pages/VideoToGifPage';                  // Named export - FIXED
+import { AuthPage } from './pages/AuthPage';                              // Named export - ALREADY FIXED
+import AutoWriterPage from './pages/AutoWriterPage';                      // Default export - CORRECT
+import { LoadingSpinner } from './components/LoadingSpinner';             // Named export - CORRECT
+import { ErrorBoundary } from './components/ErrorBoundary';               // Named export - CORRECT
 
 // Contexts
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -279,7 +279,7 @@ const App: React.FC = () => {
                     style: {
                       background: '#374151',
                       color: '#ffffff',
-                      border: '1px solid #4b5563',
+                      border: '1px solid '#4b5563',
                     },
                     success: {
                       iconTheme: {
