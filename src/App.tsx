@@ -3,9 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import './App.css';
 
-// Components - CORRECTED IMPORTS BASED ON ACTUAL EXPORTS
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
+// Components - ALL CORRECTED BASED ON ACTUAL EXPORTS
+import { Sidebar } from './components/Sidebar';                    // Named export
+import { Header } from './components/Header';                      // Named export
 import HomePage from './pages/HomePage';
 import VideoGeneratorPage from './pages/VideoGeneratorPage';
 import AIInfluencerStudioPage from './pages/AIInfluencerStudioPage';
@@ -22,8 +22,8 @@ import RedeemLicensePage from './pages/RedeemLicensePage';
 import VideoToGifPage from './pages/VideoToGifPage';
 import AuthPage from './pages/AuthPage';
 import AutoWriterPage from './pages/AutoWriterPage';
-import { LoadingSpinner } from './components/LoadingSpinner';  // Named export
-import { ErrorBoundary } from './components/ErrorBoundary';    // Named export
+import { LoadingSpinner } from './components/LoadingSpinner';      // Named export
+import { ErrorBoundary } from './components/ErrorBoundary';        // Named export
 
 // Contexts
 import { AuthProvider, useAuth } from './contexts/AuthContext';
