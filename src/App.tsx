@@ -20,7 +20,7 @@ import PricingPage from './pages/PricingPage';
 import LicenseRedemptionPage from './pages/LicenseRedemptionPage';
 import RedeemLicensePage from './pages/RedeemLicensePage';
 import VideoToGifPage from './pages/VideoToGifPage';
-import AuthPage from './pages/AuthPage';
+import { AuthPage } from './pages/AuthPage';
 import AutoWriterPage from './pages/AutoWriterPage';
 import { LoadingSpinner } from './components/LoadingSpinner';      // Named export
 import { ErrorBoundary } from './components/ErrorBoundary';        // Named export
