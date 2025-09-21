@@ -6,7 +6,6 @@ import { toast } from 'react-hot-toast';
 import llmRouter from '../services/llmRouter';
 const TaskType = { SCRIPT_WRITING: 'script_writing' };
 
-
 const AutoWriterPage = () => {
   const [topic, setTopic] = useState('');
   const [customTitles, setCustomTitles] = useState('');
@@ -169,7 +168,7 @@ Return exactly 5 titles, one per line, without numbering.`;
   };
 
   const calculateCredits = () => {
-    let creditsPerArticle = 1; // Base cost
+    let creditsPerArticle = 1;
     
     if (config.featuredImage === 'Yes (+1 Credit)') creditsPerArticle += 1;
     
@@ -183,7 +182,7 @@ Return exactly 5 titles, one per line, without numbering.`;
     if (config.articleLength.includes('Short')) return 800;
     if (config.articleLength.includes('Medium')) return 1500;
     if (config.articleLength.includes('Long')) return 3000;
-    return 1500; // default
+    return 1500;
   };
 
   const generateSingleArticle = async (queueItem, targetWordCount) => {
@@ -274,7 +273,6 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
         const article = await generateSingleArticle(queueItem, targetWordCount);
         articles.push(article);
         
-        // Add a delay to prevent rate limiting
         if (i < articleQueue.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
@@ -360,7 +358,6 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
 
   return (
     <div className="min-h-screen bg-slate-900 text-white">
-      {/* Header */}
       <div className="text-center py-8 border-b border-slate-700">
         <div className="flex justify-center mb-4">
           <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
@@ -374,19 +371,13 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
         </p>
       </div>
 
-      {/* LLM Status and Test */}
       <div className="max-w-7xl mx-auto p-6">
         <div className="mb-6 text-center space-y-4">
- 
-            taskType={TaskType.SCRIPT_WRITING}
-            provider={llmRouter.getProviderForTask(TaskType.SCRIPT_WRITING)}
-            isLoading={isGenerating || isGeneratingArticles}
-          />
           <button 
             onClick={testLLMConnection} 
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
           >
-            🔧 Test LLM Connection
+            Test LLM Connection
           </button>
           <p className="text-xs text-slate-400">Click to verify LLM services are working properly</p>
         </div>
@@ -394,7 +385,6 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
 
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Left Column - Generate Article Titles */}
           <div className="bg-slate-800 rounded-lg p-6">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <span className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">1</span>
@@ -415,7 +405,7 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
                   disabled={isGenerating || !topic.trim() || selectedNiches.length === 0}
                   className="mt-3 px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
                 >
-                  {isGenerating ? '🔄 Generating...' : '✨ Generate Titles'}
+                  {isGenerating ? 'Generating...' : 'Generate Titles'}
                 </button>
               </div>
 
@@ -435,12 +425,11 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
                 disabled={!customTitles.trim()}
                 className="w-full px-4 py-3 bg-orange-600 hover:bg-orange-700 disabled:bg-slate-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
               >
-                📝 Add Titles to Queue
+                Add Titles to Queue
               </button>
             </div>
           </div>
 
-          {/* Right Column - Configure Article Details */}
           <div className="bg-slate-800 rounded-lg p-6">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <span className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">2</span>
@@ -448,11 +437,9 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
             </h2>
 
             <div className="space-y-4">
-              {/* Multi-Select Niches */}
               <div>
                 <label className="block text-sm font-medium mb-2">Niches (Select Multiple)</label>
                 
-                {/* Selected Niches */}
                 <div className="flex flex-wrap gap-2 mb-2">
                   {selectedNiches.map(niche => (
                     <span key={niche} className="bg-purple-600 text-white px-3 py-1 rounded-full text-sm flex items-center gap-1">
@@ -467,7 +454,6 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
                   ))}
                 </div>
 
-                {/* Dropdown */}
                 <div className="relative">
                   <button
                     onClick={() => setShowNicheDropdown(!showNicheDropdown)}
@@ -587,25 +573,24 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
 
               <div className="bg-slate-700 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">🔥 Generate Articles</span>
+                  <span className="text-sm font-medium">Generate Articles</span>
                   <span className="text-lg font-bold text-green-400">{calculateCredits()} Credits</span>
                 </div>
                 <p className="text-xs text-slate-400 mb-3">
-                  After you queue articles in the background and automatically generate them in the background.
+                  Queue articles and generate them automatically in the background.
                 </p>
                 <button
                   onClick={handleGenerateArticles}
                   disabled={articleQueue.length === 0 || isGeneratingArticles}
                   className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-all"
                 >
-                  {isGeneratingArticles ? '🔄 Generating Articles...' : `🚀 Generate ${articleQueue.length} Articles (${calculateCredits()} Credits)`}
+                  {isGeneratingArticles ? 'Generating Articles...' : `Generate ${articleQueue.length} Articles (${calculateCredits()} Credits)`}
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Queue of Articles to Generate */}
         <div className="bg-slate-800 rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Queue of Articles to Generate</h2>
           
@@ -640,7 +625,6 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
           )}
         </div>
 
-        {/* Generated Articles */}
         <div className="bg-slate-800 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Generated Articles ({generatedArticles.length})</h2>
@@ -732,7 +716,6 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
         </div>
       </div>
 
-      {/* Article Viewer Modal */}
       {selectedArticle && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
