@@ -1,5 +1,77 @@
-// src/services/llmRouter.js
+// src/services/llmRouter.ts
+export type TaskType = 
+  | 'analysis'
+  | 'complex'
+  | 'coding'
+  | 'creative'
+  | 'social'
+  | 'content'
+  | 'video_script'
+  | 'article'
+  | 'content_generation'
+  | 'script_writing'
+  | 'image_analysis'
+  | 'data_processing';
+
+export type LLMProvider = 'openai' | 'gemini';
+
+export interface ProviderInfo {
+  name: string;
+  costPerToken: number;
+  strengths: string[];
+  status: 'online' | 'offline' | 'slow';
+  latency: number;
+}
+
+export interface UsageStats {
+  totalRequests: number;
+  totalCost: number;
+  providerUsage: {
+    [key in LLMProvider]: {
+      requests: number;
+      cost: number;
+    };
+  };
+  avgCostPerRequest: number;
+  costSavings: {
+    absoluteSavings: number;
+    percentSavings: number;
+  };
+}
+
+export interface RouterOptions {
+  type?: TaskType;
+  forceProvider?: LLMProvider;
+  maxCost?: number;
+}
+
+export interface ProviderHealth {
+  [key in LLMProvider]: {
+    status: 'online' | 'offline' | 'slow';
+    latency: number;
+    lastCheck: string;
+  };
+}
+
+export interface Recommendation {
+  type: 'cost_optimization' | 'budget_alert' | 'performance';
+  message: string;
+  impact: string;
+}
+
 class LLMRouter {
+  private providers: { [key in LLMProvider]: ProviderInfo };
+  private usage: {
+    totalRequests: number;
+    totalCost: number;
+    providerUsage: {
+      [key in LLMProvider]: {
+        requests: number;
+        cost: number;
+      };
+    };
+  };
+
   constructor() {
     this.providers = {
       openai: {
@@ -29,7 +101,7 @@ class LLMRouter {
   }
 
   // Intelligent provider selection
-  selectProvider(prompt, options = {}) {
+  selectProvider(prompt: string, options: RouterOptions = {}): LLMProvider {
     const { type, forceProvider, maxCost } = options;
     
     // If provider is forced, use it
@@ -54,6 +126,8 @@ class LLMRouter {
       case 'content':
       case 'video_script':
       case 'article':
+      case 'content_generation':
+      case 'script_writing':
         return 'gemini';
         
       default:
@@ -63,7 +137,7 @@ class LLMRouter {
   }
 
   // Estimate cost for a request
-  estimateCost(prompt, provider, maxTokens = 1000) {
+  estimateCost(prompt: string, provider: LLMProvider, maxTokens: number = 1000): number {
     const inputTokens = Math.ceil(prompt.length / 4);
     const providerInfo = this.providers[provider];
     
@@ -73,7 +147,7 @@ class LLMRouter {
   }
 
   // Track usage
-  trackUsage(provider, cost) {
+  trackUsage(provider: LLMProvider, cost: number): void {
     this.usage.totalRequests++;
     this.usage.totalCost += cost;
     this.usage.providerUsage[provider].requests++;
@@ -81,7 +155,7 @@ class LLMRouter {
   }
 
   // Get usage statistics
-  getUsageStats() {
+  getUsageStats(): UsageStats {
     return {
       ...this.usage,
       avgCostPerRequest: this.usage.totalCost / Math.max(this.usage.totalRequests, 1),
@@ -90,7 +164,7 @@ class LLMRouter {
   }
 
   // Calculate cost savings from smart routing
-  calculateSavings() {
+  private calculateSavings(): { absoluteSavings: number; percentSavings: number } {
     const totalGeminiRequests = this.usage.providerUsage.gemini.requests;
     const geminiCost = this.usage.providerUsage.gemini.cost;
     
@@ -108,7 +182,7 @@ class LLMRouter {
   }
 
   // Check provider health
-  async checkProviderHealth() {
+  async checkProviderHealth(): Promise<ProviderHealth> {
     // In a real implementation, this would ping the actual APIs
     return {
       openai: {
@@ -125,8 +199,8 @@ class LLMRouter {
   }
 
   // Get provider recommendations
-  getRecommendations(requestHistory = []) {
-    const recommendations = [];
+  getRecommendations(requestHistory: any[] = []): Recommendation[] {
+    const recommendations: Recommendation[] = [];
     
     const stats = this.getUsageStats();
     
@@ -148,7 +222,73 @@ class LLMRouter {
     
     return recommendations;
   }
+
+  // Execute a task with the selected provider
+  async executeTask(prompt: string, options: RouterOptions = {}): Promise<{
+    content: string;
+    provider: LLMProvider;
+    cost: number;
+    tokens: number;
+  }> {
+    const provider = this.selectProvider(prompt, options);
+    const estimatedCost = this.estimateCost(prompt, provider);
+    
+    try {
+      let content: string;
+      
+      // Route to appropriate provider
+      switch (provider) {
+        case 'openai':
+          content = await this.callOpenAI(prompt);
+          break;
+        case 'gemini':
+          content = await this.callGemini(prompt);
+          break;
+        default:
+          throw new Error(`Unknown provider: ${provider}`);
+      }
+      
+      // Track usage
+      this.trackUsage(provider, estimatedCost);
+      
+      return {
+        content,
+        provider,
+        cost: estimatedCost,
+        tokens: Math.ceil(prompt.length / 4)
+      };
+      
+    } catch (error) {
+      console.error(`LLM Router error with ${provider}:`, error);
+      throw error;
+    }
+  }
+
+  // Call OpenAI API
+  private async callOpenAI(prompt: string): Promise<string> {
+    // Placeholder implementation - replace with actual OpenAI API call
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(`OpenAI response to: ${prompt.substring(0, 50)}...`);
+      }, 1000);
+    });
+  }
+
+  // Call Gemini API
+  private async callGemini(prompt: string): Promise<string> {
+    // Placeholder implementation - replace with actual Gemini API call
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(`Gemini response to: ${prompt.substring(0, 50)}...`);
+      }, 800);
+    });
+  }
 }
 
-// Export singleton instance
-export default new LLMRouter();
+// Export singleton instance and types
+const llmRouter = new LLMRouter();
+export default llmRouter;
+
+// Named exports for compatibility
+export { llmRouter };
+export const router = llmRouter;
