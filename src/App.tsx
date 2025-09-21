@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import './App.css';
 
-// Components
+// Components - ALL CHANGED TO DEFAULT IMPORTS
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import HomePage from './pages/HomePage';
@@ -47,22 +47,37 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   if (!user) {
-    return <AuthPage />;
+    return (
+      <div className="min-h-screen bg-gray-900">
+        {children}
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="flex">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex-1 flex flex-col min-h-screen">
-          <Header onMenuClick={() => setSidebarOpen(true)} />
-          <main className="flex-1">
-            <ErrorBoundary>
-              {children}
-            </ErrorBoundary>
-          </main>
-        </div>
+    <div className="min-h-screen bg-gray-900 flex">
+      {/* Sidebar */}
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+      />
+      
+      {/* Main content */}
+      <div className="flex-1 flex flex-col lg:ml-64">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
+        
+        <main className="flex-1">
+          {children}
+        </main>
       </div>
+      
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 };
@@ -83,7 +98,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return <Navigate to="/auth" replace />;
   }
 
-  return <AppLayout>{children}</AppLayout>;
+  return <>{children}</>;
 };
 
 // Main App component
@@ -93,147 +108,199 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <ErrorBoundary>
+    <Router>
       <ThemeProvider>
-        <BrandProvider>
-          <AuthProvider>
-            <Router>
+        <AuthProvider>
+          <BrandProvider>
+            <ErrorBoundary>
               <div className="App">
                 <Routes>
                   {/* Public routes */}
-                  <Route path="/auth" element={<AuthPage />} />
+                  <Route 
+                    path="/auth" 
+                    element={
+                      <AppLayout>
+                        <AuthPage />
+                      </AppLayout>
+                    } 
+                  />
                   
+                  <Route 
+                    path="/pricing" 
+                    element={
+                      <AppLayout>
+                        <PricingPage />
+                      </AppLayout>
+                    } 
+                  />
+
                   {/* Protected routes */}
-                  <Route path="/" element={
-                    <ProtectedRoute>
-                      <HomePage />
-                    </ProtectedRoute>
-                  } />
+                  <Route 
+                    path="/" 
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <HomePage />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
                   
-                  <Route path="/dashboard" element={
-                    <ProtectedRoute>
-                      <HomePage />
-                    </ProtectedRoute>
-                  } />
+                  <Route 
+                    path="/video-generator" 
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <VideoGeneratorPage />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
                   
-                  <Route path="/auto-writer" element={
-                    <ProtectedRoute>
-                      <AutoWriterPage />
-                    </ProtectedRoute>
-                  } />
+                  <Route 
+                    path="/auto-writer" 
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <AutoWriterPage />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
                   
-                  <Route path="/social-media-suite" element={
-                    <ProtectedRoute>
-                      <SocialMediaSuitePage />
-                    </ProtectedRoute>
-                  } />
+                  <Route 
+                    path="/ai-influencer-studio" 
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <AIInfluencerStudioPage />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
                   
-                  <Route path="/social-studio" element={
-                    <ProtectedRoute>
-                      <SocialStudioPage />
-                    </ProtectedRoute>
-                  } />
+                  <Route 
+                    path="/social-media-suite" 
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <SocialMediaSuitePage />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
                   
-                  <Route path="/ai-influencer" element={
-                    <ProtectedRoute>
-                      <AIInfluencerStudioPage />
-                    </ProtectedRoute>
-                  } />
+                  <Route 
+                    path="/social-studio" 
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <SocialStudioPage />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
                   
-                  <Route path="/video-generator" element={
-                    <ProtectedRoute>
-                      <VideoGeneratorPage />
-                    </ProtectedRoute>
-                  } />
+                  <Route 
+                    path="/image-generator" 
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <ImageGeneratorPage />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
                   
-                  <Route path="/product-ad-studio" element={
-                    <ProtectedRoute>
-                      <ProductAdStudioPage />
-                    </ProtectedRoute>
-                  } />
+                  <Route 
+                    path="/image-remix-studio" 
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <ImageRemixStudioPage />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
                   
-                  <Route path="/image-generator" element={
-                    <ProtectedRoute>
-                      <ImageGeneratorPage />
-                    </ProtectedRoute>
-                  } />
+                  <Route 
+                    path="/gif-generator" 
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <VideoToGifPage />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
                   
-                  <Route path="/image-remix-studio" element={
-                    <ProtectedRoute>
-                      <ImageRemixStudioPage />
-                    </ProtectedRoute>
-                  } />
+                  <Route 
+                    path="/product-ad-studio" 
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <ProductAdStudioPage />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
                   
-                  <Route path="/video-to-gif" element={
-                    <ProtectedRoute>
-                      <VideoToGifPage />
-                    </ProtectedRoute>
-                  } />
+                  <Route 
+                    path="/product-hunt" 
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <ProductHuntPage />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
                   
-                  <Route path="/gif-generator" element={
-                    <ProtectedRoute>
-                      <GifGeneratorPage />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/ai-pricing" element={
-                    <ProtectedRoute>
-                      <PricingPage />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/redeem-license" element={
-                    <ProtectedRoute>
-                      <RedeemLicensePage />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/license-redemption" element={
-                    <ProtectedRoute>
-                      <LicenseRedemptionPage />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/product-hunt" element={
-                    <ProtectedRoute>
-                      <ProductHuntPage />
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* Redirect any unknown routes to dashboard */}
-                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  <Route 
+                    path="/redeem-license" 
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <RedeemLicensePage />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
+
+                  {/* Catch all route */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
-                
-                {/* Toast notifications */}
+
+                {/* Global toast notifications */}
                 <Toaster
                   position="top-right"
                   toastOptions={{
                     duration: 4000,
                     style: {
-                      background: '#1f2937',
-                      color: '#fff',
-                      border: '1px solid #374151',
+                      background: '#374151',
+                      color: '#ffffff',
+                      border: '1px solid #4b5563',
                     },
                     success: {
-                      style: {
-                        background: '#065f46',
-                        border: '1px solid #10b981',
+                      iconTheme: {
+                        primary: '#10b981',
+                        secondary: '#ffffff',
                       },
                     },
                     error: {
-                      style: {
-                        background: '#7f1d1d',
-                        border: '1px solid #ef4444',
+                      iconTheme: {
+                        primary: '#ef4444',
+                        secondary: '#ffffff',
                       },
                     },
                   }}
                 />
               </div>
-            </Router>
-          </AuthProvider>
-        </BrandProvider>
+            </ErrorBoundary>
+          </BrandProvider>
+        </AuthProvider>
       </ThemeProvider>
-    </ErrorBoundary>
+    </Router>
   );
 };
 
