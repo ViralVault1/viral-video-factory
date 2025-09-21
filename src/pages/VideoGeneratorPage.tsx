@@ -256,7 +256,8 @@ export const VideoGeneratorPage: React.FC = () => {
     }, 3000);
   };
 
-  const useVideoScript = (videoScript: string) => {
+  // Fixed: Renamed function to avoid React Hook naming convention
+  const loadVideoScript = (videoScript: string) => {
     setScript(videoScript);
     toast.success('Script loaded into editor!');
   };
@@ -582,7 +583,7 @@ export const VideoGeneratorPage: React.FC = () => {
                         <p className="text-xs text-gray-400">{video.voice} • {video.presetStyle}</p>
                       </div>
                       <button
-                        onClick={() => useVideoScript(video.script)}
+                        onClick={() => loadVideoScript(video.script)}
                         className="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
                       >
                         Use Script
@@ -642,20 +643,3 @@ export const VideoGeneratorPage: React.FC = () => {
                 <li><a href="#" className="text-gray-400 hover:text-white transition-colors">About Us</a></li>
                 <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Contact</a></li>
               </ul>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-700 mt-8 pt-8 flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-6 h-6 bg-purple-500 rounded mr-2"></div>
-              <span className="font-semibold">Viral Video Factory</span>
-            </div>
-            <div className="text-gray-400 text-sm">
-              © 2025 Viral Video Factory. All rights reserved.
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-};
