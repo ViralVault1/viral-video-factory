@@ -11,7 +11,7 @@ const AutoWriterPage = () => {
   const [isGeneratingArticles, setIsGeneratingArticles] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [config, setConfig] = useState({
-    niche: 'Pets and pet care',
+    niche: 'Food & Cooking',
     articleStyle: 'Informative',
     pointOfView: 'Second-person',
     articleLength: 'Medium (~1500 words)',
@@ -375,12 +375,32 @@ Make it SEO-friendly, informative, and engaging for readers interested in ${conf
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Niche</label>
-                <input
-                  type="text"
+                <select
                   value={config.niche}
                   onChange={(e) => setConfig(prev => ({ ...prev, niche: e.target.value }))}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                />
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500 appearance-none cursor-pointer"
+                >
+                  <option value="Food & Cooking">Food & Cooking</option>
+                  <option value="Health & Fitness">Health & Fitness</option>
+                  <option value="Technology">Technology</option>
+                  <option value="Business & Finance">Business & Finance</option>
+                  <option value="Travel & Lifestyle">Travel & Lifestyle</option>
+                  <option value="Home & Garden">Home & Garden</option>
+                  <option value="Fashion & Beauty">Fashion & Beauty</option>
+                  <option value="Education & Learning">Education & Learning</option>
+                  <option value="Entertainment & Gaming">Entertainment & Gaming</option>
+                  <option value="Parenting & Family">Parenting & Family</option>
+                  <option value="Sports & Recreation">Sports & Recreation</option>
+                  <option value="Arts & Crafts">Arts & Crafts</option>
+                  <option value="Personal Development">Personal Development</option>
+                  <option value="Science & Nature">Science & Nature</option>
+                  <option value="Automotive">Automotive</option>
+                  <option value="Real Estate">Real Estate</option>
+                  <option value="Marketing & SEO">Marketing & SEO</option>
+                  <option value="Photography">Photography</option>
+                  <option value="Music & Audio">Music & Audio</option>
+                  <option value="Pet Care">Pet Care</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
