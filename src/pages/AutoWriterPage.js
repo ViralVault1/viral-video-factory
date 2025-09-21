@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FileText, Trash2, Download, Copy, Eye, Clock, CheckCircle, AlertCircle, X, Plus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// Import LLM services (you'll need to create these)
+// Import LLM services
 import llmRouter from '../services/llmRouter';
 const TaskType = { SCRIPT_WRITING: 'script_writing' };
 
@@ -57,15 +57,14 @@ const AutoWriterPage = () => {
       toast.loading('Testing LLM connection...', { id: 'llm-test' });
       
       const result = await llmRouter.executeTask(
-        TaskType.SCRIPT_WRITING,
         'Write a short test message to confirm the LLM is working properly.',
-        { maxTokens: 50 }
+        { type: TaskType.SCRIPT_WRITING }
       );
       
       toast.dismiss('llm-test');
       toast.success('LLM connection successful!');
       console.log('LLM Test Result:', result);
-      alert(`LLM Test Successful!\n\nResponse: ${result.substring(0, 100)}...`);
+      alert(`LLM Test Successful!\n\nProvider: ${result.provider}\nResponse: ${result.content.substring(0, 100)}...`);
       
     } catch (error) {
       toast.dismiss('llm-test');
@@ -108,15 +107,14 @@ Return exactly 5 titles, one per line, without numbering.`;
       toast.loading('Generating article titles...', { id: 'title-gen' });
       
       const result = await llmRouter.executeTask(
-        TaskType.SCRIPT_WRITING,
         prompt,
-        { maxTokens: 300, temperature: 0.8 }
+        { type: TaskType.SCRIPT_WRITING }
       );
       
       toast.dismiss('title-gen');
       
-      // Parse titles from AI response
-      const lines = result.split('\n').filter(line => line.trim());
+      // Parse titles from AI response - use result.content
+      const lines = result.content.split('\n').filter(line => line.trim());
       const titles = [];
       
       for (const line of lines) {
@@ -131,7 +129,7 @@ Return exactly 5 titles, one per line, without numbering.`;
         toast.success(`Generated ${titles.length} titles!`);
       } else {
         // Fallback: use the raw response
-        setCustomTitles(result);
+        setCustomTitles(result.content);
         toast.success('Titles generated! Please review and edit as needed.');
       }
       
@@ -217,12 +215,12 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
 
     try {
       const result = await llmRouter.executeTask(
-        TaskType.SCRIPT_WRITING,
         prompt,
-        { maxTokens: 2000, temperature: 0.7 }
+        { type: TaskType.SCRIPT_WRITING }
       );
       
-      const content = result || '';
+      // Use result.content instead of result
+      const content = result.content || '';
       const wordCount = content.split(/\s+/).length;
 
       return {
