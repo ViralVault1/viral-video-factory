@@ -1,416 +1,256 @@
-// api/generate-content.js (Enhanced with Article Generation)
+// api/generate-content.js (Enhanced with TextBuilder Quality)
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { prompt, type = 'creative', platform = 'general', titles = [] } = req.body;
+  const { prompt, type = 'creative', provider = 'gemini' } = req.body;
 
-  if (!prompt && !titles.length) {
-    return res.status(400).json({ error: 'Prompt or titles are required' });
+  if (!prompt) {
+    return res.status(400).json({ error: 'Prompt is required' });
   }
 
   try {
-    let content = '';
-
-    switch (type) {
-      case 'full_article':
-        content = generateFullArticle(prompt);
-        break;
-      case 'batch_articles':
-        content = generateBatchArticles(titles);
-        break;
-      case 'video_script':
-        content = generateVideoScript(prompt, platform);
-        break;
-      case 'social_post':
-        content = generateSocialPost(prompt, platform);
-        break;
-      case 'ad_copy':
-        content = generateAdCopy(prompt);
-        break;
-      case 'article_titles':
-        content = generateArticleTitles(prompt);
-        break;
-      default:
-        content = generateArticleTitles(prompt);
+    let content;
+    
+    if (type === 'article') {
+      // Generate full article with TextBuilder quality
+      content = await generateHighQualityArticle(prompt);
+    } else {
+      // Generate titles or other content
+      content = await generateTitles(prompt, type);
     }
 
-    res.status(200).json({
-      content,
-      provider: 'mock',
-      tokens: 100,
-      cost: 0.001,
-      type
-    });
-
+    res.status(200).json({ content });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Generation error:', error);
     res.status(500).json({ 
-      error: 'Generation failed',
-      details: error.message
+      error: 'Failed to generate content',
+      details: error.message 
     });
   }
 }
 
-function generateFullArticle(title) {
-  const topic = title.toLowerCase();
+async function generateHighQualityArticle(prompt) {
+  // Extract configuration from prompt
+  const targetWordCount = extractWordCount(prompt);
+  const style = extractStyle(prompt);
+  const niche = extractNiche(prompt);
+  const pointOfView = extractPointOfView(prompt);
   
-  return `# ${title}
-
-## Introduction
-
-In today's rapidly evolving landscape, understanding ${topic} has become more crucial than ever before. Whether you're a beginner just starting out or someone looking to deepen your knowledge, this comprehensive guide will provide you with the insights and strategies you need to succeed.
-
-## Understanding the Fundamentals
-
-To truly master ${topic}, it's essential to start with a solid foundation. Here are the key principles that form the backbone of effective ${topic}:
-
-### Core Principles
-
-1. **Strategic Thinking**: Every successful approach to ${topic} begins with clear strategic planning. This involves understanding your objectives, identifying potential challenges, and developing a roadmap for success.
-
-2. **Consistent Implementation**: Knowledge without action is worthless. The most effective practitioners of ${topic} are those who consistently apply what they learn and continuously refine their approach.
-
-3. **Continuous Learning**: The field of ${topic} is constantly evolving. Staying updated with the latest trends, techniques, and best practices is crucial for long-term success.
-
-## Advanced Strategies and Techniques
-
-Once you've mastered the fundamentals, it's time to explore more advanced strategies that can significantly improve your results with ${topic}.
-
-### Strategy 1: Data-Driven Decision Making
-
-Modern ${topic} success relies heavily on data and analytics. By tracking key metrics and analyzing performance indicators, you can make informed decisions that lead to better outcomes.
-
-**Key Metrics to Track:**
-- Performance indicators specific to your goals
-- Engagement rates and user feedback
-- Cost-effectiveness and ROI measurements
-- Long-term sustainability metrics
-
-### Strategy 2: Technology Integration
-
-Leveraging the right tools and technologies can dramatically improve your ${topic} results. From automation software to advanced analytics platforms, technology can help streamline your processes and enhance your capabilities.
-
-### Strategy 3: Community and Networking
-
-Building relationships within the ${topic} community can provide valuable insights, opportunities for collaboration, and access to resources that might otherwise be unavailable.
-
-## Common Mistakes to Avoid
-
-Even experienced practitioners can fall into these common traps when dealing with ${topic}:
-
-1. **Overcomplicating the Process**: While ${topic} can be complex, starting with unnecessarily complicated strategies often leads to confusion and poor results.
-
-2. **Neglecting the Basics**: In pursuit of advanced techniques, many people forget to maintain excellence in fundamental practices.
-
-3. **Ignoring Feedback**: Whether from data, customers, or peers, feedback is crucial for improvement. Ignoring it can lead to stagnation.
-
-4. **Lack of Patience**: Success with ${topic} often takes time. Expecting immediate results can lead to premature abandonment of effective strategies.
-
-## Implementation Framework
-
-Here's a step-by-step framework for implementing what you've learned about ${topic}:
-
-### Phase 1: Assessment and Planning (Week 1-2)
-- Evaluate your current situation and capabilities
-- Set clear, measurable goals
-- Develop a detailed action plan
-- Identify necessary resources and tools
-
-### Phase 2: Foundation Building (Week 3-6)
-- Implement basic strategies and establish core processes
-- Begin tracking key metrics
-- Create systems for consistent execution
-- Start building relevant skills and knowledge
-
-### Phase 3: Optimization and Growth (Week 7-12)
-- Analyze performance data and identify improvement opportunities
-- Implement advanced strategies and techniques
-- Scale successful approaches
-- Continuously refine and optimize your methods
-
-### Phase 4: Mastery and Innovation (Ongoing)
-- Develop your own unique approaches and innovations
-- Share knowledge and mentor others
-- Stay ahead of industry trends and developments
-- Contribute to the ${topic} community
-
-## Tools and Resources
-
-To support your ${topic} journey, consider utilizing these types of tools and resources:
-
-**Essential Tools:**
-- Analytics and tracking software
-- Project management platforms
-- Communication and collaboration tools
-- Learning and development resources
-
-**Recommended Resources:**
-- Industry publications and blogs
-- Professional associations and communities
-- Online courses and certification programs
-- Conferences and networking events
-
-## Measuring Success
-
-Success in ${topic} can be measured through various indicators:
-
-**Quantitative Measures:**
-- Performance metrics and KPIs
-- Growth rates and trends
-- Efficiency improvements
-- Cost savings and ROI
-
-**Qualitative Measures:**
-- Skill development and expertise growth
-- Relationship building and network expansion
-- Innovation and creative problem-solving
-- Leadership and influence within the community
-
-## Future Trends and Developments
-
-The field of ${topic} continues to evolve rapidly. Here are some trends to watch:
-
-1. **Increased Automation**: Technology will continue to automate routine tasks, allowing practitioners to focus on higher-value activities.
-
-2. **Personalization**: Customized approaches based on individual needs and preferences will become increasingly important.
-
-3. **Sustainability**: Long-term thinking and sustainable practices will gain prominence.
-
-4. **Integration**: Cross-functional collaboration and integrated approaches will become the norm.
-
-## Conclusion
-
-Mastering ${topic} requires dedication, continuous learning, and strategic thinking. By following the principles and strategies outlined in this guide, you'll be well-equipped to achieve success and make meaningful progress in your ${topic} journey.
-
-Remember that success rarely happens overnight. Stay committed to your goals, remain flexible in your approach, and don't hesitate to seek help and guidance when needed. The ${topic} community is generally supportive and willing to help those who are genuinely committed to learning and growing.
-
-Whether you're just starting out or looking to take your ${topic} skills to the next level, the key is to start where you are, use what you have, and do what you can. With persistence and the right strategies, you can achieve remarkable results.
-
-*Start implementing these strategies today and watch your ${topic} capabilities transform over the coming months.*`;
+  // In a real implementation, you'd call your AI service (OpenAI, Gemini, etc.)
+  // For now, we'll generate a comprehensive article structure
+  
+  const title = extractTitle(prompt);
+  const sections = generateArticleSections(title, targetWordCount, style, niche, pointOfView);
+  
+  return sections.join('\n\n');
 }
 
-function generateBatchArticles(titles) {
-  const articles = titles.map((title, index) => {
-    const shortArticle = `# ${title}
-
-## Introduction
-${title} is a crucial topic that deserves careful consideration and strategic implementation.
-
-## Key Points
-1. **Understanding the Fundamentals**: Start with a solid foundation of knowledge
-2. **Strategic Implementation**: Apply proven methods consistently
-3. **Continuous Improvement**: Monitor results and optimize your approach
-
-## Best Practices
-- Research thoroughly before making decisions
-- Implement changes gradually and systematically
-- Track progress using relevant metrics
-- Stay updated with industry developments
-
-## Conclusion
-Success with ${title.toLowerCase()} requires dedication, strategic thinking, and consistent execution. By following these guidelines, you'll be well-positioned to achieve your objectives.
-
----`;
-    return shortArticle;
-  });
-
-  return articles.join('\n\n');
+function extractTitle(prompt) {
+  const match = prompt.match(/title: ["']([^"']+)["']/i);
+  return match ? match[1] : 'Article Title';
 }
 
-function generateVideoScript(prompt, platform = 'general') {
-  const hooks = [
-    `Wait... this ${prompt} secret will blow your mind!`,
-    `Stop scrolling! Here's the ${prompt} truth nobody talks about...`,
-    `If you're struggling with ${prompt}, this changes everything!`,
-    `${prompt} experts don't want you to know this...`,
-    `The biggest ${prompt} mistake everyone makes...`
-  ];
+function extractWordCount(prompt) {
+  if (prompt.includes('500 words')) return 500;
+  if (prompt.includes('1500 words')) return 1500;
+  if (prompt.includes('3500')) return 3500;
+  return 1500; // default
+}
 
-  const mainPoints = [
-    `The counterintuitive approach to ${prompt} that actually works`,
-    `Why traditional ${prompt} advice is keeping you stuck`,
-    `The one ${prompt} technique that changed everything for me`,
-    `What I wish I knew about ${prompt} when I started`,
-    `The ${prompt} breakthrough that saved me years of frustration`
-  ];
+function extractStyle(prompt) {
+  if (prompt.includes('Conversational')) return 'conversational';
+  if (prompt.includes('Formal')) return 'formal';
+  if (prompt.includes('Humorous')) return 'humorous';
+  return 'informative'; // default
+}
 
-  const callToActions = [
-    `Save this video if ${prompt} is important to you!`,
-    `Follow for more ${prompt} insights like this!`,
-    `Comment 'YES' if this helped with your ${prompt} journey!`,
-    `Share this with someone who needs to see it!`,
-    `Try this ${prompt} technique and let me know how it goes!`
-  ];
+function extractNiche(prompt) {
+  const match = prompt.match(/Niche: ([^\n]+)/);
+  return match ? match[1].trim() : 'general';
+}
 
-  const hook = hooks[Math.floor(Math.random() * hooks.length)];
-  const mainContent = mainPoints[Math.floor(Math.random() * mainPoints.length)];
-  const cta = callToActions[Math.floor(Math.random() * callToActions.length)];
+function extractPointOfView(prompt) {
+  if (prompt.includes('First-person')) return 'first';
+  if (prompt.includes('Third-person')) return 'third';
+  return 'second'; // default
+}
 
-  let platformHashtags = '';
-  if (platform === 'tiktok') {
-    platformHashtags = `#${prompt.replace(/\s+/g, '')} #viral #fyp #trending #tips`;
-  } else if (platform === 'youtube') {
-    platformHashtags = `#${prompt.replace(/\s+/g, '')} #tutorial #howto #tips`;
-  } else if (platform === 'instagram') {
-    platformHashtags = `#${prompt.replace(/\s+/g, '')} #reels #tips #motivation #growth`;
+function generateArticleSections(title, targetWordCount, style, niche, pointOfView) {
+  const sections = [];
+  
+  // Title and Introduction
+  sections.push(`# ${title}`);
+  sections.push('');
+  
+  const intro = generateIntroduction(title, style, niche, pointOfView, targetWordCount);
+  sections.push(intro);
+  
+  // Main content sections based on word count
+  const mainSections = generateMainContent(title, style, niche, pointOfView, targetWordCount);
+  sections.push(...mainSections);
+  
+  // Conclusion
+  const conclusion = generateConclusion(title, style, niche, pointOfView);
+  sections.push(conclusion);
+  
+  return sections;
+}
+
+function generateIntroduction(title, style, niche, pointOfView, wordCount) {
+  const pronouns = {
+    first: { you: 'I', your: 'my', yourself: 'myself' },
+    second: { you: 'you', your: 'your', yourself: 'yourself' },
+    third: { you: 'they', your: 'their', yourself: 'themselves' }
+  };
+  
+  const p = pronouns[pointOfView];
+  
+  let intro = `## Introduction\n\n`;
+  
+  if (style === 'conversational') {
+    intro += `Have ${p.you} ever wondered about ${title.toLowerCase()}? ${p.you.charAt(0).toUpperCase() + p.you.slice(1)}'re not alone! `;
+  } else if (style === 'formal') {
+    intro += `Understanding ${title.toLowerCase()} has become increasingly important in today's context. `;
+  } else if (style === 'humorous') {
+    intro += `Let's be honest - ${title.toLowerCase()} might sound about as exciting as watching paint dry, but stick with me here! `;
   } else {
-    platformHashtags = `#${prompt.replace(/\s+/g, '')} #viral #tips`;
+    intro += `In the world of ${niche}, ${title.toLowerCase()} plays a crucial role. `;
   }
-
-  return `🎬 VIDEO SCRIPT: ${prompt}
-
-HOOK (0-3 seconds):
-"${hook}"
-
-MAIN CONTENT (3-45 seconds):
-${mainContent}
-
-Here's what most people get wrong:
-❌ They focus on the obvious solutions
-❌ They ignore the underlying principles  
-❌ They give up too early
-
-But here's what actually works:
-✅ Start with the foundation
-✅ Focus on consistency over perfection
-✅ Track your progress daily
-
-CALL TO ACTION (45-60 seconds):
-${cta}
-
-HASHTAGS: ${platformHashtags}
-
-ENGAGEMENT HOOKS:
-- "You won't believe what happens next..."
-- "The results speak for themselves"
-- "This simple change made all the difference"`;
-}
-
-function generateSocialPost(prompt, platform = 'general') {
-  const openingLines = [
-    `🚀 Game-changing ${prompt} insight:`,
-    `💡 ${prompt} breakthrough that changed everything:`,
-    `🔥 The ${prompt} secret everyone's talking about:`,
-    `✨ Life-changing ${prompt} realization:`,
-    `🎯 ${prompt} truth that will save you years:`
-  ];
-
-  const insights = [
-    `Most people think ${prompt} is about X, but it's actually about Y`,
-    `The biggest ${prompt} mistake is focusing on the wrong metrics`,
-    `${prompt} success isn't about doing more - it's about doing less, better`,
-    `The counterintuitive approach to ${prompt} that actually works`,
-    `Why the traditional ${prompt} advice is keeping you stuck`
-  ];
-
-  const opening = openingLines[Math.floor(Math.random() * openingLines.length)];
-  const insight = insights[Math.floor(Math.random() * insights.length)];
-
-  let platformContent = '';
-  if (platform === 'twitter') {
-    platformContent = `${opening}
-
-${insight}
-
-The game-changer? [Insert specific tip here]
-
-Thread below 👇`;
-  } else if (platform === 'linkedin') {
-    platformContent = `${opening}
-
-${insight}
-
-Here's what I've learned:
-• Insight #1: [Key learning]
-• Insight #2: [Practical application]
-• Insight #3: [Results achieved]
-
-What's been your experience with ${prompt}?`;
+  
+  if (wordCount >= 1500) {
+    intro += `This comprehensive guide will explore everything ${p.you} need to know, from the basics to advanced strategies. We'll cover practical tips, real-world examples, and actionable insights that ${p.you} can implement immediately.\n\n`;
+    intro += `Whether ${p.you}'re a complete beginner or looking to refine ${p.your} existing knowledge, this article provides valuable information that will help ${p.you} succeed in ${niche}.`;
   } else {
-    platformContent = `${opening}
-
-${insight}
-
-Here's the breakdown:
-✨ Key insight #1
-✨ Key insight #2
-✨ Key insight #3
-
-Who else is ready to level up their ${prompt} game?
-
-#${prompt.replace(/\s+/g, '')} #growth #tips`;
+    intro += `This guide covers the essential information ${p.you} need to get started and make meaningful progress.`;
   }
-
-  return platformContent;
+  
+  return intro;
 }
 
-function generateAdCopy(prompt) {
-  const headlines = [
-    `🚨 ATTENTION: ${prompt} Users!`,
-    `⚡ BREAKTHROUGH: ${prompt} Solution Found!`,
-    `🎯 GAME-CHANGER: New ${prompt} Method!`,
-    `🔥 EXCLUSIVE: ${prompt} Secret Revealed!`,
-    `💥 URGENT: ${prompt} Opportunity!`
-  ];
-
-  const problems = [
-    `Tired of struggling with ${prompt}?`,
-    `Fed up with ${prompt} taking forever?`,
-    `Frustrated with ${prompt} not working?`,
-    `Sick of ${prompt} complications?`,
-    `Done with ${prompt} disappointments?`
-  ];
-
-  const solutions = [
-    `This proven ${prompt} system changes everything`,
-    `Revolutionary ${prompt} method gets results fast`,
-    `Simple ${prompt} technique that actually works`,
-    `Breakthrough ${prompt} approach saves time`,
-    `Game-changing ${prompt} solution finally here`
-  ];
-
-  const headline = headlines[Math.floor(Math.random() * headlines.length)];
-  const problem = problems[Math.floor(Math.random() * problems.length)];
-  const solution = solutions[Math.floor(Math.random() * solutions.length)];
-
-  return `${headline}
-
-${problem}
-
-What if I told you ${solution}?
-
-✅ Get results in 24 hours
-✅ No technical skills needed
-✅ Works for complete beginners
-✅ Proven by 10,000+ users
-
-🔥 LIMITED TIME: 50% OFF
-(Normally $197, now just $97)
-
-💰 BONUS: Get these FREE extras:
-🎁 Exclusive training worth $97
-🎁 One-on-one coaching session
-🎁 Lifetime access to updates
-
-⚠️ WARNING: Only 100 spots left
-
-🛒 CLICK TO CLAIM YOUR DISCOUNT
-
-⏰ Offer expires in 24 hours
-
-*Results may vary. 60-day guarantee.`;
+function generateMainContent(title, style, niche, pointOfView, wordCount) {
+  const sections = [];
+  const pronouns = {
+    first: { you: 'I', your: 'my', yourself: 'myself' },
+    second: { you: 'you', your: 'your', yourself: 'yourself' },
+    third: { you: 'they', your: 'their', yourself: 'themselves' }
+  };
+  
+  const p = pronouns[pointOfView];
+  
+  // Section 1: Understanding the Basics
+  sections.push(`## Understanding the Fundamentals\n\n`);
+  sections.push(`Before diving into the specifics of ${title.toLowerCase()}, it's essential to establish a solid foundation. The key principles that govern this area include:\n\n`);
+  sections.push(`**Core Concepts**: The fundamental ideas that ${p.you} need to grasp include understanding the context, recognizing patterns, and applying best practices consistently.\n\n`);
+  sections.push(`**Common Misconceptions**: Many people believe that success in this area happens overnight, but the reality is that it requires patience, persistence, and strategic thinking.\n\n`);
+  sections.push(`**Why It Matters**: In the context of ${niche}, mastering these concepts can lead to significant improvements in ${p.your} overall approach and results.`);
+  
+  if (wordCount >= 1500) {
+    // Section 2: Detailed Analysis
+    sections.push(`## In-Depth Analysis\n\n`);
+    sections.push(`Now that we've covered the basics, let's explore the more nuanced aspects of ${title.toLowerCase()}. Research and practical experience have shown several key factors that contribute to success:\n\n`);
+    sections.push(`### Factor 1: Strategic Planning\n\n`);
+    sections.push(`Effective planning is crucial for achieving ${p.your} goals. This involves setting clear objectives, identifying potential obstacles, and developing contingency plans. When ${p.you} approach this systematically, ${p.you}'re more likely to see consistent results.\n\n`);
+    sections.push(`### Factor 2: Implementation Tactics\n\n`);
+    sections.push(`Theory is important, but execution is everything. The most successful practitioners in ${niche} focus on practical implementation rather than getting caught up in endless planning. Start small, test ${p.your} approach, and iterate based on results.\n\n`);
+    sections.push(`### Factor 3: Measuring Progress\n\n`);
+    sections.push(`What gets measured gets managed. Establishing clear metrics and regularly reviewing ${p.your} progress ensures that ${p.you} stay on track and can make adjustments when necessary.`);
+  }
+  
+  // Practical Tips Section
+  sections.push(`## Practical Tips and Strategies\n\n`);
+  sections.push(`Here are actionable strategies that ${p.you} can implement immediately:\n\n`);
+  sections.push(`**Start with the Basics**: Don't try to do everything at once. Focus on mastering the fundamental principles before moving on to advanced techniques.\n\n`);
+  sections.push(`**Consistency is Key**: Regular, consistent effort often yields better results than sporadic intense periods of activity.\n\n`);
+  sections.push(`**Learn from Others**: Study successful examples in ${niche} and adapt their strategies to ${p.your} specific situation.\n\n`);
+  sections.push(`**Document ${p.your.charAt(0).toUpperCase() + p.your.slice(1)} Journey**: Keep track of what works and what doesn't. This documentation becomes invaluable for refining ${p.your} approach over time.`);
+  
+  if (wordCount >= 3500) {
+    // Advanced Strategies Section
+    sections.push(`## Advanced Strategies and Techniques\n\n`);
+    sections.push(`For those ready to take their approach to the next level, these advanced strategies can provide significant competitive advantages:\n\n`);
+    sections.push(`### Optimization Techniques\n\n`);
+    sections.push(`Advanced practitioners focus on optimization rather than just basic implementation. This involves analyzing data, identifying bottlenecks, and systematically improving processes.\n\n`);
+    sections.push(`### Scaling Considerations\n\n`);
+    sections.push(`As ${p.you} become more successful, ${p.you}'ll need to consider how to scale ${p.your} efforts. This might involve automation, delegation, or strategic partnerships.\n\n`);
+    sections.push(`### Long-term Sustainability\n\n`);
+    sections.push(`Building something that lasts requires thinking beyond immediate results. Consider how ${p.your} current approach will adapt to changing conditions and future challenges.\n\n`);
+    
+    // Case Studies Section
+    sections.push(`## Real-World Case Studies\n\n`);
+    sections.push(`Let's examine some specific examples of how these principles have been applied successfully:\n\n`);
+    sections.push(`**Case Study 1: The Systematic Approach**\n\n`);
+    sections.push(`A practitioner in ${niche} saw remarkable results by implementing a systematic approach to ${title.toLowerCase()}. By breaking down complex processes into manageable steps and consistently executing each phase, they achieved a 40% improvement in their key metrics within six months.\n\n`);
+    sections.push(`**Case Study 2: Innovation Through Constraint**\n\n`);
+    sections.push(`Sometimes limitations can spark creativity. Another example shows how working within specific constraints led to innovative solutions that wouldn't have been discovered otherwise.\n\n`);
+    
+    // Common Pitfalls Section
+    sections.push(`## Common Pitfalls and How to Avoid Them\n\n`);
+    sections.push(`Learning from others' mistakes can save ${p.you} significant time and effort:\n\n`);
+    sections.push(`**Pitfall 1: Trying to Do Too Much Too Soon**\n\n`);
+    sections.push(`Many beginners make the mistake of attempting advanced techniques before mastering the basics. This often leads to frustration and poor results.\n\n`);
+    sections.push(`**Pitfall 2: Neglecting the Human Element**\n\n`);
+    sections.push(`In ${niche}, it's easy to get caught up in technical details and forget about the human aspects. Remember that success often depends on relationships and communication.\n\n`);
+    sections.push(`**Pitfall 3: Lack of Patience**\n\n`);
+    sections.push(`Expecting immediate results can lead to premature strategy changes. Give ${p.your} approach enough time to show results before making major adjustments.`);
+  }
+  
+  return sections;
 }
 
-function generateArticleTitles(prompt) {
-  const titles = [
-    `The Ultimate Guide to ${prompt}: Everything You Need to Know`,
-    `10 Essential ${prompt} Tips That Actually Work`,
-    `Common ${prompt} Mistakes and How to Avoid Them`,
-    `${prompt} Secrets: What Experts Don't Want You to Know`,
-    `The Complete ${prompt} Strategy for Beginners`
-  ];
+function generateConclusion(title, style, niche, pointOfView) {
+  const pronouns = {
+    first: { you: 'I', your: 'my', yourself: 'myself' },
+    second: { you: 'you', your: 'your', yourself: 'yourself' },
+    third: { you: 'they', your: 'their', yourself: 'themselves' }
+  };
+  
+  const p = pronouns[pointOfView];
+  
+  let conclusion = `## Conclusion\n\n`;
+  
+  if (style === 'conversational') {
+    conclusion += `So there ${p.you} have it! We've covered a lot of ground when it comes to ${title.toLowerCase()}. `;
+  } else if (style === 'formal') {
+    conclusion += `In conclusion, the principles and strategies outlined in this comprehensive guide to ${title.toLowerCase()} provide a solid foundation for success. `;
+  } else if (style === 'humorous') {
+    conclusion += `Well, we've reached the end of our journey through the exciting world of ${title.toLowerCase()} (and yes, I'm still claiming it's exciting!). `;
+  } else {
+    conclusion += `Mastering ${title.toLowerCase()} requires dedication, patience, and strategic thinking. `;
+  }
+  
+  conclusion += `The key takeaways from this guide include understanding the fundamentals, implementing practical strategies, and maintaining consistency in ${p.your} approach.\n\n`;
+  conclusion += `Remember that success in ${niche} doesn't happen overnight. Start with the basics, be patient with ${p.yourself}, and don't be afraid to adapt ${p.your} strategy as ${p.you} learn and grow.\n\n`;
+  conclusion += `**Next Steps:**\n\n`;
+  conclusion += `1. Choose one or two strategies from this guide to implement first\n`;
+  conclusion += `2. Set up a system to track ${p.your} progress\n`;
+  conclusion += `3. Give ${p.yourself} time to see results before making major changes\n`;
+  conclusion += `4. Continue learning and refining ${p.your} approach based on ${p.your} experiences\n\n`;
+  conclusion += `The journey to mastering ${title.toLowerCase()} is ongoing, but with the right foundation and consistent effort, ${p.you} can achieve remarkable results in ${niche}.`;
+  
+  return conclusion;
+}
 
-  return titles.join('\n');
+async function generateTitles(topic, type) {
+  // Generate sample titles based on topic and type
+  const templates = {
+    creative: [
+      `The Ultimate Guide to ${topic}`,
+      `10 Surprising Facts About ${topic}`,
+      `How ${topic} Changed Everything`,
+      `The Future of ${topic}: What You Need to Know`,
+      `${topic} Secrets That Actually Work`
+    ],
+    professional: [
+      `Strategic Approaches to ${topic}`,
+      `${topic} Best Practices for Modern Organizations`,
+      `ROI Analysis: Investing in ${topic}`,
+      `${topic} Implementation Framework`,
+      `Industry Insights: ${topic} Trends and Opportunities`
+    ]
+  };
+
+  const selectedTemplates = templates[type] || templates.creative;
+  return selectedTemplates.join('\n');
 }
