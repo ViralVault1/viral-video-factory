@@ -3,8 +3,9 @@ import { FileText, Trash2, Download, Copy, Eye, Clock, CheckCircle, AlertCircle,
 import { toast } from 'react-hot-toast';
 
 // Import LLM services (you'll need to create these)
-import llmRouter, { TaskType } from '../services/llmRouter';
-import LLMStatus from '../components/LLMStatus';
+import llmRouter from '../services/llmRouter';
+const TaskType = { SCRIPT_WRITING: 'script_writing' };
+
 
 const AutoWriterPage = () => {
   const [topic, setTopic] = useState('');
