@@ -241,8 +241,14 @@ async function generateTitles(prompt, type) {
   const nicheMatch = prompt.match(/Niche: ([^\n]+)/i);
   const niche = nicheMatch ? nicheMatch[1].trim() : '';
   
+  // Extract style if available
+  const styleMatch = prompt.match(/Style: ([^\n]+)/i);
+  const style = styleMatch ? styleMatch[1].trim() : '';
+  
+  console.log('Extracted:', { topic, niche, style }); // Debug log
+  
   // Generate contextual titles based on the topic and niche
-  const titles = generateContextualTitles(topic, niche, type);
+  const titles = generateContextualTitles(topic, niche, style.toLowerCase());
   
   // Return as numbered list as requested
   return titles.map((title, index) => `${index + 1}. ${title}`).join('\n');
@@ -266,52 +272,44 @@ function extractTopicFromPrompt(prompt) {
   return 'your topic'; // fallback
 }
 
-function generateContextualTitles(topic, niche, type) {
-  const templates = {
-    creative: [
-      `The Ultimate Beginner's Guide to ${topic}`,
-      `10 Essential Tips for Mastering ${topic}`,
-      `${topic}: A Complete Step-by-Step Guide for Beginners`,
-      `Common ${topic} Mistakes and How to Avoid Them`,
-      `The Secret to Perfect ${topic} Every Time`,
-      `${topic} Made Simple: Tips from Professional Chefs`,
-      `From Novice to Expert: Your ${topic} Journey`,
-      `5 Game-Changing ${topic} Techniques You Need to Know`,
-      `The Science Behind Perfect ${topic}`,
-      `${topic} Troubleshooting: Fixing Common Problems`
-    ],
-    informative: [
-      `Essential ${topic} Techniques for Beginners`,
-      `Understanding the Basics of ${topic}`,
-      `${topic} Fundamentals: What Every Beginner Should Know`,
-      `Step-by-Step ${topic} Instructions for New Bakers`,
-      `${topic} Equipment and Ingredients Guide`,
-      `Common ${topic} Problems and Solutions`,
-      `${topic} Temperature and Timing Guide`,
-      `Building Your ${topic} Skills: A Progressive Approach`,
-      `${topic} Safety Tips and Best Practices`,
-      `Advanced ${topic} Techniques for Confident Bakers`
-    ],
-    professional: [
-      `Professional ${topic} Techniques for Home Bakers`,
-      `Commercial-Quality ${topic} at Home`,
-      `${topic} Standards and Best Practices`,
-      `Scaling ${topic} Recipes for Different Occasions`,
-      `${topic} Quality Control and Consistency`,
-      `Cost-Effective ${topic} for Small Businesses`,
-      `${topic} Workflow and Kitchen Management`,
-      `${topic} Presentation and Plating Techniques`,
-      `Seasonal ${topic} Menu Planning`,
-      `${topic} Certification and Skill Development`
-    ]
-  };
+function generateContextualTitles(topic, niche, style) {
+  // Create titles specifically for cake baking or food topics
+  const foodTitles = [
+    `The Ultimate Beginner's Guide to ${topic}`,
+    `${topic}: Essential Tips for Perfect Results Every Time`,
+    `Common ${topic} Mistakes and How to Avoid Them`,
+    `${topic} Made Simple: Step-by-Step Instructions`,
+    `5 Secret Techniques for Amazing ${topic}`,
+    `From Zero to Hero: Mastering ${topic}`,
+    `${topic}: Equipment, Ingredients, and Techniques`,
+    `Troubleshooting ${topic}: Solutions to Common Problems`,
+    `${topic} for Absolute Beginners: Start Here`,
+    `Professional ${topic} Tips You Can Use at Home`
+  ];
 
-  const selectedTemplates = templates[type] || templates.creative;
+  // For other topics, use general templates
+  const generalTitles = [
+    `The Complete Beginner's Guide to ${topic}`,
+    `10 Essential Tips for ${topic}`,
+    `${topic}: Everything You Need to Know`,
+    `Common ${topic} Mistakes and How to Fix Them`,
+    `${topic} Secrets That Actually Work`,
+    `Step-by-Step ${topic} for Beginners`,
+    `${topic} Made Easy: A Practical Approach`,
+    `The Ultimate ${topic} Checklist`,
+    `${topic} Best Practices for Success`,
+    `Advanced ${topic} Techniques for Better Results`
+  ];
+
+  // Choose appropriate titles based on niche
+  const isFood = niche && (niche.toLowerCase().includes('food') || 
+                          niche.toLowerCase().includes('cooking') || 
+                          niche.toLowerCase().includes('baking') ||
+                          topic.toLowerCase().includes('baking') ||
+                          topic.toLowerCase().includes('cooking'));
   
-  // If it's food-related, use more specific food templates
-  if (niche && niche.toLowerCase().includes('food')) {
-    return selectedTemplates.slice(0, 5); // Return 5 titles as requested
-  }
+  const selectedTitles = isFood ? foodTitles : generalTitles;
   
-  return selectedTemplates.slice(0, 5);
+  // Return 5 titles as requested
+  return selectedTitles.slice(0, 5);
 }
