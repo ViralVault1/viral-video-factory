@@ -292,3 +292,8 @@ export default llmRouter;
 // Named exports for compatibility
 export { llmRouter };
 export const router = llmRouter;
+const llmRouter = {
+  TaskType: 'string' as TaskType
+};
+
+export default llmRouter;
