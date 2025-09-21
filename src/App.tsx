@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import './App.css';
 
-// Components - ALL CHANGED TO DEFAULT IMPORTS
+// Components - CORRECTED IMPORTS BASED ON ACTUAL EXPORTS
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import HomePage from './pages/HomePage';
@@ -22,8 +22,8 @@ import RedeemLicensePage from './pages/RedeemLicensePage';
 import VideoToGifPage from './pages/VideoToGifPage';
 import AuthPage from './pages/AuthPage';
 import AutoWriterPage from './pages/AutoWriterPage';
-import LoadingSpinner from './components/LoadingSpinner';
-import ErrorBoundary from './components/ErrorBoundary';
+import { LoadingSpinner } from './components/LoadingSpinner';  // Named export
+import { ErrorBoundary } from './components/ErrorBoundary';    // Named export
 
 // Contexts
 import { AuthProvider, useAuth } from './contexts/AuthContext';
