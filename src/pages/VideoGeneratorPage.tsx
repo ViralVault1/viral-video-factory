@@ -1,658 +1,694 @@
 import React, { useState } from 'react';
+import { FileText, Trash2, Download, Copy, Eye, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-export const VideoGeneratorPage: React.FC = () => {
-  const [ideaInput, setIdeaInput] = useState('');
-  const [youtubeUrl, setYoutubeUrl] = useState('');
-  const [transcript, setTranscript] = useState('');
-  const [script, setScript] = useState('This is the one thing you\'re doing wrong with your marketing. You\'re focusing too much on features, and not enough on the story. People don\'t buy what you do, they buy why you do it. Start with why, and watch your brand grow.');
-  const [voice, setVoice] = useState('Natural Female Voice');
-  const [music, setMusic] = useState('Upbeat Corporate');
-  const [visualStyle, setVisualStyle] = useState('AI Generation');
-  const [aiModel, setAiModel] = useState('Google VEO (Fast & Reliable)');
-  const [presetStyle, setPresetStyle] = useState('Cinematic');
-  const [visualPrompt, setVisualPrompt] = useState('');
-  const [soundEffects, setSoundEffects] = useState('');
+const AutoWriterPage = () => {
+  const [topic, setTopic] = useState('');
+  const [customTitles, setCustomTitles] = useState('');
+  const [articleQueue, setArticleQueue] = useState([]);
+  const [generatedArticles, setGeneratedArticles] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isLoadingIdeas, setIsLoadingIdeas] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [generatedVideos, setGeneratedVideos] = useState<any[]>([]);
+  const [isGeneratingArticles, setIsGeneratingArticles] = useState(false);
+  const [selectedArticle, setSelectedArticle] = useState(null);
+  const [config, setConfig] = useState({
+    niche: 'Food & Cooking',
+    articleStyle: 'Informative',
+    pointOfView: 'Second-person',
+    articleLength: 'Medium (~1500 words)',
+    featuredImage: 'Yes (+1 Credit)',
+    imagesInArticle: '3 Images (+3 Credits)',
+    photoStyle: 'Photographic'
+  });
 
-  const handleFindIdeas = async () => {
-    if (!ideaInput.trim()) {
-      toast.error('Please enter a topic to find ideas.');
-      return;
-    }
-
-    setIsLoadingIdeas(true);
+  const testAPI = async () => {
+    console.log('Testing API with POST request...');
     try {
       const response = await fetch('/api/generate-content', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: `Generate 3 viral video ideas about ${ideaInput}`,
-          type: 'video_script',
-          platform: 'general'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      // Extract ideas from the response and update the script
-      setScript(data.content);
-      toast.success(`Generated viral video ideas for "${ideaInput}"!`);
-      
-    } catch (error) {
-      console.error('Idea generation failed:', error);
-      toast.error('Failed to generate ideas. Please try again.');
-    } finally {
-      setIsLoadingIdeas(false);
-    }
-  };
-
-  const handleAnalyzeUrl = async () => {
-    if (!youtubeUrl.trim()) {
-      toast.error('Please enter a YouTube URL to analyze.');
-      return;
-    }
-
-    setIsAnalyzing(true);
-    try {
-      // Simulate analysis with AI-generated script based on URL analysis
-      const response = await fetch('/api/generate-content', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          prompt: `Create a viral video script inspired by analyzing successful video content`,
-          type: 'video_script',
-          platform: 'youtube'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setScript(data.content);
-      toast.success('YouTube video analyzed and script generated!');
-      
-    } catch (error) {
-      console.error('URL analysis failed:', error);
-      toast.error('Failed to analyze URL. Please try again.');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleAnalyzeTranscript = async () => {
-    if (!transcript.trim()) {
-      toast.error('Please enter a transcript to analyze.');
-      return;
-    }
-
-    setIsAnalyzing(true);
-    try {
-      const response = await fetch('/api/generate-content', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          prompt: `Analyze this transcript and create an improved viral version: ${transcript}`,
-          type: 'video_script',
-          platform: 'tiktok'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setScript(data.content);
-      toast.success('Transcript analyzed and optimized script generated!');
-      
-    } catch (error) {
-      console.error('Transcript analysis failed:', error);
-      toast.error('Failed to analyze transcript. Please try again.');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleRewriteScript = async () => {
-    if (!script.trim()) {
-      toast.error('Please enter a script to rewrite.');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/generate-content', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          prompt: `Rewrite this script for better engagement and clarity: ${script}`,
-          type: 'video_script',
-          platform: 'general'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setScript(data.content);
-      toast.success('Script rewritten for better engagement!');
-      
-    } catch (error) {
-      console.error('Script rewrite failed:', error);
-      toast.error('Failed to rewrite script. Please try again.');
-    }
-  };
-
-  const handleViralOptimizer = async () => {
-    if (!script.trim()) {
-      toast.error('Please enter a script to optimize.');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/generate-content', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          prompt: `Optimize this script for maximum viral potential with trending hooks and engagement tactics: ${script}`,
-          type: 'video_script',
-          platform: 'tiktok'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setScript(data.content);
-      toast.success('Script optimized for viral potential!');
-      
-    } catch (error) {
-      console.error('Viral optimization failed:', error);
-      toast.error('Failed to optimize script. Please try again.');
-    }
-  };
-
-  const handleEnhancePrompt = async () => {
-    if (!visualPrompt.trim()) {
-      toast.error('Please enter a visual prompt to enhance.');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/generate-content', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          prompt: `Enhance this visual prompt for AI video generation: ${visualPrompt}. Make it more detailed and cinematic.`,
+          prompt: 'Generate 3 article titles about cats',
           type: 'creative'
         })
       });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setVisualPrompt(data.content);
-      toast.success('Visual prompt enhanced!');
       
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
+      const data = await response.json();
+      console.log('Response data:', data);
+      
+      if (response.ok) {
+        alert('API works! Check console for details.');
+      } else {
+        alert(`API failed with status ${response.status}: ${data.error || data.details || 'Unknown error'}`);
+      }
     } catch (error) {
-      console.error('Prompt enhancement failed:', error);
-      toast.error('Failed to enhance prompt. Please try again.');
+      console.error('Request failed:', error);
+      alert(`Request failed: ${error.message}`);
     }
   };
 
-  const handleGenerateVideo = () => {
-    if (!script.trim()) {
-      toast.error('Please enter a script to generate video.');
+  const handleGenerateTitles = async () => {
+    if (!topic.trim()) {
+      toast.error('Please enter a topic');
       return;
     }
     
     setIsGenerating(true);
-    
-    // Simulate video generation
-    setTimeout(() => {
-      const newVideo = {
-        id: Date.now(),
-        title: script.substring(0, 50) + '...',
-        script: script,
-        voice: voice,
-        music: music,
-        visualStyle: visualStyle,
-        aiModel: aiModel,
-        presetStyle: presetStyle,
-        visualPrompt: visualPrompt,
-        createdAt: new Date().toLocaleString()
-      };
+    try {
+      const prompt = `Generate 5 compelling article titles about "${topic}". 
+      Niche: ${config.niche}
+      Style: ${config.articleStyle}
+      Make them engaging, SEO-friendly, and clickable.
+      Return as a numbered list.`;
+
+      const response = await fetch('/api/generate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt,
+          type: 'creative',
+          provider: 'gemini'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API error: ${response.status}`);
+      }
+
+      const data = await response.json();
       
-      setGeneratedVideos(prev => [newVideo, ...prev]);
+      // Parse titles from AI response
+      const lines = data.content.split('\n').filter(line => line.trim());
+      const titles = [];
+      
+      for (const line of lines) {
+        const cleaned = line.replace(/^\d+\.?\s*/, '').trim();
+        if (cleaned && cleaned.length > 10) {
+          titles.push(cleaned);
+        }
+      }
+      
+      setCustomTitles(titles.join('\n'));
+      toast.success(`Generated ${titles.length} titles!`);
+      
+    } catch (error) {
+      console.error('Title generation failed:', error);
+      toast.error(`Failed to generate titles: ${error.message}`);
+    } finally {
       setIsGenerating(false);
-      toast.success('Video generated successfully! Check your creations below.');
-    }, 3000);
+    }
   };
 
-  // Fixed: Renamed function to avoid React Hook naming convention
-  const loadVideoScript = (videoScript: string) => {
-    setScript(videoScript);
-    toast.success('Script loaded into editor!');
+  const handleAddTitlesToQueue = () => {
+    if (!customTitles.trim()) return;
+    
+    const titles = customTitles.split('\n').filter(title => title.trim());
+    const newTitles = titles.map(title => ({
+      id: Date.now().toString() + Math.random(),
+      title: title.trim()
+    }));
+    
+    setArticleQueue(prev => [...prev, ...newTitles]);
+    setCustomTitles('');
   };
 
-  const visualStyles = ['AI Generation', 'Storyboard', 'Stock Footage', 'Kinetic Text'];
-  const aiModels = ['Google VEO (Fast & Reliable)', 'Luma Dream Machine (Cinematic & New)'];
-  const presetStyles = ['Cinematic', 'Anime', 'Vintage Film', 'Pixar', 'Claymation', 'Abstract'];
+  const handleRemoveFromQueue = (id) => {
+    setArticleQueue(prev => prev.filter(item => item.id !== id));
+  };
+
+  const calculateCredits = () => {
+    let creditsPerArticle = 1; // Base cost
+    
+    if (config.featuredImage === 'Yes (+1 Credit)') creditsPerArticle += 1;
+    
+    const imageCount = parseInt(config.imagesInArticle.match(/\d+/)?.[0] || '0');
+    creditsPerArticle += imageCount;
+    
+    return articleQueue.length * creditsPerArticle;
+  };
+
+  const getTargetWordCount = () => {
+    if (config.articleLength.includes('Short')) return 500;
+    if (config.articleLength.includes('Medium')) return 1500;
+    if (config.articleLength.includes('Long')) return 3500;
+    return 1500; // default
+  };
+
+  const generateSingleArticle = async (title, targetWordCount) => {
+    const prompt = `Write a comprehensive article with the title: "${title}"
+
+Configuration:
+- Niche: ${config.niche}
+- Style: ${config.articleStyle}
+- Point of View: ${config.pointOfView}
+- Target Length: ${targetWordCount} words
+- Include relevant examples and practical advice
+
+Structure the article with:
+1. Engaging introduction
+2. Multiple detailed sections with subheadings
+3. Practical tips and examples
+4. Strong conclusion with actionable takeaways
+
+Make it SEO-friendly, informative, and engaging for readers interested in ${config.niche}.`;
+
+    try {
+      const response = await fetch('/api/generate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt,
+          type: 'article',
+          provider: 'gemini'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.content || data.text || '';
+      const wordCount = content.split(/\s+/).length;
+
+      return {
+        id: Date.now().toString() + Math.random(),
+        title,
+        content,
+        wordCount,
+        status: 'completed',
+        generatedAt: new Date().toISOString(),
+        config: { ...config }
+      };
+    } catch (error) {
+      console.error(`Failed to generate article for "${title}":`, error);
+      return {
+        id: Date.now().toString() + Math.random(),
+        title,
+        content: `# ${title}\n\n*Article generation failed: ${error.message}. Please try again.*`,
+        wordCount: 10,
+        status: 'error',
+        generatedAt: new Date().toISOString(),
+        config: { ...config }
+      };
+    }
+  };
+
+  const handleGenerateArticles = async () => {
+    if (articleQueue.length === 0) return;
+    
+    setIsGeneratingArticles(true);
+    const targetWordCount = getTargetWordCount();
+    
+    try {
+      toast.success(`Starting generation of ${articleQueue.length} articles...`);
+      
+      const articles = [];
+      for (let i = 0; i < articleQueue.length; i++) {
+        const queueItem = articleQueue[i];
+        toast.loading(`Generating article ${i + 1} of ${articleQueue.length}: ${queueItem.title}`, {
+          id: 'generation-progress'
+        });
+        
+        const article = await generateSingleArticle(queueItem.title, targetWordCount);
+        articles.push(article);
+        
+        // Add a small delay to prevent rate limiting
+        if (i < articleQueue.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      setGeneratedArticles(prev => [...prev, ...articles]);
+      setArticleQueue([]);
+      
+      toast.dismiss('generation-progress');
+      toast.success(`Successfully generated ${articles.length} articles!`);
+      
+    } catch (error) {
+      console.error('Article generation failed:', error);
+      toast.error(`Article generation failed: ${error.message}`);
+    } finally {
+      setIsGeneratingArticles(false);
+    }
+  };
+
+  const viewArticle = (article) => {
+    setSelectedArticle(article);
+  };
+
+  const downloadArticle = (article) => {
+    const blob = new Blob([article.content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${article.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Article downloaded!');
+  };
+
+  const copyArticle = async (article) => {
+    try {
+      await navigator.clipboard.writeText(article.content);
+      toast.success('Article copied to clipboard!');
+    } catch (error) {
+      toast.error('Failed to copy article');
+    }
+  };
+
+  const downloadAllArticles = () => {
+    if (generatedArticles.length === 0) {
+      toast.error('No articles to download');
+      return;
+    }
+
+    const allContent = generatedArticles.map(article => 
+      `${'='.repeat(60)}\n${article.title}\n${'='.repeat(60)}\n\n${article.content}\n\n\n`
+    ).join('');
+
+    const blob = new Blob([allContent], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `all_articles_${new Date().toISOString().split('T')[0]}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('All articles downloaded!');
+  };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-slate-900 text-white">
       {/* Header */}
-      <div className="bg-gray-800 py-8">
-        <div className="max-w-7xl mx-auto px-4">
-          <h1 className="text-4xl font-bold mb-4">🎬 Video Generator</h1>
-          <p className="text-gray-400 text-lg">
-            Create stunning faceless videos with AI. From script to final video in minutes.
-          </p>
+      <div className="text-center py-8 border-b border-slate-700">
+        <div className="flex justify-center mb-4">
+          <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+            <FileText className="w-6 h-6 text-white" />
+          </div>
+        </div>
+        <h1 className="text-4xl font-bold mb-2">Auto Writer Studio</h1>
+        <p className="text-slate-400 max-w-2xl mx-auto">
+          Generate hundreds of high-quality, SEO-optimized articles in the background. From title 
+          generation to final content, automate your entire writing workflow.
+        </p>
+      </div>
+
+      {/* Test Button */}
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="mb-6 text-center">
+          <button 
+            onClick={testAPI} 
+            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium"
+          >
+            Test API Connection
+          </button>
+          <p className="text-xs text-slate-400 mt-2">Click to test if API is working properly</p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column - Video Creation Form */}
-          <div className="space-y-8">
-            {/* Step 1: Find Inspiration */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h2 className="text-2xl font-semibold mb-4 flex items-center">
-                <span className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm">1</span>
-                Find Inspiration (or bring your own)
-              </h2>
-              <p className="text-gray-400 mb-4">
-                Don't know where to start? Enter a topic and our AI will find viral video ideas for you. Or, jump right in with your own script.
-              </p>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Find new ideas</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={ideaInput}
-                      onChange={(e) => setIdeaInput(e.target.value)}
-                      placeholder="e.g., productivity tips for remote workers"
-                      className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                    <button
-                      onClick={handleFindIdeas}
-                      disabled={isLoadingIdeas}
-                      className="px-6 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-                    >
-                      {isLoadingIdeas ? 'Finding...' : 'Find'}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="text-center text-gray-400">OR</div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Deconstruct a YouTube video</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      value={youtubeUrl}
-                      onChange={(e) => setYoutubeUrl(e.target.value)}
-                      placeholder="https://youtube.com/watch?v=..."
-                      className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                    <button
-                      onClick={handleAnalyzeUrl}
-                      disabled={isAnalyzing}
-                      className="px-6 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-                    >
-                      {isAnalyzing ? 'Analyzing...' : 'Analyze'}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Deconstruct a video transcript (from TikTok, IG, etc.)</label>
-                  <textarea
-                    value={transcript}
-                    onChange={(e) => setTranscript(e.target.value)}
-                    placeholder="Paste transcript here..."
-                    rows={3}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                  <button
-                    onClick={handleAnalyzeTranscript}
-                    disabled={isAnalyzing}
-                    className="mt-2 px-6 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-                  >
-                    {isAnalyzing ? 'Analyzing...' : 'Analyze Transcript'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Step 2: Write & Refine Script */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h2 className="text-2xl font-semibold mb-4 flex items-center">
-                <span className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm">2</span>
-                Write & Refine Your Script
-              </h2>
-              <p className="text-gray-400 mb-4">
-                Write your script or paste one in. Use our AI tools to rewrite it for better engagement or generate viral hooks and titles.
-              </p>
-
-              <div className="space-y-4">
-                <div className="flex gap-2 mb-2">
-                  <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
-                    Brand Kit
-                  </button>
-                </div>
-                
-                <textarea
-                  value={script}
-                  onChange={(e) => setScript(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Left Column - Generate Article Titles */}
+          <div className="bg-slate-800 rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <span className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">1</span>
+              Generate Article Titles
+            </h2>
+            
+            <div className="space-y-4">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Enter a topic, e.g., 'Labrador training tips'"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-purple-500"
                 />
-                
-                <div className="flex gap-2">
-                  <button 
-                    onClick={handleRewriteScript}
-                    className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors"
-                  >
-                    Rewrite
-                  </button>
-                  <button 
-                    onClick={handleViralOptimizer}
-                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-                  >
-                    Viral Optimizer
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Voice</label>
-                    <select
-                      value={voice}
-                      onChange={(e) => setVoice(e.target.value)}
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                    >
-                      <option>Natural Female Voice</option>
-                      <option>Natural Male Voice</option>
-                      <option>Professional Female</option>
-                      <option>Professional Male</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Music</label>
-                    <select
-                      value={music}
-                      onChange={(e) => setMusic(e.target.value)}
-                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                    >
-                      <option>Upbeat Corporate</option>
-                      <option>Chill Ambient</option>
-                      <option>Energetic Pop</option>
-                      <option>Dramatic Cinematic</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Step 3: Choose Visual Style */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h2 className="text-2xl font-semibold mb-4 flex items-center">
-                <span className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm">3</span>
-                Choose Your Visual Style
-              </h2>
-              <p className="text-gray-400 mb-4">
-                Decide how your video will look. Use AI Generation for unique visuals, Stock Footage for a realistic feel, or Kinetic Text for dynamic typography.
-              </p>
-
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {visualStyles.map((style) => (
-                    <button
-                      key={style}
-                      onClick={() => setVisualStyle(style)}
-                      className={`px-4 py-2 rounded-lg transition-colors ${
-                        visualStyle === style
-                          ? 'bg-green-500 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                    >
-                      {style}
-                    </button>
-                  ))}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">AI Model</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {aiModels.map((model) => (
-                      <button
-                        key={model}
-                        onClick={() => setAiModel(model)}
-                        className={`px-4 py-2 rounded-lg transition-colors text-left ${
-                          aiModel === model
-                            ? 'bg-green-500 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                      >
-                        {model}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-sm text-gray-400 mt-2">Cost: 10 credits</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Preset Styles</label>
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                    {presetStyles.map((style) => (
-                      <button
-                        key={style}
-                        onClick={() => setPresetStyle(style)}
-                        className={`px-3 py-2 rounded-lg transition-colors text-sm ${
-                          presetStyle === style
-                            ? 'bg-green-500 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                      >
-                        {style}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Visual Prompt</label>
-                  <div className="flex gap-2">
-                    <textarea
-                      value={visualPrompt}
-                      onChange={(e) => setVisualPrompt(e.target.value)}
-                      placeholder="Describe the visual style you want..."
-                      rows={2}
-                      className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                    <button 
-                      onClick={handleEnhancePrompt}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                    >
-                      Enhance Prompt
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Sound Effects (Optional)</label>
-                  <input
-                    type="text"
-                    value={soundEffects}
-                    onChange={(e) => setSoundEffects(e.target.value)}
-                    placeholder="e.g., whoosh, click, notification"
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
-
                 <button
-                  onClick={handleGenerateVideo}
-                  disabled={isGenerating}
-                  className="w-full px-8 py-4 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors text-lg"
+                  onClick={handleGenerateTitles}
+                  disabled={isGenerating || !topic.trim()}
+                  className="mt-3 px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
                 >
-                  {isGenerating ? (
-                    <div className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Generating Video...
-                    </div>
-                  ) : (
-                    'Generate Video'
-                  )}
+                  {isGenerating ? 'Generating...' : '✨ Generate'}
                 </button>
               </div>
+
+              <div>
+                <p className="text-sm text-slate-400 mb-2">OR add your own titles below</p>
+                <textarea
+                  placeholder="Paste your article titles here, one per line."
+                  value={customTitles}
+                  onChange={(e) => setCustomTitles(e.target.value)}
+                  rows={8}
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 resize-none"
+                />
+              </div>
+
+              <button
+                onClick={handleAddTitlesToQueue}
+                disabled={!customTitles.trim()}
+                className="w-full px-4 py-3 bg-orange-600 hover:bg-orange-700 disabled:bg-slate-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
+              >
+                Add Titles to Queue
+              </button>
             </div>
           </div>
 
-          {/* Right Column - Video Preview & Creations */}
-          <div className="space-y-8">
-            {/* Video Preview */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-4">Your video will appear here</h3>
-              <div className="aspect-video bg-gray-700 rounded-lg flex items-center justify-center">
-                <div className="text-center text-gray-400">
-                  <svg className="w-16 h-16 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 6a2 2 0 012-2h6l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                  </svg>
-                  <p>Configure your video on the left and click "Generate" to see the magic happen.</p>
+          {/* Right Column - Configure Article Details */}
+          <div className="bg-slate-800 rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <span className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">2</span>
+              Configure Article Details
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Niche</label>
+                <select
+                  value={config.niche}
+                  onChange={(e) => setConfig(prev => ({ ...prev, niche: e.target.value }))}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                >
+                  <option value="Food & Cooking">Food & Cooking</option>
+                  <option value="Health & Fitness">Health & Fitness</option>
+                  <option value="Technology">Technology</option>
+                  <option value="Business & Finance">Business & Finance</option>
+                  <option value="Travel & Lifestyle">Travel & Lifestyle</option>
+                  <option value="Home & Garden">Home & Garden</option>
+                  <option value="Fashion & Beauty">Fashion & Beauty</option>
+                  <option value="Education & Learning">Education & Learning</option>
+                  <option value="Entertainment & Gaming">Entertainment & Gaming</option>
+                  <option value="Parenting & Family">Parenting & Family</option>
+                  <option value="Sports & Recreation">Sports & Recreation</option>
+                  <option value="Arts & Crafts">Arts & Crafts</option>
+                  <option value="Personal Development">Personal Development</option>
+                  <option value="Science & Nature">Science & Nature</option>
+                  <option value="Automotive">Automotive</option>
+                  <option value="Real Estate">Real Estate</option>
+                  <option value="Marketing & SEO">Marketing & SEO</option>
+                  <option value="Photography">Photography</option>
+                  <option value="Music & Audio">Music & Audio</option>
+                  <option value="Pet Care">Pet Care</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Article Style</label>
+                  <select
+                    value={config.articleStyle}
+                    onChange={(e) => setConfig(prev => ({ ...prev, articleStyle: e.target.value }))}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  >
+                    <option>Informative</option>
+                    <option>Conversational</option>
+                    <option>Formal</option>
+                    <option>Humorous</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Point of View</label>
+                  <select
+                    value={config.pointOfView}
+                    onChange={(e) => setConfig(prev => ({ ...prev, pointOfView: e.target.value }))}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  >
+                    <option>First-person</option>
+                    <option>Second-person</option>
+                    <option>Third-person</option>
+                  </select>
                 </div>
               </div>
-            </div>
 
-            {/* Your Creations */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold">Your Creations ({generatedVideos.length})</h3>
-                <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
-                  Import Creation
-                </button>
+              <div>
+                <label className="block text-sm font-medium mb-2">Article Length</label>
+                <select
+                  value={config.articleLength}
+                  onChange={(e) => setConfig(prev => ({ ...prev, articleLength: e.target.value }))}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                >
+                  <option>Short (~500 words)</option>
+                  <option>Medium (~1500 words)</option>
+                  <option>Long (~3500+ words)</option>
+                </select>
               </div>
-              <p className="text-gray-400 mb-6">This is where your generated and imported creations will appear.</p>
-              
-              {/* Generated Videos */}
-              <div className="grid grid-cols-1 gap-4">
-                {generatedVideos.length > 0 ? (
-                  generatedVideos.map((video) => (
-                    <div key={video.id} className="bg-gray-700 rounded-lg p-4">
-                      <div className="aspect-video bg-gray-600 rounded mb-3 flex items-center justify-center">
-                        <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <div className="mb-3">
-                        <h4 className="font-medium text-white mb-1">{video.title}</h4>
-                        <p className="text-xs text-gray-400">{video.createdAt}</p>
-                        <p className="text-xs text-gray-400">{video.voice} • {video.presetStyle}</p>
-                      </div>
-                      <button
-                        onClick={() => loadVideoScript(video.script)}
-                        className="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
-                      >
-                        Use Script
-                      </button>
-                    </div>
-                  ))
+
+              <div className="bg-slate-700 rounded-lg p-4">
+                <h3 className="font-medium mb-3 text-green-400">Generate AI Images</h3>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Featured Image</label>
+                    <select
+                      value={config.featuredImage}
+                      onChange={(e) => setConfig(prev => ({ ...prev, featuredImage: e.target.value }))}
+                      className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    >
+                      <option>Yes (+1 Credit)</option>
+                      <option>No</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Images in Article</label>
+                    <select
+                      value={config.imagesInArticle}
+                      onChange={(e) => setConfig(prev => ({ ...prev, imagesInArticle: e.target.value }))}
+                      className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    >
+                      <option>0 Images</option>
+                      <option>1 Image (+1 Credit)</option>
+                      <option>2 Images (+2 Credits)</option>
+                      <option>3 Images (+3 Credits)</option>
+                      <option>4 Images (+4 Credits)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Photo Style</label>
+                    <select
+                      value={config.photoStyle}
+                      onChange={(e) => setConfig(prev => ({ ...prev, photoStyle: e.target.value }))}
+                      className="w-full px-4 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    >
+                      <option>Photographic</option>
+                      <option>Cinematic</option>
+                      <option>Minimalist</option>
+                      <option>Abstract</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={handleGenerateArticles}
+                disabled={articleQueue.length === 0 || isGeneratingArticles}
+                className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-slate-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                {isGeneratingArticles ? (
+                  <>
+                    <Clock className="w-4 h-4 animate-spin" />
+                    Generating Articles...
+                  </>
                 ) : (
-                  // Sample placeholders when no videos generated yet
-                  [1, 2, 3].map((i) => (
-                    <div key={i} className="bg-gray-700 rounded-lg p-4">
-                      <div className="aspect-video bg-gray-600 rounded mb-3 flex items-center justify-center">
-                        <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <button className="w-full px-4 py-2 bg-gray-600 text-gray-400 rounded-lg cursor-not-allowed">
-                        Generate videos to see them here
-                      </button>
-                    </div>
-                  ))
+                  <>
+                    ✨ Generate {articleQueue.length} Articles ({calculateCredits()} Credits)
+                  </>
                 )}
-              </div>
+              </button>
+              
+              {articleQueue.length === 0 && (
+                <p className="text-xs text-slate-400 text-center">
+                  After you press "START" the article generation happens in the background and
+                  automatically.
+                </p>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Queue Section */}
+        <div className="bg-slate-800 rounded-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Queue of Articles to Generate</h2>
+          
+          {articleQueue.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">
+              <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Your generation queue is empty.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {articleQueue.map((article) => (
+                <div key={article.id} className="flex items-center justify-between bg-slate-700 p-4 rounded-lg">
+                  <div className="flex items-center">
+                    <FileText className="w-5 h-5 text-green-400 mr-3" />
+                    <span className="text-white">{article.title}</span>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveFromQueue(article.id)}
+                    className="text-red-400 hover:text-red-300 p-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Generated Articles Section */}
+        {generatedArticles.length > 0 && (
+          <div className="bg-slate-800 rounded-lg p-6 mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Generated Articles ({generatedArticles.length})</h2>
+              <button
+                onClick={downloadAllArticles}
+                className="text-green-400 hover:text-green-300 text-sm flex items-center gap-1"
+              >
+                <Download className="w-4 h-4" />
+                Download All
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {generatedArticles.map((article) => (
+                <div key={article.id} className="bg-slate-700 rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-medium text-sm line-clamp-2 flex-1">{article.title}</h3>
+                    <div className="flex items-center gap-1 ml-2">
+                      {article.status === 'completed' ? (
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-red-500" />
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs text-slate-400 mb-3">
+                    <span>{article.wordCount} words</span>
+                    <span className={`px-2 py-1 rounded ${
+                      article.status === 'completed' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'
+                    }`}>
+                      {article.status}
+                    </span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => viewArticle(article)}
+                      className="flex-1 bg-blue-600 text-white py-2 px-3 rounded text-xs hover:bg-blue-700 flex items-center justify-center gap-1"
+                    >
+                      <Eye className="w-3 h-3" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => copyArticle(article)}
+                      className="flex-1 bg-slate-600 text-white py-2 px-3 rounded text-xs hover:bg-slate-500 flex items-center justify-center gap-1"
+                    >
+                      <Copy className="w-3 h-3" />
+                      Copy
+                    </button>
+                    <button
+                      onClick={() => downloadArticle(article)}
+                      className="flex-1 bg-green-600 text-white py-2 px-3 rounded text-xs hover:bg-green-700 flex items-center justify-center gap-1"
+                    >
+                      <Download className="w-3 h-3" />
+                      Save
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Article Viewer Modal */}
+      {selectedArticle && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b border-slate-700">
+              <h2 className="text-xl font-semibold text-white">{selectedArticle.title}</h2>
+              <button
+                onClick={() => setSelectedArticle(null)}
+                className="text-slate-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <div className="prose prose-invert max-w-none">
+                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-300">
+                  {selectedArticle.content}
+                </pre>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 p-6 border-t border-slate-700 bg-slate-900">
+              <button
+                onClick={() => copyArticle(selectedArticle)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                <Copy className="w-4 h-4" />
+                Copy
+              </button>
+              <button
+                onClick={() => downloadArticle(selectedArticle)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
-      <footer className="bg-gray-800 py-12 mt-16">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <footer className="bg-slate-800 border-t border-slate-700 mt-12">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="font-semibold mb-4 text-gray-300">SOLUTIONS</h3>
-              <ul className="space-y-2">
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">API</a></li>
+              <h3 className="font-semibold mb-4 text-white">SOLUTIONS</h3>
+              <ul className="space-y-2 text-slate-400">
+                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">API</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-gray-300">PRODUCTS</h3>
-              <ul className="space-y-2">
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">AI Video Generator</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Script Generator</a></li>
+              <h3 className="font-semibold mb-4 text-white">PRODUCTS</h3>
+              <ul className="space-y-2 text-slate-400">
+                <li><a href="#" className="hover:text-white transition-colors">AI Video Generator</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Script Generator</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-gray-300">RESOURCES</h3>
-              <ul className="space-y-2">
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">User Guide</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Community</a></li>
+              <h3 className="font-semibold mb-4 text-white">RESOURCES</h3>
+              <ul className="space-y-2 text-slate-400">
+                <li><a href="#" className="hover:text-white transition-colors">User Guide</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Community</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold mb-4 text-gray-300">COMPANY</h3>
-              <ul className="space-y-2">
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">About Us</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Contact</a></li>
+              <h3 className="font-semibold mb-4 text-white">COMPANY</h3>
+              <ul className="space-y-2 text-slate-400">
+                <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
               </ul>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-700 mt-8 pt-8 flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-6 h-6 bg-purple-500 rounded mr-2"></div>
-              <span className="font-semibold">Viral Video Factory</span>
-            </div>
-            <div className="text-gray-400 text-sm">
-              © 2025 Viral Video Factory. All rights reserved.
             </div>
           </div>
         </div>
@@ -660,3 +696,5 @@ export const VideoGeneratorPage: React.FC = () => {
     </div>
   );
 };
+
+export default AutoWriterPage;
