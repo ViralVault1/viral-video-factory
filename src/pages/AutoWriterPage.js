@@ -279,10 +279,39 @@ Write the complete article now, meeting professional publication standards:`;
       });
       
       // Extract content properly and validate quality
-      const content = result.content || result || '';
+      let content = '';
       
-      if (!content || content.length < 200) {
-        throw new Error('Generated content is too short or empty');
+      // Handle different response formats from LLM router
+      if (typeof result === 'string') {
+        content = result;
+      } else if (result && typeof result === 'object') {
+        content = result.content || result.text || result.response || result.output || '';
+        
+        // If it's nested in choices (OpenAI format)
+        if (result.choices && result.choices[0]) {
+          content = result.choices[0].message?.content || result.choices[0].text || '';
+        }
+        
+        // If it's nested in candidates (Gemini format)
+        if (result.candidates && result.candidates[0]) {
+          content = result.candidates[0].content?.parts?.[0]?.text || '';
+        }
+      }
+      
+      console.log('Extracted content:', {
+        type: typeof content,
+        length: content?.length || 0,
+        preview: content?.substring(0, 100) + '...'
+      });
+      
+      if (!content || typeof content !== 'string' || content.trim().length < 50) {
+        console.error('Content validation failed:', {
+          hasContent: !!content,
+          contentType: typeof content,
+          contentLength: content?.length || 0,
+          rawResult: result
+        });
+        throw new Error(`Generated content is invalid. Length: ${content?.length || 0}, Type: ${typeof content}`);
       }
       
       // Post-process content for better quality
