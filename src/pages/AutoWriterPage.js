@@ -384,53 +384,22 @@ Generate exactly 5 titles optimized for high click-through rates and search rank
     
     console.log(`Starting article generation for: "${title}"`);
     
-    // Enhanced prompt for TextBuilder-quality output
-    const prompt = `You are a professional content writer creating a premium article for publication. Write a comprehensive, expertly-crafted article with the title: "${title}"
+    // Simplified, more direct prompt for better content generation
+    const prompt = `Write a complete ${targetWordCount}-word article titled: "${title}"
 
-ARTICLE SPECIFICATIONS:
-- Target Length: ${targetWordCount} words (must be close to this target)
-- Niches: ${nichesText}
-- Writing Style: ${config.articleStyle}
-- Point of View: ${config.pointOfView}
-- Audience: Professional readers seeking actionable insights
+Topic: ${title}
+Style: ${config.articleStyle}
+Audience: ${nichesText} readers
+Length: ${targetWordCount} words
 
-CONTENT QUALITY STANDARDS:
-1. INTRODUCTION (150-200 words):
-   - Hook readers with a compelling opening statement or statistic
-   - Clearly state the problem/opportunity the article addresses
-   - Preview the key benefits readers will gain
-   - Establish credibility and expertise
+Write a full article with:
 
-2. MAIN CONTENT (4-6 sections with ## subheadings):
-   - Each section should be 200-400 words
-   - Include specific, actionable strategies and tactics
-   - Provide real-world examples and case studies
-   - Add relevant statistics, data points, or research findings
-   - Use bullet points and numbered lists for clarity
-   - Include expert quotes or industry insights where relevant
+1. Engaging introduction (2-3 paragraphs)
+2. Main content with 4-5 sections using ## headings
+3. Practical tips and examples
+4. Strong conclusion
 
-3. PRACTICAL ELEMENTS:
-   - Step-by-step instructions where applicable
-   - Common mistakes to avoid
-   - Tools, resources, or platforms mentioned
-   - Troubleshooting tips
-   - Best practices and pro tips
-
-4. CONCLUSION (100-150 words):
-   - Summarize key takeaways
-   - Provide clear next steps for readers
-   - End with a call-to-action or thought-provoking question
-
-WRITING REQUIREMENTS:
-- Use ${config.pointOfView} perspective consistently
-- Maintain ${config.articleStyle.toLowerCase()} tone throughout
-- Optimize for search engines with natural keyword placement
-- Write with authority and expertise
-- Include transition sentences between sections
-- Use active voice and clear, concise language
-- Ensure content is original, valuable, and comprehensive
-
-Write the complete article now, meeting professional publication standards:`;
+Start writing the complete article now:`;
 
     try {
       console.log('Sending prompt to LLM router...');
