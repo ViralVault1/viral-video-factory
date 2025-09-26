@@ -766,3 +766,145 @@ Write the complete article now, meeting professional publication standards:`;
                   onClick={downloadAllArticles}
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition-colors flex items-center gap-2"
                 >
+                  <Download className="w-4 h-4" />
+                  Download All
+                </button>
+                <button
+                  onClick={clearAllArticles}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Clear All
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {generatedArticles.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+              <p className="text-slate-400">No articles generated yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {generatedArticles.map((article) => (
+                <div key={article.id} className="bg-slate-700 rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-medium text-white text-sm leading-tight">{article.title}</h3>
+                    <div className="flex items-center ml-2">
+                      {article.status === 'completed' ? (
+                        <CheckCircle className="w-4 h-4 text-green-400" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-red-400" />
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {article.niches?.map(niche => (
+                      <span key={niche} className="text-xs bg-purple-600 text-white px-2 py-1 rounded">
+                        {niche}
+                      </span>
+                    ))}
+                  </div>
+                  
+                  <div className="text-xs text-slate-400 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-3 h-3" />
+                      {new Date(article.generatedAt).toLocaleString()}
+                    </div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span>{article.wordCount} words • {article.status}</span>
+                      {article.qualityScore && (
+                        <div className="flex items-center gap-1">
+                          <div className={`w-2 h-2 rounded-full ${
+                            article.qualityScore.overall ? 'bg-green-400' : 
+                            article.qualityScore.wordCount ? 'bg-yellow-400' : 'bg-red-400'
+                          }`}></div>
+                          <span className="text-xs">
+                            {article.qualityScore.overall ? 'High Quality' : 
+                             article.qualityScore.wordCount ? 'Good' : 'Basic'}
+                          </span>
+                        </div>
+                      )}
+                      {article.provider && (
+                        <span className="text-xs bg-slate-600 px-2 py-0.5 rounded">
+                          {article.provider}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => viewArticle(article)}
+                      className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Eye className="w-3 h-3" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => copyArticle(article)}
+                      className="flex-1 px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Copy className="w-3 h-3" />
+                      Copy
+                    </button>
+                    <button
+                      onClick={() => downloadArticle(article)}
+                      className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Download className="w-3 h-3" />
+                      Save
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {selectedArticle && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-slate-700">
+              <h2 className="text-xl font-semibold">{selectedArticle.title}</h2>
+              <button
+                onClick={() => setSelectedArticle(null)}
+                className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <div className="prose prose-invert max-w-none">
+                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                  {selectedArticle.content}
+                </pre>
+              </div>
+            </div>
+            <div className="flex gap-2 p-6 border-t border-slate-700">
+              <button
+                onClick={() => copyArticle(selectedArticle)}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <Copy className="w-4 h-4" />
+                Copy
+              </button>
+              <button
+                onClick={() => downloadArticle(selectedArticle)}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AutoWriterPage;
