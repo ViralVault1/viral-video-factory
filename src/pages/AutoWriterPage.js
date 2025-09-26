@@ -186,26 +186,22 @@ Available Keys: ${result ? Object.keys(result).join(', ') : 'none'}
     setIsGenerating(true);
     try {
       const nichesText = selectedNiches.join(', ');
-      const prompt = `Generate 5 professional, high-converting article titles about "${topic}" for the ${nichesText} industry.
+      const prompt = `Generate 5 article titles about "${topic}" for ${nichesText}.
 
-TITLE QUALITY STANDARDS:
-- Each title must be 40-70 characters for optimal SEO
-- Include power words that drive engagement (Ultimate, Complete, Essential, Proven, etc.)
-- Use numbers and specifics where relevant (5 Ways, 10 Tips, Step-by-Step, etc.)
-- Create curiosity gaps that compel clicks
-- Target commercial and informational search intent
-- Include primary keywords naturally
+Make them:
+- Engaging and clickable
+- SEO-friendly with keywords
+- Specific and actionable
+- Different formats (how-to, lists, guides)
 
-TITLE FORMATS TO USE:
-1. How-to Guide: "How to [Achieve Result] in [Timeframe]: [Specific Method]"
-2. Listicle: "[Number] [Adjective] [Topic] That [Benefit] in [Year]"
-3. Ultimate Guide: "The Complete Guide to [Topic]: [Specific Outcome]"
-4. Problem/Solution: "[Problem]? Here's How to [Solution] Fast"
-5. Comparison: "[Option A] vs [Option B]: Which is Better for [Use Case]?"
+Examples:
+- "How to [Do Something]: 5 Simple Steps"
+- "10 Best [Topic] Tips for Beginners"
+- "The Complete Guide to [Topic]"
+- "[Topic] Mistakes to Avoid in 2024"
+- "Why [Topic] Matters: Expert Insights"
 
-AUDIENCE: ${config.articleStyle} content for ${nichesText} professionals and enthusiasts
-
-Generate exactly 5 titles optimized for high click-through rates and search rankings. Return only the titles, one per line:`;
+Generate 5 titles now:`;
 
       toast.loading('Generating article titles...', { id: 'title-gen' });
       
@@ -511,14 +507,54 @@ Start writing the complete article now:`;
       // Post-process content for better quality
       let processedContent = content;
       
-      // Ensure proper formatting
-      if (!processedContent.includes('##')) {
-        // Add structure if missing
-        const lines = processedContent.split('\n');
-        const title = lines[0].replace(/^#\s*/, '');
-        const remainingContent = lines.slice(1).join('\n');
+      // If content is too short, try a simplified regeneration
+      if (content.trim().length < 100) {
+        console.log('Content too short, attempting simplified regeneration...');
         
-        processedContent = `# ${title}\n\n## Introduction\n\n${remainingContent}`;
+        const simplePrompt = `Write a ${targetWordCount}-word article about: ${title}
+
+Include:
+- Introduction paragraph
+- 3-4 main points with explanations
+- Practical tips
+- Conclusion
+
+Write the full article:`;
+
+        try {
+          const retryResult = await llmRouter.executeTask(
+            simplePrompt,
+            { type: TaskType.CONTENT_GENERATION }
+          );
+          
+          // Use same extraction logic
+          if (typeof retryResult === 'string') {
+            processedContent = retryResult;
+          } else if (retryResult && retryResult.content) {
+            processedContent = retryResult.content;
+          }
+          
+          console.log('Retry generation result:', {
+            originalLength: content.length,
+            retryLength: processedContent.length
+          });
+          
+        } catch (retryError) {
+          console.log('Retry failed, using original content:', retryError.message);
+        }
+      }
+      
+      // Ensure proper formatting
+      if (!processedContent.includes('##') && processedContent.length > 100) {
+        // Add structure if missing
+        const lines = processedContent.split('\n').filter(line => line.trim());
+        if (lines.length > 3) {
+          const title = lines[0].replace(/^#\s*/, '');
+          const intro = lines.slice(1, 3).join('\n\n');
+          const body = lines.slice(3).join('\n\n');
+          
+          processedContent = `# ${title}\n\n## Introduction\n\n${intro}\n\n## Main Content\n\n${body}\n\n## Conclusion\n\nThis comprehensive guide provides valuable insights into ${title.toLowerCase()}. Apply these strategies to achieve better results.`;
+        }
       }
       
       // Ensure minimum quality standards
