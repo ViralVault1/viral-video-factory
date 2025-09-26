@@ -1,4 +1,4 @@
-// src/services/llmRouter.ts - Clean, error-free LLM router
+// src/services/llmRouter.ts - Complete error-free version
 
 export type TaskType = 
   | 'analysis'
@@ -27,6 +27,13 @@ export interface RouterOptions {
 interface LLMResponse {
   content: string;
   provider: LLMProvider;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
 }
 
 class LLMRouter {
@@ -67,7 +74,7 @@ class LLMRouter {
         return await this.callGemini(prompt, maxTokens, temperature);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       console.error(`${provider} failed, trying fallback:`, error);
       
       try {
@@ -77,7 +84,7 @@ class LLMRouter {
           return await this.callOpenAI(prompt, maxTokens, temperature);
         }
       } catch (fallbackError) {
-        const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+        const fallbackMessage = getErrorMessage(fallbackError);
         console.error('Both providers failed:', fallbackError);
         throw new Error(`All AI providers failed. Original: ${errorMessage}, Fallback: ${fallbackMessage}`);
       }
