@@ -528,14 +528,15 @@ Write the complete article now, meeting professional publication standards:`;
         contentPreview: content?.substring(0, 100)
       });
       
-      if (!content || typeof content !== 'string' || content.trim().length < 50) {
+      if (!content || typeof content !== 'string' || content.trim().length < 20) {
         console.error('Content validation failed:', {
           hasContent: !!content,
           contentType: typeof content,
           contentLength: content?.length || 0,
+          extractionMethod,
           rawResult: result
         });
-        throw new Error(`Generated content is invalid. Length: ${content?.length || 0}, Type: ${typeof content}`);
+        throw new Error(`Generated content is invalid. Length: ${content?.length || 0}, Type: ${typeof content}, Method: ${extractionMethod}`);
       }
       
       // Post-process content for better quality
@@ -619,6 +620,8 @@ Write the complete article now, meeting professional publication standards:`;
     }
     
     console.log(`Starting bulk generation of ${articleQueue.length} articles`);
+    console.log('Queue contents:', articleQueue.map(item => item.title));
+    
     setIsGeneratingArticles(true);
     const targetWordCount = getTargetWordCount();
     
@@ -637,29 +640,64 @@ Write the complete article now, meeting professional publication standards:`;
           { id: 'generation-progress' }
         );
         
-        console.log(`Generating article ${i + 1}/${articleQueue.length}: ${queueItem.title}`);
+        console.log(`\n=== GENERATING ARTICLE ${i + 1}/${articleQueue.length} ===`);
+        console.log(`Title: ${queueItem.title}`);
+        console.log(`Target words: ${targetWordCount}`);
         
-        const article = await generateSingleArticle(queueItem, targetWordCount);
-        articles.push(article);
-        
-        if (article.status === 'completed') {
-          successCount++;
-          console.log(`Article ${i + 1} completed successfully`);
-        } else {
+        try {
+          const article = await generateSingleArticle(queueItem, targetWordCount);
+          articles.push(article);
+          
+          if (article.status === 'completed') {
+            successCount++;
+            console.log(`✅ Article ${i + 1} completed: ${article.wordCount} words`);
+          } else {
+            errorCount++;
+            console.log(`❌ Article ${i + 1} failed: ${article.error}`);
+          }
+        } catch (error) {
+          console.error(`❌ Article ${i + 1} threw error:`, error);
+          const errorArticle = {
+            id: Date.now().toString() + Math.random(),
+            title: queueItem.title,
+            content: `# ${queueItem.title}\n\n*Article generation failed: ${error.message}*`,
+            wordCount: 10,
+            status: 'error',
+            generatedAt: new Date().toISOString(),
+            niches: queueItem.niches,
+            config: { ...config },
+            error: error.message
+          };
+          articles.push(errorArticle);
           errorCount++;
-          console.log(`Article ${i + 1} failed:`, article.error);
         }
         
-        // Add delay between requests to avoid rate limits
+        // Progress update
+        const progressPercent = Math.round(((i + 1) / articleQueue.length) * 100);
+        console.log(`Progress: ${progressPercent}% (${i + 1}/${articleQueue.length})`);
+        
+        // Add delay between requests to avoid rate limits (except for last article)
         if (i < articleQueue.length - 1) {
           console.log('Waiting 2 seconds before next generation...');
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
       
+      console.log(`\n=== BULK GENERATION COMPLETE ===`);
+      console.log(`Total articles generated: ${articles.length}`);
+      console.log(`Successful: ${successCount}`);
+      console.log(`Failed: ${errorCount}`);
+      
       // Update state with all generated articles
-      setGeneratedArticles(prev => [...prev, ...articles]);
+      setGeneratedArticles(prev => {
+        const updated = [...prev, ...articles];
+        console.log(`Total articles in state: ${updated.length}`);
+        return updated;
+      });
+      
+      // Clear the queue
       setArticleQueue([]);
+      console.log('Queue cleared');
       
       toast.dismiss('generation-progress');
       
@@ -671,18 +709,12 @@ Write the complete article now, meeting professional publication standards:`;
         toast.error(`${errorCount} articles failed to generate`);
       }
       
-      console.log('Bulk generation completed:', {
-        total: articles.length,
-        successful: successCount,
-        failed: errorCount
-      });
-      
     } catch (error) {
       console.error('Bulk article generation failed:', error);
       toast.error(`Article generation failed: ${error.message}`);
+      toast.dismiss('generation-progress');
     } finally {
       setIsGeneratingArticles(false);
-      toast.dismiss('generation-progress');
     }
   };
 
