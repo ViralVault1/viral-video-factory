@@ -4,7 +4,13 @@ import { toast } from 'react-hot-toast';
 
 // Import LLM services
 import llmRouter from '../services/llmRouter';
-const TaskType = { SCRIPT_WRITING: 'script_writing' };
+
+// Define TaskType properly
+const TaskType = { 
+  SCRIPT_WRITING: 'script_writing',
+  CONTENT_GENERATION: 'content_generation',
+  ARTICLE_WRITING: 'article_writing'
+};
 
 const AutoWriterPage = () => {
   const [topic, setTopic] = useState('');
@@ -58,7 +64,7 @@ const AutoWriterPage = () => {
       
       const result = await llmRouter.executeTask(
         'Write a short test message to confirm the LLM is working properly.',
-        { type: TaskType.SCRIPT_WRITING }
+        { type: TaskType.CONTENT_GENERATION }
       );
       
       toast.dismiss('llm-test');
@@ -88,38 +94,53 @@ const AutoWriterPage = () => {
     setIsGenerating(true);
     try {
       const nichesText = selectedNiches.join(', ');
-      const prompt = `Generate 5 compelling, SEO-optimized article titles about "${topic}".
+      const prompt = `Generate 5 professional, high-converting article titles about "${topic}" for the ${nichesText} industry.
 
-Context:
-- Target Niches: ${nichesText}
-- Writing Style: ${config.articleStyle}
-- Point of View: ${config.pointOfView}
+TITLE QUALITY STANDARDS:
+- Each title must be 40-70 characters for optimal SEO
+- Include power words that drive engagement (Ultimate, Complete, Essential, Proven, etc.)
+- Use numbers and specifics where relevant (5 Ways, 10 Tips, Step-by-Step, etc.)
+- Create curiosity gaps that compel clicks
+- Target commercial and informational search intent
+- Include primary keywords naturally
 
-Requirements:
-- Make titles engaging and clickable
-- Ensure they're SEO-friendly with relevant keywords
-- Vary the title structures (how-to, listicles, guides, etc.)
-- Make them specific and actionable
-- Target audience interested in ${nichesText}
+TITLE FORMATS TO USE:
+1. How-to Guide: "How to [Achieve Result] in [Timeframe]: [Specific Method]"
+2. Listicle: "[Number] [Adjective] [Topic] That [Benefit] in [Year]"
+3. Ultimate Guide: "The Complete Guide to [Topic]: [Specific Outcome]"
+4. Problem/Solution: "[Problem]? Here's How to [Solution] Fast"
+5. Comparison: "[Option A] vs [Option B]: Which is Better for [Use Case]?"
 
-Return exactly 5 titles, one per line, without numbering.`;
+AUDIENCE: ${config.articleStyle} content for ${nichesText} professionals and enthusiasts
+
+Generate exactly 5 titles optimized for high click-through rates and search rankings. Return only the titles, one per line:`;
 
       toast.loading('Generating article titles...', { id: 'title-gen' });
       
       const result = await llmRouter.executeTask(
         prompt,
-        { type: TaskType.SCRIPT_WRITING }
+        { type: TaskType.CONTENT_GENERATION }
       );
       
       toast.dismiss('title-gen');
       
-      // Parse titles from AI response - use result.content
-      const lines = result.content.split('\n').filter(line => line.trim());
+      // Better parsing of titles from AI response
+      const content = result.content || result || '';
+      console.log('Raw AI response for titles:', content);
+      
+      const lines = content.split('\n').filter(line => line.trim());
       const titles = [];
       
       for (const line of lines) {
-        const cleaned = line.replace(/^\d+\.?\s*/, '').replace(/^[-•]\s*/, '').trim();
-        if (cleaned && cleaned.length > 10) {
+        // Remove numbering, bullets, and clean up
+        const cleaned = line
+          .replace(/^\d+\.?\s*/, '')
+          .replace(/^[-•*]\s*/, '')
+          .replace(/^["']/, '')
+          .replace(/["']$/, '')
+          .trim();
+        
+        if (cleaned && cleaned.length > 10 && cleaned.length < 200) {
           titles.push(cleaned);
         }
       }
@@ -127,10 +148,12 @@ Return exactly 5 titles, one per line, without numbering.`;
       if (titles.length > 0) {
         setCustomTitles(titles.join('\n'));
         toast.success(`Generated ${titles.length} titles!`);
+        console.log('Parsed titles:', titles);
       } else {
         // Fallback: use the raw response
-        setCustomTitles(result.content);
+        setCustomTitles(content);
         toast.success('Titles generated! Please review and edit as needed.');
+        console.log('Using raw response as fallback');
       }
       
     } catch (error) {
@@ -187,64 +210,152 @@ Return exactly 5 titles, one per line, without numbering.`;
     const { title, niches } = queueItem;
     const nichesText = niches.join(', ');
     
-    const prompt = `Write a comprehensive, high-quality article with the title: "${title}"
+    console.log(`Starting article generation for: "${title}"`);
+    
+    // Enhanced prompt for TextBuilder-quality output
+    const prompt = `You are a professional content writer creating a premium article for publication. Write a comprehensive, expertly-crafted article with the title: "${title}"
 
-Article Configuration:
-- Target Niches: ${nichesText}
+ARTICLE SPECIFICATIONS:
+- Target Length: ${targetWordCount} words (must be close to this target)
+- Niches: ${nichesText}
 - Writing Style: ${config.articleStyle}
 - Point of View: ${config.pointOfView}
-- Target Length: ${targetWordCount} words
-- Photo Style: ${config.photoStyle}
+- Audience: Professional readers seeking actionable insights
 
-Content Requirements:
-1. Write an engaging introduction that hooks the reader
-2. Create detailed sections with clear subheadings (use ## for subheadings)
-3. Include practical tips, examples, and actionable advice
-4. Add relevant statistics or facts where appropriate
-5. Write a strong conclusion with key takeaways
-6. Make it SEO-optimized with natural keyword usage
-7. Ensure the content is valuable and informative for ${nichesText} audience
+CONTENT QUALITY STANDARDS:
+1. INTRODUCTION (150-200 words):
+   - Hook readers with a compelling opening statement or statistic
+   - Clearly state the problem/opportunity the article addresses
+   - Preview the key benefits readers will gain
+   - Establish credibility and expertise
 
-Structure:
-- Introduction (engaging hook)
-- 4-6 main sections with subheadings
-- Practical examples and tips throughout
-- Conclusion with actionable takeaways
+2. MAIN CONTENT (4-6 sections with ## subheadings):
+   - Each section should be 200-400 words
+   - Include specific, actionable strategies and tactics
+   - Provide real-world examples and case studies
+   - Add relevant statistics, data points, or research findings
+   - Use bullet points and numbered lists for clarity
+   - Include expert quotes or industry insights where relevant
 
-Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.toLowerCase()} tone throughout.`;
+3. PRACTICAL ELEMENTS:
+   - Step-by-step instructions where applicable
+   - Common mistakes to avoid
+   - Tools, resources, or platforms mentioned
+   - Troubleshooting tips
+   - Best practices and pro tips
+
+4. CONCLUSION (100-150 words):
+   - Summarize key takeaways
+   - Provide clear next steps for readers
+   - End with a call-to-action or thought-provoking question
+
+WRITING REQUIREMENTS:
+- Use ${config.pointOfView} perspective consistently
+- Maintain ${config.articleStyle.toLowerCase()} tone throughout
+- Optimize for search engines with natural keyword placement
+- Write with authority and expertise
+- Include transition sentences between sections
+- Use active voice and clear, concise language
+- Ensure content is original, valuable, and comprehensive
+
+Write the complete article now, meeting professional publication standards:`;
 
     try {
+      console.log('Sending prompt to LLM router...');
+      
       const result = await llmRouter.executeTask(
         prompt,
-        { type: TaskType.SCRIPT_WRITING }
+        { 
+          type: TaskType.ARTICLE_WRITING,
+          maxTokens: Math.min(4000, Math.ceil(targetWordCount * 2)),
+          temperature: 0.7
+        }
       );
       
-      // Use result.content instead of result
-      const content = result.content || '';
-      const wordCount = content.split(/\s+/).length;
-
-      return {
+      console.log('LLM response received:', {
+        provider: result.provider,
+        contentLength: result.content?.length || 0,
+        hasContent: !!result.content
+      });
+      
+      // Extract content properly and validate quality
+      const content = result.content || result || '';
+      
+      if (!content || content.length < 200) {
+        throw new Error('Generated content is too short or empty');
+      }
+      
+      // Post-process content for better quality
+      let processedContent = content;
+      
+      // Ensure proper formatting
+      if (!processedContent.includes('##')) {
+        // Add structure if missing
+        const lines = processedContent.split('\n');
+        const title = lines[0].replace(/^#\s*/, '');
+        const remainingContent = lines.slice(1).join('\n');
+        
+        processedContent = `# ${title}\n\n## Introduction\n\n${remainingContent}`;
+      }
+      
+      // Ensure minimum quality standards
+      const wordCount = processedContent.split(/\s+/).length;
+      const hasSubheadings = (processedContent.match(/##/g) || []).length >= 2;
+      const hasConclusion = processedContent.toLowerCase().includes('conclusion') || 
+                           processedContent.toLowerCase().includes('summary') ||
+                           processedContent.toLowerCase().includes('final');
+      
+      // Quality validation
+      if (wordCount < targetWordCount * 0.7) {
+        console.warn(`Article word count (${wordCount}) is below target (${targetWordCount})`);
+      }
+      
+      if (!hasSubheadings) {
+        console.warn('Article lacks proper subheadings structure');
+      }
+      
+      const article = {
         id: Date.now().toString() + Math.random(),
         title,
-        content,
+        content: processedContent,
         wordCount,
         status: 'completed',
         generatedAt: new Date().toISOString(),
         niches,
-        config: { ...config }
+        config: { ...config },
+        provider: result.provider || 'Unknown',
+        qualityScore: {
+          wordCount: wordCount >= targetWordCount * 0.7,
+          hasSubheadings,
+          hasConclusion,
+          overall: wordCount >= targetWordCount * 0.7 && hasSubheadings
+        }
       };
+      
+      console.log('Article generated successfully:', {
+        title,
+        wordCount,
+        provider: result.provider
+      });
+      
+      return article;
+      
     } catch (error) {
       console.error(`Failed to generate article for "${title}":`, error);
-      return {
+      
+      const errorArticle = {
         id: Date.now().toString() + Math.random(),
         title,
-        content: `# ${title}\n\n*Article generation failed: ${error.message}. Please try again.*\n\nThis could be due to:\n- API rate limits\n- Network connectivity issues\n- Invalid API keys\n\nPlease check your API configuration and try again.`,
+        content: `# ${title}\n\n*Article generation failed: ${error.message}*\n\nThis could be due to:\n- API rate limits\n- Network connectivity issues\n- Invalid API keys\n- LLM service unavailable\n\nPlease check your API configuration and try again.\n\n**Debug Info:**\n- Error: ${error.message}\n- Time: ${new Date().toISOString()}\n- Task Type: ${TaskType.ARTICLE_WRITING}`,
         wordCount: 25,
         status: 'error',
         generatedAt: new Date().toISOString(),
         niches,
-        config: { ...config }
+        config: { ...config },
+        error: error.message
       };
+      
+      return errorArticle;
     }
   };
 
@@ -254,6 +365,7 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
       return;
     }
     
+    console.log(`Starting bulk generation of ${articleQueue.length} articles`);
     setIsGeneratingArticles(true);
     const targetWordCount = getTargetWordCount();
     
@@ -261,29 +373,44 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
       toast.success(`Starting generation of ${articleQueue.length} articles...`);
       
       const articles = [];
+      let successCount = 0;
+      let errorCount = 0;
+      
       for (let i = 0; i < articleQueue.length; i++) {
         const queueItem = articleQueue[i];
         
-        toast.loading(`Generating article ${i + 1} of ${articleQueue.length}: ${queueItem.title}`, {
-          id: 'generation-progress'
-        });
+        toast.loading(
+          `Generating article ${i + 1} of ${articleQueue.length}: ${queueItem.title.substring(0, 50)}...`, 
+          { id: 'generation-progress' }
+        );
+        
+        console.log(`Generating article ${i + 1}/${articleQueue.length}: ${queueItem.title}`);
         
         const article = await generateSingleArticle(queueItem, targetWordCount);
         articles.push(article);
         
+        if (article.status === 'completed') {
+          successCount++;
+          console.log(`Article ${i + 1} completed successfully`);
+        } else {
+          errorCount++;
+          console.log(`Article ${i + 1} failed:`, article.error);
+        }
+        
+        // Add delay between requests to avoid rate limits
         if (i < articleQueue.length - 1) {
+          console.log('Waiting 2 seconds before next generation...');
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
       
+      // Update state with all generated articles
       setGeneratedArticles(prev => [...prev, ...articles]);
       setArticleQueue([]);
       
       toast.dismiss('generation-progress');
       
-      const successCount = articles.filter(a => a.status === 'completed').length;
-      const errorCount = articles.filter(a => a.status === 'error').length;
-      
+      // Show final results
       if (successCount > 0) {
         toast.success(`Successfully generated ${successCount} articles!`);
       }
@@ -291,11 +418,18 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
         toast.error(`${errorCount} articles failed to generate`);
       }
       
+      console.log('Bulk generation completed:', {
+        total: articles.length,
+        successful: successCount,
+        failed: errorCount
+      });
+      
     } catch (error) {
-      console.error('Article generation failed:', error);
+      console.error('Bulk article generation failed:', error);
       toast.error(`Article generation failed: ${error.message}`);
     } finally {
       setIsGeneratingArticles(false);
+      toast.dismiss('generation-progress');
     }
   };
 
@@ -632,128 +766,3 @@ Write in ${config.pointOfView} perspective and maintain a ${config.articleStyle.
                   onClick={downloadAllArticles}
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition-colors flex items-center gap-2"
                 >
-                  <Download className="w-4 h-4" />
-                  Download All
-                </button>
-                <button
-                  onClick={clearAllArticles}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors flex items-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Clear All
-                </button>
-              </div>
-            )}
-          </div>
-          
-          {generatedArticles.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-              <p className="text-slate-400">No articles generated yet.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {generatedArticles.map((article) => (
-                <div key={article.id} className="bg-slate-700 rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-medium text-white text-sm leading-tight">{article.title}</h3>
-                    <div className="flex items-center ml-2">
-                      {article.status === 'completed' ? (
-                        <CheckCircle className="w-4 h-4 text-green-400" />
-                      ) : (
-                        <AlertCircle className="w-4 h-4 text-red-400" />
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {article.niches?.map(niche => (
-                      <span key={niche} className="text-xs bg-purple-600 text-white px-2 py-1 rounded">
-                        {niche}
-                      </span>
-                    ))}
-                  </div>
-                  
-                  <div className="text-xs text-slate-400 mb-3">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3 h-3" />
-                      {new Date(article.generatedAt).toLocaleString()}
-                    </div>
-                    <div className="mt-1">
-                      {article.wordCount} words • {article.status}
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => viewArticle(article)}
-                      className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
-                    >
-                      <Eye className="w-3 h-3" />
-                      View
-                    </button>
-                    <button
-                      onClick={() => copyArticle(article)}
-                      className="flex-1 px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
-                    >
-                      <Copy className="w-3 h-3" />
-                      Copy
-                    </button>
-                    <button
-                      onClick={() => downloadArticle(article)}
-                      className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
-                    >
-                      <Download className="w-3 h-3" />
-                      Save
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {selectedArticle && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-slate-700">
-              <h2 className="text-xl font-semibold">{selectedArticle.title}</h2>
-              <button
-                onClick={() => setSelectedArticle(null)}
-                className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              <div className="prose prose-invert max-w-none">
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                  {selectedArticle.content}
-                </pre>
-              </div>
-            </div>
-            <div className="flex gap-2 p-6 border-t border-slate-700">
-              <button
-                onClick={() => copyArticle(selectedArticle)}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2"
-              >
-                <Copy className="w-4 h-4" />
-                Copy
-              </button>
-              <button
-                onClick={() => downloadArticle(selectedArticle)}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition-colors flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Download
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default AutoWriterPage;
