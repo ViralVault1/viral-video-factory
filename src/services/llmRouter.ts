@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { FileText, Trash2, Download, Copy, Eye, Clock, CheckCircle, AlertCircle, X, Plus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// Import LLM services
-import llmRouter from '../services/llmRouter';
+// Remove the broken LLM router import entirely
+// import llmRouter from '../services/llmRouter';
 
-// Define TaskType properly
+// Define TaskType locally since we're not using the router
 const TaskType = { 
-  SCRIPT_WRITING: 'script_writing',
   CONTENT_GENERATION: 'content_generation',
   ARTICLE_WRITING: 'article_writing'
 };
@@ -102,80 +101,61 @@ const AutoWriterPage = () => {
   };
 
   const testLLMConnection = async () => {
-    console.log('Testing LLM connection...');
+    console.log('Testing direct Gemini API connection...');
     try {
-      toast.loading('Testing LLM connection...', { id: 'llm-test' });
+      toast.loading('Testing direct API connection...', { id: 'api-test' });
       
-      // First test the router to see if it's still mock
-      const routerTest = await llmRouter.executeTask(
-        'Test message',
-        { type: TaskType.CONTENT_GENERATION }
-      );
-      
-      console.log('Router test result:', routerTest);
-      
-      // If it's still returning mock data, call API directly
-      if (routerTest.content.includes('Generated content for:')) {
-        console.log('LLM Router is still mock - calling API directly');
-        toast.dismiss('llm-test');
-        toast.loading('Router is mock, testing direct API...', { id: 'direct-test' });
-        
-        // Test direct Gemini API call
-        try {
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.REACT_APP_GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              contents: [{
-                parts: [{
-                  text: 'Write a short test message to confirm Gemini API is working.'
-                }]
-              }],
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 100
-              }
-            })
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            
-            toast.dismiss('direct-test');
-            if (content) {
-              toast.success('Direct API working!');
-              alert(`SOLUTION FOUND!\n\nYour LLM router is still a mock.\nDirect Gemini API works: "${content}"\n\nI'll bypass the router and use direct API calls.`);
-            } else {
-              toast.error('Direct API returned no content');
-              alert('Direct API call succeeded but returned no content. Check your Gemini API key.');
-            }
-          } else {
-            const errorText = await response.text();
-            toast.dismiss('direct-test');
-            toast.error('Direct API failed');
-            alert(`Direct API failed: ${response.status} - ${errorText}\n\nCheck your REACT_APP_GEMINI_API_KEY environment variable.`);
+      // Test direct Gemini API call only
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.REACT_APP_GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: 'Write a short test message to confirm Gemini API is working.'
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 100
           }
-        } catch (directError) {
-          toast.dismiss('direct-test');
-          toast.error('Direct API call failed');
-          alert(`Direct API call error: ${directError.message}`);
-        }
-        
-      } else {
-        // Router is working properly
-        toast.dismiss('llm-test');
-        toast.success('LLM Router working properly!');
-        alert(`LLM Router is working!\n\nProvider: ${routerTest.provider}\nContent: ${routerTest.content}`);
-      }
+        })
+      });
       
+      toast.dismiss('api-test');
+      
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (content) {
+          toast.success('Direct Gemini API working!');
+          alert(`API Test Successful!\n\nContent: "${content}"\n\nYour article generation should now work!`);
+        } else {
+          toast.error('API responded but no content received');
+          alert('API call succeeded but returned no content. Check your response format.');
+        }
+      } else {
+        const errorText = await response.text();
+        toast.error('API call failed');
+        
+        if (response.status === 403) {
+          alert(`API Key Error (403):\n\n${errorText}\n\nPlease check your REACT_APP_GEMINI_API_KEY in Vercel environment variables.`);
+        } else {
+          alert(`API Error ${response.status}:\n\n${errorText}`);
+        }
+      }
     } catch (error) {
-      toast.dismiss('llm-test');
-      toast.error('Test failed');
-      console.error('LLM Test Failed:', error);
-      alert(`Test failed: ${error.message}`);
+      toast.dismiss('api-test');
+      toast.error('API connection failed');
+      
+      if (error.message.includes('Failed to fetch')) {
+        alert(`Network Error:\n\nCannot reach Gemini API. This could be due to:\n1. CORS issues\n2. Network connectivity\n3. Invalid API endpoint\n\nError: ${error.message}`);
+      } else {
+        alert(`API Test Failed:\n\n${error.message}`);
+      }
     }
   };
 
