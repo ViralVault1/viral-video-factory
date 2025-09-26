@@ -63,14 +63,106 @@ const AutoWriterPage = () => {
       toast.loading('Testing LLM connection...', { id: 'llm-test' });
       
       const result = await llmRouter.executeTask(
-        'Write a short test message to confirm the LLM is working properly.',
+        'Write exactly this: "LLM test successful - content generation working"',
         { type: TaskType.CONTENT_GENERATION }
       );
       
       toast.dismiss('llm-test');
-      toast.success('LLM connection successful!');
-      console.log('LLM Test Result:', result);
-      alert(`LLM Test Successful!\n\nProvider: ${result.provider}\nResponse: ${result.content.substring(0, 100)}...`);
+      
+      // Comprehensive debugging
+      console.log('=== LLM DEBUGGING ===');
+      console.log('1. Raw result:', result);
+      console.log('2. Result type:', typeof result);
+      console.log('3. Result constructor:', result?.constructor?.name);
+      console.log('4. Result keys:', result ? Object.keys(result) : 'No keys');
+      console.log('5. JSON stringify:', JSON.stringify(result, null, 2));
+      
+      // Try every possible extraction method
+      let content = '';
+      let extractionMethod = 'none';
+      
+      if (typeof result === 'string') {
+        content = result;
+        extractionMethod = 'direct_string';
+      } else if (result && typeof result === 'object') {
+        // Try direct properties
+        if (result.content) {
+          content = result.content;
+          extractionMethod = 'result.content';
+        } else if (result.text) {
+          content = result.text;
+          extractionMethod = 'result.text';
+        } else if (result.response) {
+          content = result.response;
+          extractionMethod = 'result.response';
+        } else if (result.output) {
+          content = result.output;
+          extractionMethod = 'result.output';
+        } else if (result.message) {
+          content = result.message;
+          extractionMethod = 'result.message';
+        }
+        
+        // Try OpenAI format
+        else if (result.choices && result.choices[0]) {
+          if (result.choices[0].message?.content) {
+            content = result.choices[0].message.content;
+            extractionMethod = 'openai_message_content';
+          } else if (result.choices[0].text) {
+            content = result.choices[0].text;
+            extractionMethod = 'openai_choices_text';
+          }
+        }
+        
+        // Try Gemini format
+        else if (result.candidates && result.candidates[0]) {
+          if (result.candidates[0].content?.parts?.[0]?.text) {
+            content = result.candidates[0].content.parts[0].text;
+            extractionMethod = 'gemini_candidates';
+          }
+        }
+        
+        // Try nested response
+        else if (result.data) {
+          if (typeof result.data === 'string') {
+            content = result.data;
+            extractionMethod = 'result.data_string';
+          } else if (result.data.content) {
+            content = result.data.content;
+            extractionMethod = 'result.data.content';
+          }
+        }
+        
+        // Last resort - look for any string value in the object
+        else {
+          for (const [key, value] of Object.entries(result)) {
+            if (typeof value === 'string' && value.length > 10) {
+              content = value;
+              extractionMethod = `fallback_${key}`;
+              break;
+            }
+          }
+        }
+      }
+      
+      console.log('6. Extracted content:', content);
+      console.log('7. Content length:', content?.length || 0);
+      console.log('8. Extraction method:', extractionMethod);
+      console.log('=== END DEBUGGING ===');
+      
+      if (content && content.length > 0) {
+        toast.success('LLM connection successful!');
+        alert(`LLM Test SUCCESS!\n\nExtraction Method: ${extractionMethod}\nProvider: ${result.provider || 'Unknown'}\nContent Length: ${content.length}\nContent: "${content}"`);
+      } else {
+        toast.error('LLM connected but no content extracted!');
+        const debugInfo = `
+Raw Result Type: ${typeof result}
+Raw Result: ${JSON.stringify(result, null, 2)}
+Extraction Method: ${extractionMethod}
+Available Keys: ${result ? Object.keys(result).join(', ') : 'none'}
+        `;
+        alert(`LLM CONNECTED BUT NO CONTENT!\n\nDebug Info:${debugInfo}`);
+      }
       
     } catch (error) {
       toast.dismiss('llm-test');
@@ -124,9 +216,89 @@ Generate exactly 5 titles optimized for high click-through rates and search rank
       
       toast.dismiss('title-gen');
       
-      // Better parsing of titles from AI response
-      const content = result.content || result || '';
-      console.log('Raw AI response for titles:', content);
+      // Extract content using comprehensive method detection
+      let content = '';
+      let extractionMethod = 'none';
+      
+      console.log('Title generation - Raw result:', result);
+      console.log('Title generation - Result type:', typeof result);
+      
+      if (typeof result === 'string') {
+        content = result;
+        extractionMethod = 'direct_string';
+      } else if (result && typeof result === 'object') {
+        // Try direct properties first
+        if (result.content) {
+          content = result.content;
+          extractionMethod = 'result.content';
+        } else if (result.text) {
+          content = result.text;
+          extractionMethod = 'result.text';
+        } else if (result.response) {
+          content = result.response;
+          extractionMethod = 'result.response';
+        } else if (result.output) {
+          content = result.output;
+          extractionMethod = 'result.output';
+        } else if (result.message) {
+          content = result.message;
+          extractionMethod = 'result.message';
+        }
+        
+        // Try OpenAI format
+        else if (result.choices && result.choices[0]) {
+          if (result.choices[0].message?.content) {
+            content = result.choices[0].message.content;
+            extractionMethod = 'openai_message_content';
+          } else if (result.choices[0].text) {
+            content = result.choices[0].text;
+            extractionMethod = 'openai_choices_text';
+          }
+        }
+        
+        // Try Gemini format
+        else if (result.candidates && result.candidates[0]) {
+          if (result.candidates[0].content?.parts?.[0]?.text) {
+            content = result.candidates[0].content.parts[0].text;
+            extractionMethod = 'gemini_candidates';
+          }
+        }
+        
+        // Try nested data
+        else if (result.data) {
+          if (typeof result.data === 'string') {
+            content = result.data;
+            extractionMethod = 'result.data_string';
+          } else if (result.data.content) {
+            content = result.data.content;
+            extractionMethod = 'result.data.content';
+          }
+        }
+        
+        // Last resort - find any string property
+        else {
+          for (const [key, value] of Object.entries(result)) {
+            if (typeof value === 'string' && value.length > 5) {
+              content = value;
+              extractionMethod = `fallback_${key}`;
+              break;
+            }
+          }
+        }
+      }
+      
+      console.log('Title extraction result:', {
+        hasContent: !!content,
+        contentLength: content?.length || 0,
+        extractionMethod,
+        contentPreview: content?.substring(0, 200)
+      });
+      
+      if (!content || content.trim().length < 10) {
+        console.error('Title generation failed - no content received');
+        toast.error('No titles received from AI. Please try again.');
+        return;
+      }
       
       const lines = content.split('\n').filter(line => line.trim());
       const titles = [];
@@ -278,30 +450,82 @@ Write the complete article now, meeting professional publication standards:`;
         hasContent: !!result.content
       });
       
-      // Extract content properly and validate quality
+      // Extract content using comprehensive method detection
       let content = '';
+      let extractionMethod = 'none';
       
-      // Handle different response formats from LLM router
+      console.log('Article generation - Raw result:', result);
+      console.log('Article generation - Result type:', typeof result);
+      
       if (typeof result === 'string') {
         content = result;
+        extractionMethod = 'direct_string';
       } else if (result && typeof result === 'object') {
-        content = result.content || result.text || result.response || result.output || '';
-        
-        // If it's nested in choices (OpenAI format)
-        if (result.choices && result.choices[0]) {
-          content = result.choices[0].message?.content || result.choices[0].text || '';
+        // Try direct properties first
+        if (result.content) {
+          content = result.content;
+          extractionMethod = 'result.content';
+        } else if (result.text) {
+          content = result.text;
+          extractionMethod = 'result.text';
+        } else if (result.response) {
+          content = result.response;
+          extractionMethod = 'result.response';
+        } else if (result.output) {
+          content = result.output;
+          extractionMethod = 'result.output';
+        } else if (result.message) {
+          content = result.message;
+          extractionMethod = 'result.message';
         }
         
-        // If it's nested in candidates (Gemini format)
-        if (result.candidates && result.candidates[0]) {
-          content = result.candidates[0].content?.parts?.[0]?.text || '';
+        // Try OpenAI format
+        else if (result.choices && result.choices[0]) {
+          if (result.choices[0].message?.content) {
+            content = result.choices[0].message.content;
+            extractionMethod = 'openai_message_content';
+          } else if (result.choices[0].text) {
+            content = result.choices[0].text;
+            extractionMethod = 'openai_choices_text';
+          }
+        }
+        
+        // Try Gemini format
+        else if (result.candidates && result.candidates[0]) {
+          if (result.candidates[0].content?.parts?.[0]?.text) {
+            content = result.candidates[0].content.parts[0].text;
+            extractionMethod = 'gemini_candidates';
+          }
+        }
+        
+        // Try nested data
+        else if (result.data) {
+          if (typeof result.data === 'string') {
+            content = result.data;
+            extractionMethod = 'result.data_string';
+          } else if (result.data.content) {
+            content = result.data.content;
+            extractionMethod = 'result.data.content';
+          }
+        }
+        
+        // Last resort - find any string property
+        else {
+          for (const [key, value] of Object.entries(result)) {
+            if (typeof value === 'string' && value.length > 10) {
+              content = value;
+              extractionMethod = `fallback_${key}`;
+              break;
+            }
+          }
         }
       }
       
-      console.log('Extracted content:', {
-        type: typeof content,
-        length: content?.length || 0,
-        preview: content?.substring(0, 100) + '...'
+      console.log('Content extraction result:', {
+        hasContent: !!content,
+        contentLength: content?.length || 0,
+        extractionMethod,
+        contentPreview: content?.substring(0, 100)
       });
       
       if (!content || typeof content !== 'string' || content.trim().length < 50) {
