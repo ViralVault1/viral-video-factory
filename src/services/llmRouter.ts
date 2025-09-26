@@ -67,6 +67,7 @@ class LLMRouter {
         return await this.callGemini(prompt, maxTokens, temperature);
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`${provider} failed, trying fallback:`, error);
       
       try {
@@ -76,8 +77,9 @@ class LLMRouter {
           return await this.callOpenAI(prompt, maxTokens, temperature);
         }
       } catch (fallbackError) {
+        const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
         console.error('Both providers failed:', fallbackError);
-        throw new Error(`All AI providers failed. Original: ${error.message}, Fallback: ${fallbackError.message}`);
+        throw new Error(`All AI providers failed. Original: ${errorMessage}, Fallback: ${fallbackMessage}`);
       }
     }
   }
