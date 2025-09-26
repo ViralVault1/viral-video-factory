@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { FileText, Trash2, Download, Copy, Eye, Clock, CheckCircle, AlertCircle, X, Plus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// Remove the broken LLM router import entirely
-// import llmRouter from '../services/llmRouter';
+// Import the fully functional LLM router
+import llmRouter from '../services/llmRouter';
+import type { TaskType } from '../services/llmRouter';
 
-// Define TaskType locally since we're not using the router
-const TaskType = { 
-  CONTENT_GENERATION: 'content_generation',
-  ARTICLE_WRITING: 'article_writing'
+// Define task types for the router
+const TASK_TYPES = { 
+  CONTENT_GENERATION: 'content_generation' as TaskType,
+  ARTICLE_WRITING: 'article' as TaskType
 };
 
 const AutoWriterPage = () => {
@@ -42,40 +43,15 @@ const AutoWriterPage = () => {
     'Social Media', 'E-commerce', 'Artificial Intelligence', 'Web Development'
   ];
 
-  // Direct API call function to bypass mock router
-  const callGeminiDirectly = async (prompt, maxTokens = 4000) => {
-    const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-    
-    if (!apiKey) {
-      throw new Error('REACT_APP_GEMINI_API_KEY not found. Add it to your Vercel environment variables.');
-    }
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: maxTokens
-        }
-      })
+  const handleNicheToggle = (niche) => {
+    setSelectedNiches(prev => {
+      if (prev.includes(niche)) {
+        return prev.filter(n => n !== niche);
+      } else {
+        return [...prev, niche];
+      }
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
+  }; response.json();
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!content) {
@@ -101,60 +77,36 @@ const AutoWriterPage = () => {
   };
 
   const testLLMConnection = async () => {
-    console.log('Testing direct Gemini API connection...');
+    console.log('Testing LLM Router...');
     try {
-      toast.loading('Testing direct API connection...', { id: 'api-test' });
+      toast.loading('Testing LLM Router...', { id: 'router-test' });
       
-      // Test direct Gemini API call only
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.REACT_APP_GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: 'Write a short test message to confirm Gemini API is working.'
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 100
-          }
-        })
-      });
+      const result = await llmRouter.executeTask(
+        'Write a short test message to confirm the LLM router is working properly.',
+        { type: TASK_TYPES.CONTENT_GENERATION }
+      );
       
-      toast.dismiss('api-test');
+      toast.dismiss('router-test');
       
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        
-        if (content) {
-          toast.success('Direct Gemini API working!');
-          alert(`API Test Successful!\n\nContent: "${content}"\n\nYour article generation should now work!`);
-        } else {
-          toast.error('API responded but no content received');
-          alert('API call succeeded but returned no content. Check your response format.');
-        }
+      console.log('Router test result:', result);
+      
+      if (result.content && result.content.length > 20 && !result.content.includes('Mock content for:')) {
+        toast.success('LLM Router working!');
+        alert(`LLM Router Test Successful!\n\nProvider: ${result.provider}\nContent Length: ${result.content.length}\nContent: "${result.content}"`);
       } else {
-        const errorText = await response.text();
-        toast.error('API call failed');
-        
-        if (response.status === 403) {
-          alert(`API Key Error (403):\n\n${errorText}\n\nPlease check your REACT_APP_GEMINI_API_KEY in Vercel environment variables.`);
-        } else {
-          alert(`API Error ${response.status}:\n\n${errorText}`);
-        }
+        toast.error('Router returned mock/minimal content');
+        alert(`Router Issue:\n\nContent: "${result.content}"\n\nThe router may still be using mock data or API keys are missing.`);
       }
-    } catch (error) {
-      toast.dismiss('api-test');
-      toast.error('API connection failed');
       
-      if (error.message.includes('Failed to fetch')) {
-        alert(`Network Error:\n\nCannot reach Gemini API. This could be due to:\n1. CORS issues\n2. Network connectivity\n3. Invalid API endpoint\n\nError: ${error.message}`);
+    } catch (error) {
+      toast.dismiss('router-test');
+      toast.error('Router test failed');
+      console.error('Router test failed:', error);
+      
+      if (error.message.includes('API key')) {
+        alert(`API Key Missing:\n\n${error.message}\n\nAdd these environment variables to Vercel:\n- REACT_APP_OPENAI_API_KEY\n- REACT_APP_GEMINI_API_KEY`);
       } else {
-        alert(`API Test Failed:\n\n${error.message}`);
+        alert(`Router Test Failed:\n\n${error.message}`);
       }
     }
   };
@@ -192,27 +144,21 @@ Generate 5 titles now:`;
 
       toast.loading('Generating article titles...', { id: 'title-gen' });
       
-      // Use direct API call instead of mock router
-      console.log('Using direct API for title generation...');
-      const result = await callGeminiDirectly(prompt, 1000);
+      // Use the functional LLM router
+      const result = await llmRouter.executeTask(
+        prompt,
+        { type: TASK_TYPES.CONTENT_GENERATION, maxTokens: 1000 }
+      );
       
       toast.dismiss('title-gen');
       
-      // Extract content - we know direct API returns result.content
-      const content = result.content || '';
+      console.log('Title generation result:', result);
       
-      console.log('Title generation result:', {
-        hasContent: !!content,
-        contentLength: content?.length || 0,
-        contentPreview: content?.substring(0, 200)
-      });
-      
-      if (!content || content.trim().length < 10) {
-        console.error('Title generation failed - no content received');
-        toast.error('No titles received from API. Check your API key.');
-        return;
+      if (!result.content || result.content.trim().length < 10) {
+        throw new Error('No content received from LLM router');
       }
       
+      const content = result.content;
       const lines = content.split('\n').filter(line => line.trim());
       const titles = [];
       
@@ -232,7 +178,7 @@ Generate 5 titles now:`;
       
       if (titles.length > 0) {
         setCustomTitles(titles.join('\n'));
-        toast.success(`Generated ${titles.length} titles using direct API!`);
+        toast.success(`Generated ${titles.length} titles using ${result.provider}!`);
         console.log('Parsed titles:', titles);
       } else {
         // Fallback: use the raw response
@@ -246,7 +192,7 @@ Generate 5 titles now:`;
       console.error('Title generation failed:', error);
       
       if (error.message.includes('API key')) {
-        toast.error('API key missing. Add REACT_APP_GEMINI_API_KEY to Vercel.');
+        toast.error('API key missing. Check your environment variables.');
       } else {
         toast.error(`Failed to generate titles: ${error.message}`);
       }
