@@ -15,8 +15,30 @@ interface PricingTier {
   }>;
 }
 
+interface CurrencyData {
+  symbol: string;
+  rate: number;
+  code: string;
+}
+
 export const PricingPage: React.FC = () => {
   const [isYearly, setIsYearly] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState('USD');
+
+  // Currency conversion rates (in a real app, these would come from an API)
+  const currencies: Record<string, CurrencyData> = {
+    USD: { symbol: '$', rate: 1, code: 'USD' },
+    EUR: { symbol: '€', rate: 0.85, code: 'EUR' },
+    GBP: { symbol: '£', rate: 0.73, code: 'GBP' }
+  };
+
+  const convertPrice = (price: number): number => {
+    return Math.round(price * currencies[selectedCurrency].rate);
+  };
+
+  const getCurrencySymbol = (): string => {
+    return currencies[selectedCurrency].symbol;
+  };
 
   const pricingTiers: PricingTier[] = [
     {
@@ -90,12 +112,38 @@ export const PricingPage: React.FC = () => {
     { name: 'Community Access', starter: '✓', creator: '✓', scale: '✓' }
   ];
 
-  const handlePlanSelect = (planName: string) => {
+  const handlePlanSelect = (planName: string, price: number) => {
+    const actualPrice = isYearly 
+      ? convertPrice(pricingTiers.find(t => t.name === planName)?.yearlyPrice || price)
+      : convertPrice(price);
+    
     if (planName === 'Scale') {
-      alert('Redirecting to contact sales...');
+      // Redirect to contact sales
+      const salesUrl = `mailto:sales@viralvideofactory.com?subject=Scale Plan Inquiry&body=Hi, I'm interested in the Scale plan at ${getCurrencySymbol()}${actualPrice}/month. Please contact me to discuss enterprise options.`;
+      window.location.href = salesUrl;
     } else {
-      alert(`Selected ${planName} plan! Redirecting to checkout...`);
+      // Create checkout URL with proper parameters
+      const checkoutParams = new URLSearchParams({
+        plan: planName.toLowerCase(),
+        billing: isYearly ? 'yearly' : 'monthly',
+        currency: selectedCurrency,
+        price: actualPrice.toString()
+      });
+      
+      // In a real app, this would redirect to your payment processor
+      const checkoutUrl = `/checkout?${checkoutParams.toString()}`;
+      console.log('Redirecting to:', checkoutUrl);
+      
+      // For demo purposes, show the URL
+      alert(`Checkout URL: ${checkoutUrl}\n\nPlan: ${planName}\nPrice: ${getCurrencySymbol()}${actualPrice}/${isYearly ? 'year' : 'month'}\nCurrency: ${selectedCurrency}`);
+      
+      // In production, uncomment this:
+      // window.location.href = checkoutUrl;
     }
+  };
+
+  const handleCurrencyChange = (currency: string) => {
+    setSelectedCurrency(currency);
   };
 
   return (
@@ -124,10 +172,16 @@ export const PricingPage: React.FC = () => {
               SAVE 20%
             </span>
           )}
-          <select className="bg-gray-700 text-white px-3 py-1 rounded border border-gray-600">
-            <option>USD</option>
-            <option>EUR</option>
-            <option>GBP</option>
+          
+          {/* Fixed Currency Selector */}
+          <select 
+            value={selectedCurrency}
+            onChange={(e) => handleCurrencyChange(e.target.value)}
+            className="bg-gray-700 text-white px-3 py-1 rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
           </select>
         </div>
 
@@ -154,13 +208,18 @@ export const PricingPage: React.FC = () => {
                 
                 <div className="mb-6">
                   <span className="text-4xl font-bold">
-                    ${isYearly ? tier.yearlyPrice : tier.price}
+                    {getCurrencySymbol()}{convertPrice(isYearly ? tier.yearlyPrice : tier.price)}
                   </span>
                   <span className="text-gray-400">/month</span>
+                  {isYearly && (
+                    <div className="text-sm text-gray-400 mt-1">
+                      Billed {getCurrencySymbol()}{convertPrice(tier.yearlyPrice * 12)} yearly
+                    </div>
+                  )}
                 </div>
                 
                 <button
-                  onClick={() => handlePlanSelect(tier.name)}
+                  onClick={() => handlePlanSelect(tier.name, tier.price)}
                   className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors ${tier.buttonStyle}`}
                 >
                   {tier.buttonText}
@@ -205,15 +264,21 @@ export const PricingPage: React.FC = () => {
                   <th className="text-left p-6 font-semibold">Features</th>
                   <th className="text-center p-6 font-semibold">
                     <div>Starter</div>
-                    <div className="text-sm text-gray-400 font-normal">$19/month</div>
+                    <div className="text-sm text-gray-400 font-normal">
+                      {getCurrencySymbol()}{convertPrice(isYearly ? 15 : 19)}/month
+                    </div>
                   </th>
                   <th className="text-center p-6 font-semibold">
                     <div className="text-green-500">Creator</div>
-                    <div className="text-sm text-gray-400 font-normal">$49/month</div>
+                    <div className="text-sm text-gray-400 font-normal">
+                      {getCurrencySymbol()}{convertPrice(isYearly ? 39 : 49)}/month
+                    </div>
                   </th>
                   <th className="text-center p-6 font-semibold">
                     <div>Scale</div>
-                    <div className="text-sm text-gray-400 font-normal">$99/month</div>
+                    <div className="text-sm text-gray-400 font-normal">
+                      {getCurrencySymbol()}{convertPrice(isYearly ? 79 : 99)}/month
+                    </div>
                   </th>
                 </tr>
               </thead>
