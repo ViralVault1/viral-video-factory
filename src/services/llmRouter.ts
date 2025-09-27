@@ -98,7 +98,7 @@ const AutoWriterPage = () => {
         alert(`Router Issue:\n\nContent: "${result.content}"\n\nThe router may still be using mock data or API keys are missing.`);
       }
       
-    } catch (error) {
+    } catch (error: unknown) {
       toast.dismiss('router-test');
       toast.error('Router test failed');
       console.error('Router test failed:', error);
