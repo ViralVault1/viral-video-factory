@@ -532,7 +532,7 @@ export const PricingPage: React.FC = () => {
       } else {
         // Scale plan uses sales contact - open email
         const subject = encodeURIComponent('Scale Plan Inquiry - Viral Video Factory');
-        const body = encodeURIComponent(`Hi,\n\nI'm interested in the Scale plan for my business. Please contact me to discuss enterprise options and pricing.\n\nThanks!`);
+        const body = encodeURIComponent('Hi,\n\nI am interested in the Scale plan for my business. Please contact me to discuss enterprise options and pricing.\n\nThanks!');
         window.open(`mailto:sales@viralvideofactory.com?subject=${subject}&body=${body}`, '_blank');
         return;
       }
