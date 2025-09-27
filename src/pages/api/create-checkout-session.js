@@ -25,6 +25,40 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // === SUPABASE CONNECTION TEST ===
+  console.log('=== SUPABASE TEST ===');
+  console.log('URL exists:', !!process.env.SUPABASE_URL);
+  console.log('Key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+  console.log('URL preview:', process.env.SUPABASE_URL?.substring(0, 50));
+
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.log('✅ Supabase appears configured');
+    
+    // Test basic connection
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      console.log('Supabase auth test:', error ? 'FAILED' : 'SUCCESS');
+      if (error) console.log('Auth error:', error.message);
+      
+      // Test database query
+      const { data: dbTest, error: dbError } = await supabase
+        .from('checkout_sessions')
+        .select('*')
+        .limit(1);
+      
+      if (dbError) {
+        console.log('Database test: Table might not exist -', dbError.message);
+      } else {
+        console.log('Database test: SUCCESS - checkout_sessions table accessible');
+      }
+    } catch (supabaseError) {
+      console.log('Supabase connection error:', supabaseError.message);
+    }
+  } else {
+    console.log('❌ Supabase not properly configured');
+  }
+  console.log('=== END SUPABASE TEST ===');
+
   // Validate environment variables
   if (!process.env.STRIPE_SECRET_KEY) {
     console.error('Missing STRIPE_SECRET_KEY');
@@ -75,9 +109,37 @@ export default async function handler(req, res) {
 
     console.log('Stripe session created:', session.id);
 
+    // === OPTIONAL: Store checkout session in Supabase ===
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const { error: insertError } = await supabase
+          .from('checkout_sessions')
+          .insert({
+            session_id: session.id,
+            plan: plan,
+            billing: billing,
+            currency: currency,
+            price: price,
+            status: 'pending',
+            created_at: new Date().toISOString()
+          });
+
+        if (insertError) {
+          console.warn('Failed to store checkout session in Supabase:', insertError.message);
+          // Don't fail the request, just log the warning
+        } else {
+          console.log('✅ Checkout session stored in Supabase');
+        }
+      } catch (supabaseError) {
+        console.warn('Supabase operation failed:', supabaseError.message);
+        // Continue with checkout even if Supabase fails
+      }
+    }
+
     return res.status(200).json({
       checkoutUrl: session.url,
-      sessionId: session.id
+      sessionId: session.id,
+      supabaseConnected: !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
     });
 
   } catch (error) {
