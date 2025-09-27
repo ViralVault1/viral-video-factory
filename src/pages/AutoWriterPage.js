@@ -4,12 +4,11 @@ import { toast } from 'react-hot-toast';
 
 // Import the fully functional LLM router
 import llmRouter from '../services/llmRouter';
-import type { TaskType } from '../services/llmRouter';
 
-// Define task types for the router
+// Define task types for the router (no TypeScript types needed in .js file)
 const TASK_TYPES = { 
-  CONTENT_GENERATION: 'content_generation' as TaskType,
-  ARTICLE_WRITING: 'article' as TaskType
+  CONTENT_GENERATION: 'content_generation',
+  ARTICLE_WRITING: 'article'
 };
 
 const AutoWriterPage = () => {
