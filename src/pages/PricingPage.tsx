@@ -523,20 +523,13 @@ export const PricingPage: React.FC = () => {
           window.location.href = checkoutUrl;
           return;
           
-        } catch (error: any) {
-          console.error('Scale checkout error:', error);
-          alert(`Unable to start checkout: ${error.message}`);
-          setIsLoading(null);
-          return;
-        }
-      } else {
-        // Scale plan uses sales contact - open email
-        const subject = encodeURIComponent('Scale Plan Inquiry - Viral Video Factory');
-        const body = encodeURIComponent('Hi,\n\nI am interested in the Scale plan for my business. Please contact me to discuss enterprise options and pricing.\n\nThanks!');
-        window.open(`mailto:sales@viralvideofactory.com?subject=${subject}&body=${body}`, '_blank');
-        return;
-      }
-    }
+       } catch (error: unknown) {
+  console.error('Scale checkout error:', error);
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+  alert(`Unable to start checkout: ${errorMessage}`);
+  setIsLoading(null);
+  return;
+}
 
     setIsLoading(planName);
 
