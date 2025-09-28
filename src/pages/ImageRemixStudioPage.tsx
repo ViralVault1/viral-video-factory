@@ -122,3 +122,5 @@ const generateEdit = async () => {
     setIsGenerating(false);
   }
 };
+
+export default ImageRemixStudioPage;
