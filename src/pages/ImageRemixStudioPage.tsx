@@ -26,9 +26,51 @@ const remixImageWithDallE = async (originalImage: string, maskDataUrl: string, p
   }
 
   try {
-    // Convert base64 images to blobs
-    const originalBlob = await fetch(originalImage).then(r => r.blob());
-    const maskBlob = await fetch(maskDataUrl).then(r => r.blob());
+    // Convert images to PNG format and ensure proper size
+    const convertToPNG = async (imageDataUrl: string): Promise<Blob> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // DALL-E requires square images, max 4MB, PNG format
+          const size = Math.min(img.width, img.height, 1024);
+          canvas.width = size;
+          canvas.height = size;
+          
+          if (!ctx) {
+            reject(new Error('Could not create canvas context'));
+            return;
+          }
+          
+          // Draw image centered and cropped to square
+          const scale = size / Math.min(img.width, img.height);
+          const scaledWidth = img.width * scale;
+          const scaledHeight = img.height * scale;
+          const offsetX = (size - scaledWidth) / 2;
+          const offsetY = (size - scaledHeight) / 2;
+          
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, size, size);
+          ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+          
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to convert image to PNG'));
+            }
+          }, 'image/png', 1.0);
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = imageDataUrl;
+      });
+    };
+
+    // Convert both images to PNG
+    const originalBlob = await convertToPNG(originalImage);
+    const maskBlob = await convertToPNG(maskDataUrl);
 
     // Create form data for the API request
     const formData = new FormData();
@@ -210,28 +252,14 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
         try {
             await consumeCredits('imageGeneration');
             
-            // Create a simple mask based on user selection
-            const img = new Image();
-            img.onload = async () => {
-                try {
-                    const maskDataUrl = createMask(img.naturalWidth, img.naturalHeight);
-                    const resultUrl = await remixImageWithDallE(originalImage, maskDataUrl, prompt);
-                    setRemixedImage(resultUrl);
-                    toast.success('Image remix completed successfully!');
-                } catch (error: any) {
-                    toast.error(error.message || 'Failed to remix image');
-                } finally {
-                    setIsLoading(false);
-                }
-            };
-            img.onerror = () => {
-                toast.error('Failed to load image');
-                setIsLoading(false);
-            };
-            img.src = originalImage;
+            // Use Imagen via Vertex AI for image generation
+            const resultUrl = await remixImageWithImagen(originalImage, maskType, prompt);
+            setRemixedImage(resultUrl);
+            toast.success('Image remix completed successfully!');
             
         } catch (error: any) {
             toast.error(error.message || 'Failed to remix image');
+        } finally {
             setIsLoading(false);
         }
     };
