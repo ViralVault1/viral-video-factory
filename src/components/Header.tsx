@@ -9,11 +9,11 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth(); // Changed from signOut to logout
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await logout(); // Changed from signOut() to logout()
       navigate('/auth');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -89,4 +89,3 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     </header>
   );
 };
-
