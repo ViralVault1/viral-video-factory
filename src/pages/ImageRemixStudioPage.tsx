@@ -17,7 +17,7 @@ interface ImageRemixStudioPageProps {
   onNavigate: (page: string) => void;
 }
 
-export const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate }) => {
+const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate }) => {
     const [originalImage, setOriginalImage] = useState<string | null>(null);
     const [remixedImage, setRemixedImage] = useState<string | null>(null);
     const [prompt, setPrompt] = useState('');
@@ -68,6 +68,8 @@ export const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNa
                 image.removeEventListener('load', setupCanvas);
             }
         };
+
+export default ImageRemixStudioPage;
     }, [originalImage, setupCanvas]);
 
     const handleFileChange = (files: FileList | null) => {
