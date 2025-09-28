@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNotification } from './NotificationProvider';
+import { toast } from 'react-hot-toast';
 import { remixImageWithMask } from '../services/geminiService';
 import { 
   Loader2, 
@@ -35,7 +35,6 @@ export const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNa
     const contextRef = useRef<CanvasRenderingContext2D | null>(null);
 
     const { user, consumeCredits } = useAuth();
-    const { showToast } = useNotification();
     
     // Setup canvas for drawing masks
     const setupCanvas = useCallback(() => {
@@ -75,7 +74,7 @@ export const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNa
         if (!files || files.length === 0) return;
         const file = files[0];
         if (!file.type.startsWith('image/')) {
-            showToast('Please upload a valid image file.', 'error');
+            toast.error('Please upload a valid image file.');
             return;
         }
         const reader = new FileReader();
@@ -93,7 +92,7 @@ export const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNa
                 setShowCamera(true);
             }
         } catch (error) {
-            showToast('Could not access camera. Please grant permission.', 'error');
+            toast.error('Could not access camera. Please grant permission.');
         }
     };
     
@@ -148,12 +147,12 @@ export const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNa
     
     const handleGenerateRemix = async () => {
         if (!user) { 
-            showToast('Please sign in to remix images.', 'info'); 
+            toast('Please sign in to remix images.'); 
             onNavigate('auth'); 
             return; 
         }
         if (!prompt.trim()) { 
-            showToast('Please enter a prompt describing what you want to change.', 'error'); 
+            toast.error('Please enter a prompt describing what you want to change.'); 
             return; 
         }
         if (!originalImage || !canvasRef.current) return;
@@ -178,9 +177,9 @@ export const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNa
 
             const resultUrl = await remixImageWithMask(originalImage, maskDataUrl, prompt);
             setRemixedImage(resultUrl);
-            showToast('Image remix completed successfully!', 'success');
+            toast.success('Image remix completed successfully!');
         } catch (error: any) {
-            showToast(error.message || 'Failed to remix image', 'error');
+            toast.error(error.message || 'Failed to remix image');
         } finally {
             setIsLoading(false);
         }
@@ -194,7 +193,7 @@ export const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNa
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            showToast('Image downloaded successfully!', 'success');
+            toast.success('Image downloaded successfully!');
         }
     };
 
