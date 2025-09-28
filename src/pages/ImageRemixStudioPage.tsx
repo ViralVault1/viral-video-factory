@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const ImageRemixStudioPage: React.FC = () => {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
