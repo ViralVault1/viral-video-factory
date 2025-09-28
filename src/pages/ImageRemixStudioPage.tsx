@@ -205,8 +205,8 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
     try {
       await consumeCredits('imageGeneration');
       
-      // Use Stability AI for real image processing
-      const resultUrl = await processImageWithStabilityAI(originalImage, selectedTool, prompt);
+      // Use Replicate for more reliable image processing
+      const resultUrl = await processImageWithReplicate(originalImage, selectedTool, prompt);
       setEditedImage(resultUrl);
       toast.success(`${tool?.name} completed successfully!`);
       
