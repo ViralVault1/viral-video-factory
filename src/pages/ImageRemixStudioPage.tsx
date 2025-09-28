@@ -252,14 +252,28 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
         try {
             await consumeCredits('imageGeneration');
             
-            // Use Imagen via Vertex AI for image generation
-            const resultUrl = await remixImageWithImagen(originalImage, maskType, prompt);
-            setRemixedImage(resultUrl);
-            toast.success('Image remix completed successfully!');
+            // Create a simple mask based on user selection
+            const img = new Image();
+            img.onload = async () => {
+                try {
+                    const maskDataUrl = createMask(img.naturalWidth, img.naturalHeight);
+                    const resultUrl = await remixImageWithDallE(originalImage, maskDataUrl, prompt);
+                    setRemixedImage(resultUrl);
+                    toast.success('Image remix completed successfully!');
+                } catch (error: any) {
+                    toast.error(error.message || 'Failed to remix image');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            img.onerror = () => {
+                toast.error('Failed to load image');
+                setIsLoading(false);
+            };
+            img.src = originalImage;
             
         } catch (error: any) {
             toast.error(error.message || 'Failed to remix image');
-        } finally {
             setIsLoading(false);
         }
     };
