@@ -1,520 +1,124 @@
-import React, { useState, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'react-hot-toast';
-import { 
-  Upload, 
-  Camera, 
-  Wand2, 
-  Download, 
-  Sparkles, 
-  RotateCcw, 
-  Zap, 
-  Star, 
-  Coins 
-} from 'lucide-react';
+// Simple Gemini 2.5 Flash Image integration - replaces all the complex Replicate code
 
-interface ImageRemixStudioPageProps {
-  onNavigate?: (page: string) => void;
-}
-
-const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate }) => {
-  const [originalImage, setOriginalImage] = useState<string | null>(null);
-  const [editedImage, setEditedImage] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedTool, setSelectedTool] = useState('background');
-  const [prompt, setPrompt] = useState('');
-  const [showCamera, setShowCamera] = useState(false);
+const processImageWithGemini = async (imageData: string, tool: string, prompt: string): Promise<string> => {
+  const geminiApiKey = process.env.REACT_APP_GEMINI_API_KEY;
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  
-  const { user, consumeCredits, credits } = useAuth();
-
-  const tools = [
-    {
-      id: 'background',
-      name: 'Change Background',
-      description: 'Replace the background while keeping the subject',
-      icon: '🌄',
-      placeholder: 'e.g., sunset beach, snowy mountains, modern office',
-      cost: 5
-    },
-    {
-      id: 'style',
-      name: 'Style Transfer',
-      description: 'Apply artistic styles to your image',
-      icon: '🎨',
-      placeholder: 'e.g., oil painting, watercolor, cyberpunk style',
-      cost: 3
-    },
-    {
-      id: 'enhance',
-      name: 'AI Enhance',
-      description: 'Improve quality and resolution',
-      icon: '✨',
-      placeholder: 'e.g., make it more vibrant, increase sharpness',
-      cost: 2
-    },
-    {
-      id: 'object',
-      name: 'Add Objects',
-      description: 'Add or modify objects in the scene',
-      icon: '🔧',
-      placeholder: 'e.g., add sunglasses, change clothes, add flowers',
-      cost: 4
-    }
-  ];
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setOriginalImage(e.target?.result as string);
-        setEditedImage(null);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      toast.error('Please upload a valid image file');
-    }
-  };
-
-  const handleTakePhoto = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setShowCamera(true);
-      }
-    } catch (error) {
-      toast.error('Could not access camera. Please grant permission.');
-    }
-  };
-
-  const captureFromVideo = () => {
-    if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      setOriginalImage(canvas.toDataURL('image/jpeg'));
-      
-      // Stop camera stream
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream?.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-      setShowCamera(false);
-      setEditedImage(null);
-    }
-  };
-
-  // Stability AI service for image editing
-  const processImageWithStabilityAI = async (imageData: string, tool: string, prompt: string): Promise<string> => {
-    const apiKey = process.env.REACT_APP_STABILITY_API_KEY;
-    
-    if (!apiKey) {
-      throw new Error('Stability AI API key not found. Please add REACT_APP_STABILITY_API_KEY to your environment variables.');
-    }
-
-    try {
-      // Convert base64 to blob
-      const base64Data = imageData.split(',')[1];
-      const imageBlob = await fetch(`data:image/jpeg;base64,${base64Data}`).then(r => r.blob());
-
-      const formData = new FormData();
-      formData.append('init_image', imageBlob);
-      formData.append('init_image_mode', 'IMAGE_STRENGTH');
-      formData.append('image_strength', tool === 'background' ? '0.35' : '0.5');
-      formData.append('steps', '40');
-      formData.append('seed', '0');
-      formData.append('cfg_scale', '5');
-      formData.append('samples', '1');
-      
-      // Create context-aware prompts based on tool
-      let enhancedPrompt = '';
-      if (tool === 'background') {
-        enhancedPrompt = `${prompt}, professional photography, high quality, detailed, realistic lighting, keeping the main subject unchanged`;
-      } else if (tool === 'style') {
-        enhancedPrompt = `${prompt}, artistic style, professional quality, maintaining subject composition`;
-      } else if (tool === 'enhance') {
-        enhancedPrompt = `${prompt}, enhanced quality, sharp details, improved lighting, photorealistic`;
-      } else {
-        enhancedPrompt = `${prompt}, realistic, high quality, professional photography`;
-      }
-      
-      formData.append('text_prompts[0][text]', enhancedPrompt);
-      formData.append('text_prompts[0][weight]', '1');
-
-      const response = await fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/image-to-image', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Accept': 'application/json',
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Stability AI request failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.artifacts && data.artifacts[0] && data.artifacts[0].base64) {
-        return `data:image/png;base64,${data.artifacts[0].base64}`;
-      }
-      
-      throw new Error('No image returned from Stability AI');
-      
-    } catch (error: any) {
-      console.error('Stability AI Error:', error);
-      
-      if (error.message.includes('API key')) {
-        throw new Error('Invalid Stability AI API key. Please check your environment variables.');
-      } else if (error.message.includes('quota') || error.message.includes('credits')) {
-        throw new Error('Stability AI quota exceeded. Please check your usage limits.');
-      } else {
-        throw new Error(error.message || 'Failed to process image with Stability AI');
-      }
-    }
-  };
-
-  const generateEdit = async () => {
-    if (!user) {
-      toast('Please sign in to use AI tools');
-      if (onNavigate) onNavigate('auth');
-      return;
-    }
-
-    if (!originalImage || !prompt.trim()) {
-      toast.error('Please provide an image and description');
-      return;
-    }
-    
-    const tool = tools.find(t => t.id === selectedTool);
-    const cost = tool?.cost || 5;
-    
-    if (credits < cost) {
-      toast.error(`Need ${cost} credits but only have ${credits}`);
-      return;
-    }
-    
-    setIsProcessing(true);
-    
-    try {
-      await consumeCredits('imageGeneration');
-      
-      // Use Replicate for more reliable image processing
-      const resultUrl = await processImageWithReplicate(originalImage, selectedTool, prompt);
-      setEditedImage(resultUrl);
-      toast.success(`${tool?.name} completed successfully!`);
-      
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to process image');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const downloadImage = () => {
-    if (!editedImage) return;
-    
-    const link = document.createElement('a');
-    link.href = editedImage;
-    link.download = `ai-edited-${Date.now()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Image downloaded successfully!');
-  };
-
-  const resetEditor = () => {
-    setOriginalImage(null);
-    setEditedImage(null);
-    setPrompt('');
-    setSelectedTool('background');
-    setShowCamera(false);
-    
-    // Stop camera if active
-    if (videoRef.current?.srcObject) {
-      (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-    }
-  };
-
-  if (isProcessing) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative mb-8">
-            <div className="w-24 h-24 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <Sparkles className="w-8 h-8 text-yellow-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
-          </div>
-          <h2 className="text-3xl font-bold text-white mb-4">AI is working its magic...</h2>
-          <p className="text-purple-300 text-lg">Creating your perfect image</p>
-          <div className="mt-6 w-64 h-2 bg-slate-700 rounded-full mx-auto overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse"></div>
-          </div>
-        </div>
-      </div>
-    );
+  if (!geminiApiKey) {
+    throw new Error('Gemini API key not found. Please add REACT_APP_GEMINI_API_KEY to your environment variables.');
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
-      <div className="border-b border-slate-700/50 bg-black/20 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                <Wand2 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-white">AI Image Studio</h1>
-                <p className="text-sm text-purple-300">Professional-grade AI editing</p>
-              </div>
-            </div>
-            
-            {user && (
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-600">
-                  <Coins className="w-5 h-5 text-yellow-400" />
-                  <span className="text-white font-semibold">{credits}</span>
-                  <span className="text-slate-400 text-sm">credits</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+  // Convert base64 to clean format (remove data:image/jpeg;base64, prefix if present)
+  const cleanImageData = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {!originalImage ? (
-          // Upload Interface
-          <div className="text-center max-w-2xl mx-auto">
-            <div className="mb-8">
-              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Camera className="w-10 h-10 text-white" />
-              </div>
-              <h2 className="text-4xl font-bold text-white mb-4">
-                Transform Your Images with AI
-              </h2>
-              <p className="text-xl text-slate-300 mb-8">
-                Professional-quality editing powered by cutting-edge artificial intelligence
-              </p>
-            </div>
+  // Create the appropriate prompt based on the tool selected
+  let editPrompt = '';
+  switch (tool) {
+    case 'background':
+      editPrompt = `Change the background of this image to: ${prompt}. Keep the main subject unchanged.`;
+      break;
+    case 'style':
+      editPrompt = `Apply this style to the image: ${prompt}. Transform the entire image with this style.`;
+      break;
+    case 'enhance':
+      editPrompt = `Enhance this image: ${prompt}. Improve the quality, lighting, and details.`;
+      break;
+    case 'objects':
+      editPrompt = `Modify objects in this image: ${prompt}. Make the requested changes to objects while preserving the overall scene.`;
+      break;
+    default:
+      editPrompt = prompt;
+  }
 
-            {showCamera ? (
-              <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50 mb-8">
-                <video 
-                  ref={videoRef} 
-                  autoPlay 
-                  playsInline 
-                  className="w-full rounded-xl mb-4"
-                />
-                <div className="flex gap-4">
-                  <button 
-                    onClick={captureFromVideo}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2"
-                  >
-                    <Camera className="w-5 h-5" />
-                    Capture Photo
-                  </button>
-                  <button 
-                    onClick={() => {
-                      const stream = videoRef.current?.srcObject as MediaStream;
-                      stream?.getTracks().forEach(track => track.stop());
-                      if (videoRef.current) videoRef.current.srcObject = null;
-                      setShowCamera(false);
-                    }}
-                    className="px-6 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl font-semibold transition-all duration-200"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-6 mb-8">
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="group relative bg-slate-800/50 hover:bg-slate-700/50 border-2 border-dashed border-slate-600 hover:border-purple-500 rounded-2xl p-8 transition-all duration-300"
-                >
-                  <Upload className="w-12 h-12 text-slate-400 group-hover:text-purple-400 mx-auto mb-4 transition-colors" />
-                  <h3 className="text-xl font-semibold text-white mb-2">Upload Image</h3>
-                  <p className="text-slate-400">Drop your image here or click to browse</p>
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                </button>
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent`, {
+      method: 'POST',
+      headers: {
+        'x-goog-api-key': geminiApiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            {
+              text: editPrompt
+            },
+            {
+              inline_data: {
+                mime_type: "image/jpeg",
+                data: cleanImageData
+              }
+            }
+          ]
+        }],
+        generationConfig: {
+          responseModalities: ["TEXT", "IMAGE"]
+        }
+      })
+    });
 
-                <button 
-                  onClick={handleTakePhoto}
-                  className="group relative bg-slate-800/50 hover:bg-slate-700/50 border-2 border-dashed border-slate-600 hover:border-purple-500 rounded-2xl p-8 transition-all duration-300"
-                >
-                  <Camera className="w-12 h-12 text-slate-400 group-hover:text-purple-400 mx-auto mb-4 transition-colors" />
-                  <h3 className="text-xl font-semibold text-white mb-2">Take Photo</h3>
-                  <p className="text-slate-400">Use your camera to capture an image</p>
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                </button>
-              </div>
-            )}
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Gemini API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+    }
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="hidden"
-            />
+    const data = await response.json();
+    
+    // Extract the generated image from the response
+    const candidate = data.candidates?.[0];
+    if (!candidate?.content?.parts) {
+      throw new Error('No image generated in response');
+    }
 
-            {/* Features */}
-            <div className="grid md:grid-cols-4 gap-4 text-center">
-              {tools.map((tool) => (
-                <div key={tool.id} className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4">
-                  <div className="text-2xl mb-2">{tool.icon}</div>
-                  <h4 className="text-sm font-semibold text-white mb-1">{tool.name}</h4>
-                  <p className="text-xs text-slate-400">{tool.description}</p>
-                  <p className="text-xs text-green-400 mt-2">{tool.cost} credits</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          // Editing Interface
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Image Display */}
-            <div className="lg:col-span-2">
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Original */}
-                <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
-                  <h3 className="text-lg font-semibold text-slate-300 mb-4 text-center">Original</h3>
-                  <img 
-                    src={originalImage} 
-                    alt="Original" 
-                    className="w-full rounded-xl shadow-2xl"
-                  />
-                </div>
+    // Find the image part in the response
+    const imagePart = candidate.content.parts.find((part: any) => part.inline_data);
+    if (!imagePart?.inline_data?.data) {
+      throw new Error('No image data found in response');
+    }
 
-                {/* Edited */}
-                <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
-                  <h3 className="text-lg font-semibold text-green-400 mb-4 text-center flex items-center justify-center gap-2">
-                    <Star className="w-5 h-5" />
-                    AI Enhanced
-                  </h3>
-                  {editedImage ? (
-                    <img 
-                      src={editedImage} 
-                      alt="Edited" 
-                      className="w-full rounded-xl shadow-2xl"
-                    />
-                  ) : (
-                    <div className="aspect-square bg-slate-700/30 rounded-xl border-2 border-dashed border-slate-600 flex items-center justify-center">
-                      <div className="text-center">
-                        <Sparkles className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-                        <p className="text-slate-400">Your edited image will appear here</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+    // Return the image as a data URL
+    return `data:image/jpeg;base64,${imagePart.inline_data.data}`;
 
-              {/* Action Buttons */}
-              {editedImage && (
-                <div className="flex justify-center gap-4 mt-8">
-                  <button
-                    onClick={downloadImage}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg"
-                  >
-                    <Download className="w-5 h-5" />
-                    Download HD
-                  </button>
-                  <button
-                    onClick={resetEditor}
-                    className="bg-slate-700 hover:bg-slate-600 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2"
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                    New Image
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Controls */}
-            <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50 h-fit">
-              <h3 className="text-xl font-bold text-white mb-6">AI Tools</h3>
-
-              {/* Tool Selection */}
-              <div className="space-y-3 mb-6">
-                {tools.map((tool) => (
-                  <button
-                    key={tool.id}
-                    onClick={() => setSelectedTool(tool.id)}
-                    className={`w-full p-4 rounded-xl text-left transition-all duration-200 ${
-                      selectedTool === tool.id
-                        ? 'bg-gradient-to-r from-purple-600/50 to-pink-600/50 border-2 border-purple-500'
-                        : 'bg-slate-700/30 hover:bg-slate-600/40 border-2 border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{tool.icon}</span>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-semibold text-white">{tool.name}</h4>
-                          <span className="text-sm text-green-400">{tool.cost} credits</span>
-                        </div>
-                        <p className="text-sm text-slate-400">{tool.description}</p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              {/* Prompt Input */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-slate-300 mb-3">
-                  Describe your vision
-                </label>
-                <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder={tools.find(t => t.id === selectedTool)?.placeholder}
-                  rows={4}
-                  className="w-full bg-slate-900/50 border-2 border-slate-600 focus:border-purple-500 rounded-xl p-4 text-white placeholder-slate-400 resize-none transition-all duration-200 focus:outline-none"
-                />
-              </div>
-
-              {/* Generate Button */}
-              <button
-                onClick={generateEdit}
-                disabled={!prompt.trim() || !user}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-slate-600 disabled:to-slate-600 text-white py-4 rounded-xl font-bold text-lg transition-all duration-200 flex items-center justify-center gap-3 shadow-lg disabled:cursor-not-allowed"
-              >
-                <Wand2 className="w-6 h-6" />
-                Generate Magic ({tools.find(t => t.id === selectedTool)?.cost || 5} credits)
-              </button>
-
-              {!user && (
-                <p className="text-center text-slate-400 text-sm mt-3">
-                  Please sign in to use AI tools
-                </p>
-              )}
-
-              {/* Tips */}
-              <div className="mt-6 p-4 bg-purple-900/20 border border-purple-500/30 rounded-xl">
-                <h4 className="font-semibold text-purple-300 mb-2">Pro Tips</h4>
-                <ul className="text-sm text-purple-200 space-y-1">
-                  <li>• Be specific about colors and style</li>
-                  <li>• Mention lighting conditions</li>
-                  <li>• Use artistic references</li>
-                  <li>• Try multiple variations</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  } catch (error) {
+    console.error('Gemini processing error:', error);
+    throw new Error(`Failed to process image with Gemini: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 };
 
-export default ImageRemixStudioPage;
+// Updated generateEdit function - much simpler!
+const generateEdit = async () => {
+  if (!originalImage || !prompt.trim()) {
+    alert('Please upload an image and enter a prompt.');
+    return;
+  }
+
+  if (!user) {
+    alert('Please sign in to use AI features.');
+    return;
+  }
+
+  if (credits < 5) {
+    alert('Insufficient credits. You need at least 5 credits to generate an edit.');
+    return;
+  }
+
+  setIsGenerating(true);
+  setEditedImage(null);
+
+  try {
+    // Consume credits first
+    await consumeCredits('imageGeneration');
+    
+    // Process with Gemini - simple and reliable!
+    const resultUrl = await processImageWithGemini(originalImage, selectedTool, prompt);
+    setEditedImage(resultUrl);
+    
+    // Show success message
+    alert('🎉 Image edited successfully! Your snow mountain background has been applied.');
+    
+  } catch (error) {
+    console.error('Error generating edit:', error);
+    alert(`Error: ${error instanceof Error ? error.message : 'Failed to generate edit'}`);
+  } finally {
+    setIsGenerating(false);
+  }
+};
