@@ -108,7 +108,6 @@ export default async function handler(req, res) {
         currency,
         price: price.toString()
       },
-      customer_creation: 'always',
       billing_address_collection: 'required'
     });
 
