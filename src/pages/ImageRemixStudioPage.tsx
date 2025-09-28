@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 interface ImageRemixStudioPageProps {
-  onNavigate: (page: string) => void;
+  onNavigate?: (page: string) => void;
 }
 
 // DALL-E service for image editing
@@ -195,7 +195,9 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
     const handleGenerateRemix = async () => {
         if (!user) { 
             toast('Please sign in to remix images.'); 
-            onNavigate('auth'); 
+            if (onNavigate) {
+                onNavigate('auth'); 
+            }
             return; 
         }
         if (!prompt.trim()) { 
