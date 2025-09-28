@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { Play, Upload, FileText, Wand2, Download, Eye, Copy, Trash2 } from 'lucide-react';
 
+interface VideoIdea {
+  title: string;
+  description: string;
+}
+
 const VideoGeneratorPage: React.FC = () => {
   const [ideaInput, setIdeaInput] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -14,32 +19,136 @@ const VideoGeneratorPage: React.FC = () => {
   const [visualPrompt, setVisualPrompt] = useState('');
   const [soundEffects, setSoundEffects] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isFindingIdeas, setIsFindingIdeas] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [generatedIdeas, setGeneratedIdeas] = useState<VideoIdea[]>([]);
+  const [showViralOptimizer, setShowViralOptimizer] = useState(false);
+  const [viralResults, setViralResults] = useState({
+    hooks: [],
+    titles: []
+  });
 
-  const handleFindIdeas = () => {
+  const handleFindIdeas = async () => {
     if (!ideaInput.trim()) {
       alert('Please enter a topic to find ideas.');
       return;
     }
-    alert(`Finding viral video ideas for: "${ideaInput}"`);
+
+    setIsFindingIdeas(true);
+    setGeneratedIdeas([]);
+
+    // Simulate API call - replace with actual implementation
+    setTimeout(() => {
+      const mockIdeas: VideoIdea[] = [
+        {
+          title: `${ideaInput.charAt(0).toUpperCase() + ideaInput.slice(1)}: Expectation vs. REALITY (My house is a disaster!)`,
+          description: `You think getting a new ${ideaInput} is all cuddles and cute naps? Think again! This video hilariously captures the unfiltered reality of bringing home a tiny furball, from chewed shoes to surprise potty breaks and zoomies at 3 AM. It's a relatable and funny ride for anyone who's survived ${ideaInput}hood or is contemplating it. Get ready for some honest, adorable chaos!`
+        },
+        {
+          title: `Warning: Cuteness Overload! My New ${ideaInput.charAt(0).toUpperCase() + ideaInput.slice(1)}'s First Week Adventures`,
+          description: `Prepare for an explosion of cuteness! Follow our new ${ideaInput} through their first week at home, showcasing all their adorable 'firsts': first nap in their new bed, first wobbly walk, first tiny bark, and endless cuddles. This heartwarming compilation is designed to melt hearts and is perfect for a feel-good moment. You'll want to watch it on repeat!`
+        },
+        {
+          title: `${ideaInput.charAt(0).toUpperCase() + ideaInput.slice(1)} Crying At Night? This Sound Trick SAVED My Sleep! #${ideaInput.charAt(0).toUpperCase() + ideaInput.slice(1)}Hack`,
+          description: `Is your new ${ideaInput} keeping you up all night with their crying? You're not alone! This quick video reveals a simple, game-changing trick using a specific sound that helped our ${ideaInput} settle down in their crate and sleep through the night. It's a must-watch for any new ${ideaInput} parent desperate for some peace and quiet. Tried, tested, and works like a charm!`
+        }
+      ];
+      setGeneratedIdeas(mockIdeas);
+      setIsFindingIdeas(false);
+    }, 2000);
   };
 
-  const handleAnalyzeUrl = () => {
+  const handleAnalyzeUrl = async () => {
     if (!youtubeUrl.trim()) {
       alert('Please enter a YouTube URL to analyze.');
       return;
     }
-    alert(`Analyzing YouTube video: ${youtubeUrl}`);
+    
+    setIsAnalyzing(true);
+    // Simulate analysis
+    setTimeout(() => {
+      setIsAnalyzing(false);
+      alert('Video analyzed! Key viral elements identified.');
+    }, 2000);
   };
 
-  const handleAnalyzeTranscript = () => {
+  const handleAnalyzeTranscript = async () => {
     if (!transcript.trim()) {
       alert('Please enter a transcript to analyze.');
       return;
     }
-    alert('Analyzing transcript for viral elements...');
+    
+    setIsAnalyzing(true);
+    // Simulate transcript analysis
+    setTimeout(() => {
+      setIsAnalyzing(false);
+      alert('Transcript analyzed for viral patterns!');
+    }, 1500);
   };
 
-  const handleGenerateVideo = () => {
+  const handleViralOptimizer = () => {
+    if (!script.trim()) {
+      alert('Please enter a script first to optimize.');
+      return;
+    }
+
+    // Generate viral hooks and titles based on the script
+    const mockResults = {
+      hooks: [
+        {
+          type: "Challenge & Curiosity Gap",
+          text: "I dare you not to smile. Get ready for an explosion of cuteness as our new puppy experiences all their adorable 'firsts'!"
+        },
+        {
+          type: "Emotional Connection & Direct Value Prop",
+          text: "Prepare for a heartwarming overload! Follow our new puppy through their first week at home, filled with wobbly walks, tiny barks, and endless cuddles."
+        },
+        {
+          type: "Intrigue & Emotional Benefit",
+          text: "This video is scientifically proven to melt hearts. Witness the pure joy of our new puppy's very first week with us!"
+        }
+      ],
+      titles: [
+        "WARNING: Extreme Cuteness! Our Puppy's FIRST WEEK At Home",
+        "You Won't Believe How Cute Our New Puppy's First Week Was!",
+        "Heart-Melting Moments: Our Puppy's Adorable Firsts!"
+      ]
+    };
+
+    setViralResults(mockResults);
+    setShowViralOptimizer(true);
+  };
+
+  const handleUseHook = (hook: any) => {
+    // Replace the first line of the script with the new hook
+    const lines = script.split('\n');
+    lines[0] = `Hook: ${hook.text}`;
+    setScript(lines.join('\n'));
+    setShowViralOptimizer(false);
+  };
+
+  const handleCopyTitle = (title: string) => {
+    navigator.clipboard.writeText(title);
+    alert('Title copied to clipboard!');
+  };
+    // Convert the idea into a script format
+    const newScript = `Hook: ${idea.title}
+
+Opening: ${idea.description.split('.')[0]}.
+
+Main Content: ${idea.description.split('.').slice(1, -1).join('. ')}.
+
+Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
+
+    setScript(newScript);
+    
+    // Scroll to script section
+    setTimeout(() => {
+      document.getElementById('script-section')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  const handleGenerateVideo = async () => {
     if (!script.trim()) {
       alert('Please enter a script to generate video.');
       return;
@@ -74,86 +183,131 @@ const VideoGeneratorPage: React.FC = () => {
             {/* Find Ideas Section */}
             <div className="bg-gray-800 rounded-lg p-6">
               <h2 className="text-xl font-semibold mb-4 flex items-center">
-                <span className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">1</span>
-                Find Viral Ideas
+                <span className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">1</span>
+                Find Inspiration (or bring your own)
               </h2>
+              <p className="text-gray-400 mb-4 text-sm">
+                Don't know where to start? Enter a topic and our AI will find viral video ideas for you. Or, jump right in with your own script.
+              </p>
+              
               <div className="space-y-4">
-                <input
-                  type="text"
-                  placeholder="Enter your topic (e.g., 'productivity tips', 'cooking hacks')"
-                  value={ideaInput}
-                  onChange={(e) => setIdeaInput(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
-                />
-                <button
-                  onClick={handleFindIdeas}
-                  className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors"
-                >
-                  🔍 Find Ideas
-                </button>
-              </div>
-            </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Find new ideas</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="new puppy"
+                      value={ideaInput}
+                      onChange={(e) => setIdeaInput(e.target.value)}
+                      className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+                    />
+                    <button
+                      onClick={handleFindIdeas}
+                      disabled={isFindingIdeas}
+                      className="px-6 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                      {isFindingIdeas ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        '⚙️'
+                      )}
+                      Find
+                    </button>
+                  </div>
+                </div>
 
-            {/* Analyze Existing Video */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center">
-                <span className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">2</span>
-                Analyze Existing Video
-              </h2>
-              <div className="space-y-4">
-                <input
-                  type="url"
-                  placeholder="Paste YouTube URL to analyze"
-                  value={youtubeUrl}
-                  onChange={(e) => setYoutubeUrl(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
-                />
-                <button
-                  onClick={handleAnalyzeUrl}
-                  className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
-                >
-                  📊 Analyze Video
-                </button>
-              </div>
-            </div>
+                <div className="text-center text-gray-500 text-sm">OR</div>
 
-            {/* Transcript Analysis */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center">
-                <span className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">3</span>
-                Analyze Transcript
-              </h2>
-              <div className="space-y-4">
-                <textarea
-                  placeholder="Paste video transcript here..."
-                  value={transcript}
-                  onChange={(e) => setTranscript(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 resize-none"
-                />
-                <button
-                  onClick={handleAnalyzeTranscript}
-                  className="w-full px-4 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-medium transition-colors"
-                >
-                  🎯 Analyze Transcript
-                </button>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Deconstruct a YouTube video</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      placeholder="Paste a YouTube URL to analyze..."
+                      value={youtubeUrl}
+                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                      className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+                    />
+                    <button
+                      onClick={handleAnalyzeUrl}
+                      disabled={isAnalyzing}
+                      className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                      {isAnalyzing ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        '🔍'
+                      )}
+                      Analyze
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Deconstruct a video transcript (from TikTok, IG, etc.)</label>
+                  <textarea
+                    placeholder="Paste the full video script or transcript here..."
+                    value={transcript}
+                    onChange={(e) => setTranscript(e.target.value)}
+                    rows={4}
+                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 resize-none"
+                  />
+                  <button
+                    onClick={handleAnalyzeTranscript}
+                    disabled={isAnalyzing}
+                    className="mt-2 px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+                  >
+                    {isAnalyzing ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      '✏️'
+                    )}
+                    Analyze Transcript
+                  </button>
+                </div>
               </div>
+
+              {/* Generated Ideas Display */}
+              {generatedIdeas.length > 0 && (
+                <div className="mt-6 space-y-4">
+                  {generatedIdeas.map((idea, index) => (
+                    <div key={index} className="bg-gray-700 rounded-lg p-4">
+                      <h3 className="font-semibold text-white mb-2">{idea.title}</h3>
+                      <p className="text-gray-300 text-sm mb-3">{idea.description}</p>
+                      <button
+                        onClick={() => handleUseIdea(idea)}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-sm font-medium transition-colors"
+                      >
+                        Use this idea
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Right Column - Video Generation */}
           <div className="space-y-6">
-            {/* Script Input */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center">
-                <span className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">4</span>
-                Video Script
-              </h2>
+            {/* Script Section */}
+            <div id="script-section" className="bg-gray-800 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold flex items-center">
+                  <span className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">2</span>
+                  Write & Refine Your Script
+                </h2>
+                <button className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                  ✏️ Brand Kit
+                </button>
+              </div>
+              <p className="text-gray-400 mb-4 text-sm">
+                Write your script or paste one in. Use our AI tools to rewrite it for better engagement or generate viral hooks and titles.
+              </p>
               <textarea
                 placeholder="Enter your video script here..."
                 value={script}
                 onChange={(e) => setScript(e.target.value)}
-                rows={6}
+                rows={8}
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 resize-none"
               />
             </div>
