@@ -70,16 +70,11 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
     const [prompt, setPrompt] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showCamera, setShowCamera] = useState(false);
+    const [maskType, setMaskType] = useState<'background' | 'foreground' | 'custom'>('background');
     
-    const [isDrawing, setIsDrawing] = useState(false);
-    const [brushSize, setBrushSize] = useState(40);
-    const [isErasing, setIsErasing] = useState(false);
-
     const fileInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const imageRef = useRef<HTMLImageElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const contextRef = useRef<CanvasRenderingContext2D | null>(null);
 
     const { user, consumeCredits, credits } = useAuth();
     
@@ -102,56 +97,56 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
         );
     };
     
-    // Setup canvas for drawing masks
-    const setupCanvas = useCallback(() => {
-        const image = imageRef.current;
-        const canvas = canvasRef.current;
-
-        if (image && canvas && image.complete && image.naturalWidth > 0) {
-            const rect = image.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
+    // Create a simple mask based on user selection
+    const createMask = (imageWidth: number, imageHeight: number): string => {
+        const canvas = document.createElement('canvas');
+        canvas.width = imageWidth;
+        canvas.height = imageHeight;
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) throw new Error('Could not create canvas context');
+        
+        // Create mask based on selection type
+        if (maskType === 'background') {
+            // White background (area to change), black foreground (area to keep)
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, imageWidth, imageHeight);
             
-            const context = canvas.getContext('2d');
-            if (context) {
-                context.lineCap = 'round';
-                context.lineJoin = 'round';
-                context.globalAlpha = 0.5;
-                context.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                contextRef.current = context;
-            }
-        }
-    }, []);
-
-    useEffect(() => {
-        const image = imageRef.current;
-        
-        if (!image || !originalImage) return;
-        
-        const handleImageLoad = () => {
-            // Small delay to ensure image is fully rendered
-            setTimeout(setupCanvas, 100);
-        };
-        
-        if (image.complete && image.naturalWidth > 0) {
-            handleImageLoad();
+            // Create a simple center oval for foreground (subject to keep)
+            const centerX = imageWidth / 2;
+            const centerY = imageHeight / 2;
+            const radiusX = imageWidth * 0.25;
+            const radiusY = imageHeight * 0.35;
+            
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+            ctx.fill();
+        } else if (maskType === 'foreground') {
+            // Black background (area to keep), white foreground (area to change)
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, imageWidth, imageHeight);
+            
+            // Create a simple center oval for foreground (subject to change)
+            const centerX = imageWidth / 2;
+            const centerY = imageHeight / 2;
+            const radiusX = imageWidth * 0.25;
+            const radiusY = imageHeight * 0.35;
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+            ctx.fill();
         } else {
-            image.addEventListener('load', handleImageLoad);
+            // Custom: Simple horizontal split
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, imageWidth, imageHeight / 2);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, imageHeight / 2, imageWidth, imageHeight / 2);
         }
         
-        // Also setup on window resize
-        const handleResize = () => {
-            setTimeout(setupCanvas, 100);
-        };
-        window.addEventListener('resize', handleResize);
-        
-        return () => {
-            if (image) {
-                image.removeEventListener('load', handleImageLoad);
-            }
-            window.removeEventListener('resize', handleResize);
-        };
-    }, [originalImage, setupCanvas]);
+        return canvas.toDataURL('image/png');
+    };
 
     const handleFileChange = (files: FileList | null) => {
         if (!files || files.length === 0) return;
@@ -195,40 +190,6 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
         }
     };
 
-    // Drawing functions for mask creation
-    const startDrawing = ({ nativeEvent }: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!contextRef.current || !canvasRef.current) return;
-        
-        const { offsetX, offsetY } = nativeEvent;
-        contextRef.current.beginPath();
-        contextRef.current.moveTo(offsetX, offsetY);
-        setIsDrawing(true);
-    };
-
-    const stopDrawing = () => {
-        if (!contextRef.current) return;
-        
-        contextRef.current.closePath();
-        setIsDrawing(false);
-    };
-
-    const draw = ({ nativeEvent }: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!isDrawing || !contextRef.current || !canvasRef.current) return;
-        
-        const { offsetX, offsetY } = nativeEvent;
-        contextRef.current.lineWidth = brushSize;
-        contextRef.current.strokeStyle = isErasing ? '#000000' : '#FFFFFF';
-        contextRef.current.globalCompositeOperation = isErasing ? 'destination-out' : 'source-over';
-        contextRef.current.lineTo(offsetX, offsetY);
-        contextRef.current.stroke();
-    };
-    
-    const clearMask = () => {
-        if (!canvasRef.current || !contextRef.current) return;
-        
-        contextRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    };
-    
     const handleGenerateRemix = async () => {
         if (!user) { 
             toast('Please sign in to remix images.'); 
@@ -241,7 +202,7 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
             toast.error('Please enter a prompt describing what you want to change.'); 
             return; 
         }
-        if (!originalImage || !canvasRef.current) return;
+        if (!originalImage) return;
 
         setIsLoading(true);
         setRemixedImage(null);
@@ -249,25 +210,28 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
         try {
             await consumeCredits('imageGeneration');
             
-            // Create mask for AI processing
-            const maskCanvas = document.createElement('canvas');
-            maskCanvas.width = canvasRef.current.width;
-            maskCanvas.height = canvasRef.current.height;
-            const maskCtx = maskCanvas.getContext('2d');
-            if (!maskCtx) throw new Error("Could not create mask context");
-
-            maskCtx.fillStyle = '#000000';
-            maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
-            maskCtx.drawImage(canvasRef.current, 0, 0);
-            const maskDataUrl = maskCanvas.toDataURL('image/png');
-
-            // Use DALL-E for image editing
-            const resultUrl = await remixImageWithDallE(originalImage, maskDataUrl, prompt);
-            setRemixedImage(resultUrl);
-            toast.success('Image remix completed successfully!');
+            // Create a simple mask based on user selection
+            const img = new Image();
+            img.onload = async () => {
+                try {
+                    const maskDataUrl = createMask(img.naturalWidth, img.naturalHeight);
+                    const resultUrl = await remixImageWithDallE(originalImage, maskDataUrl, prompt);
+                    setRemixedImage(resultUrl);
+                    toast.success('Image remix completed successfully!');
+                } catch (error: any) {
+                    toast.error(error.message || 'Failed to remix image');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            img.onerror = () => {
+                toast.error('Failed to load image');
+                setIsLoading(false);
+            };
+            img.src = originalImage;
+            
         } catch (error: any) {
             toast.error(error.message || 'Failed to remix image');
-        } finally {
             setIsLoading(false);
         }
     };
@@ -375,79 +339,96 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
                             Remix Your Image
                         </h1>
                         <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-                            Draw a mask over the area you want to change, then describe the transformation.
+                            Choose what to change and describe your transformation.
                         </p>
                     </div>
                     
                     <div className="grid lg:grid-cols-2 gap-8">
-                        {/* Image with canvas overlay */}
+                        {/* Image preview */}
                         <div className="bg-slate-800 rounded-xl p-6">
-                            <h3 className="text-lg font-semibold text-white mb-4">Draw Your Mask</h3>
+                            <h3 className="text-lg font-semibold text-white mb-4">Your Image</h3>
                             <div className="relative">
                                 <img 
                                     ref={imageRef} 
                                     src={originalImage} 
                                     alt="To be remixed" 
-                                    className="rounded-lg w-full opacity-80"
+                                    className="rounded-lg w-full"
                                 />
-                                <canvas 
-                                    ref={canvasRef} 
-                                    onMouseDown={startDrawing} 
-                                    onMouseUp={stopDrawing} 
-                                    onMouseMove={draw} 
-                                    onMouseLeave={stopDrawing} 
-                                    className="absolute top-0 left-0 w-full h-full cursor-crosshair rounded-lg"
-                                />
+                                {/* Visual indicator overlay */}
+                                <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none">
+                                    {maskType === 'background' && (
+                                        <div className="absolute inset-0 bg-green-500/20 border-2 border-green-500/50 rounded-lg flex items-center justify-center">
+                                            <div className="bg-slate-900/80 px-3 py-1 rounded text-green-300 text-sm">
+                                                Background will be changed
+                                            </div>
+                                        </div>
+                                    )}
+                                    {maskType === 'foreground' && (
+                                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1/2 h-3/5 bg-green-500/20 border-2 border-green-500/50 rounded-full flex items-center justify-center">
+                                            <div className="bg-slate-900/80 px-3 py-1 rounded text-green-300 text-sm">
+                                                Subject will be changed
+                                            </div>
+                                        </div>
+                                    )}
+                                    {maskType === 'custom' && (
+                                        <div className="absolute inset-0">
+                                            <div className="h-1/2 bg-red-500/20 border-b border-red-500/50 flex items-center justify-center">
+                                                <div className="bg-slate-900/80 px-3 py-1 rounded text-red-300 text-sm">
+                                                    Top half unchanged
+                                                </div>
+                                            </div>
+                                            <div className="h-1/2 bg-green-500/20 flex items-center justify-center">
+                                                <div className="bg-slate-900/80 px-3 py-1 rounded text-green-300 text-sm">
+                                                    Bottom half changed
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         
                         {/* Controls */}
                         <div className="bg-slate-800 rounded-xl p-6 space-y-6">
-                            {/* Masking tools */}
+                            {/* Selection tools */}
                             <div>
-                                <h3 className="text-lg font-semibold text-white mb-4">Masking Tools</h3>
-                                <div className="grid grid-cols-3 gap-2 mb-4">
+                                <h3 className="text-lg font-semibold text-white mb-4">What to Change</h3>
+                                <div className="space-y-3">
                                     <button 
-                                        onClick={() => setIsErasing(false)} 
-                                        className={`py-2 px-4 text-sm rounded-lg transition-colors ${
-                                            !isErasing 
-                                                ? 'bg-green-500 text-white' 
+                                        onClick={() => setMaskType('background')} 
+                                        className={`w-full p-4 text-left rounded-lg transition-colors ${
+                                            maskType === 'background'
+                                                ? 'bg-green-600 text-white' 
                                                 : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
                                         }`}
                                     >
-                                        Draw
+                                        <div className="font-medium">Change Background</div>
+                                        <div className="text-sm opacity-80">Keep the main subject, change everything else</div>
                                     </button>
+                                    
                                     <button 
-                                        onClick={() => setIsErasing(true)} 
-                                        className={`py-2 px-4 text-sm rounded-lg transition-colors ${
-                                            isErasing 
-                                                ? 'bg-purple-500 text-white' 
+                                        onClick={() => setMaskType('foreground')} 
+                                        className={`w-full p-4 text-left rounded-lg transition-colors ${
+                                            maskType === 'foreground'
+                                                ? 'bg-green-600 text-white' 
                                                 : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
                                         }`}
                                     >
-                                        Erase
+                                        <div className="font-medium">Change Subject</div>
+                                        <div className="text-sm opacity-80">Keep the background, change the main subject</div>
                                     </button>
+                                    
                                     <button 
-                                        onClick={clearMask} 
-                                        className="py-2 px-4 bg-slate-700 hover:bg-red-500 text-slate-300 hover:text-white rounded-lg transition-colors"
-                                        title="Clear Mask"
+                                        onClick={() => setMaskType('custom')} 
+                                        className={`w-full p-4 text-left rounded-lg transition-colors ${
+                                            maskType === 'custom'
+                                                ? 'bg-green-600 text-white' 
+                                                : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                                        }`}
                                     >
-                                        <Trash2 className="w-4 h-4 mx-auto" />
+                                        <div className="font-medium">Change Bottom Half</div>
+                                        <div className="text-sm opacity-80">Keep top, change bottom half of image</div>
                                     </button>
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm text-slate-400 mb-2">
-                                        Brush Size: {brushSize}px
-                                    </label>
-                                    <input 
-                                        type="range" 
-                                        min="10" 
-                                        max="100" 
-                                        value={brushSize} 
-                                        onChange={e => setBrushSize(Number(e.target.value))} 
-                                        className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
-                                    />
                                 </div>
                             </div>
                             
@@ -461,7 +442,13 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
                                     value={prompt}
                                     onChange={(e) => setPrompt(e.target.value)}
                                     rows={4}
-                                    placeholder="e.g., a futuristic silver jacket, long flowing blue hair, sunset background"
+                                    placeholder={
+                                        maskType === 'background' 
+                                            ? "e.g., a beautiful sunset beach, snowy mountains, futuristic city"
+                                            : maskType === 'foreground'
+                                            ? "e.g., wearing a red dress, as a cartoon character, with blue hair"
+                                            : "e.g., wearing different shoes, standing on grass, with a dog"
+                                    }
                                     className="w-full bg-slate-900 border border-slate-600 rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-green-500 text-white placeholder-slate-400 resize-none"
                                 />
                             </div>
@@ -474,7 +461,7 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
                                     className="w-full bg-green-500 hover:bg-green-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
                                 >
                                     <Sparkles className="w-5 h-5" />
-                                    Generate Remix
+                                    Generate Remix ({IMAGE_GENERATION_COST} credits)
                                 </button>
                                 <button 
                                     onClick={startOver}
