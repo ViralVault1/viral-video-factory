@@ -68,8 +68,6 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
                 image.removeEventListener('load', setupCanvas);
             }
         };
-
-export default ImageRemixStudioPage;
     }, [originalImage, setupCanvas]);
 
     const handleFileChange = (files: FileList | null) => {
@@ -486,3 +484,5 @@ export default ImageRemixStudioPage;
         </div>
     );
 };
+
+export default ImageRemixStudioPage;
