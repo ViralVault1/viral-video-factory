@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
-import { remixImageWithMask } from '../services/geminiService';
+// DALL-E service for image remixing
 import { 
   Loader2, 
   Sparkles, 
@@ -16,6 +16,53 @@ import {
 interface ImageRemixStudioPageProps {
   onNavigate: (page: string) => void;
 }
+
+// DALL-E service for image editing
+const remixImageWithDallE = async (originalImage: string, maskDataUrl: string, prompt: string): Promise<string> => {
+  const openaiApiKey = process.env.REACT_APP_OPENAI_API_KEY;
+  
+  if (!openaiApiKey) {
+    throw new Error('OpenAI API key not found. Please add REACT_APP_OPENAI_API_KEY to your environment variables.');
+  }
+
+  try {
+    // Convert base64 images to blobs
+    const originalBlob = await fetch(originalImage).then(r => r.blob());
+    const maskBlob = await fetch(maskDataUrl).then(r => r.blob());
+
+    // Create form data for the API request
+    const formData = new FormData();
+    formData.append('image', originalBlob, 'original.png');
+    formData.append('mask', maskBlob, 'mask.png');
+    formData.append('prompt', prompt);
+    formData.append('n', '1');
+    formData.append('size', '1024x1024');
+
+    const response = await fetch('https://api.openai.com/v1/images/edits', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `API request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.data || !data.data[0] || !data.data[0].url) {
+      throw new Error('Invalid response from OpenAI API');
+    }
+
+    return data.data[0].url;
+  } catch (error: any) {
+    console.error('DALL-E API Error:', error);
+    throw new Error(error.message || 'Failed to remix image with DALL-E');
+  }
+};
 
 const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate }) => {
     const [originalImage, setOriginalImage] = useState<string | null>(null);
@@ -175,7 +222,8 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
             maskCtx.drawImage(canvasRef.current, 0, 0);
             const maskDataUrl = maskCanvas.toDataURL('image/png');
 
-            const resultUrl = await remixImageWithMask(originalImage, maskDataUrl, prompt);
+            // Use DALL-E for image editing
+            const resultUrl = await remixImageWithDallE(originalImage, maskDataUrl, prompt);
             setRemixedImage(resultUrl);
             toast.success('Image remix completed successfully!');
         } catch (error: any) {
