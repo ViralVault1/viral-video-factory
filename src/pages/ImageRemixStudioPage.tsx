@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
-// DALL-E service for image remixing
 import { 
   Loader2, 
   Sparkles, 
@@ -10,7 +9,8 @@ import {
   RotateCcw, 
   Download, 
   Wand2, 
-  Trash2 
+  Trash2,
+  Coins
 } from 'lucide-react';
 
 interface ImageRemixStudioPageProps {
