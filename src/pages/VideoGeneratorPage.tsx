@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Upload, FileText, Wand2, Download, Eye, Copy, Trash2 } from 'lucide-react';
+import { Play, Wand2, Copy } from 'lucide-react';
 
 interface VideoIdea {
   title: string;
@@ -131,6 +131,8 @@ const VideoGeneratorPage: React.FC = () => {
     navigator.clipboard.writeText(title);
     alert('Title copied to clipboard!');
   };
+
+  const handleUseIdea = (idea: VideoIdea) => {
     // Convert the idea into a script format
     const newScript = `Hook: ${idea.title}
 
@@ -310,6 +312,20 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
                 rows={8}
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 resize-none"
               />
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => setScript(prev => prev)}
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  ⚙️ Rewrite
+                </button>
+                <button
+                  onClick={handleViralOptimizer}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  ✨ Viral Optimizer
+                </button>
+              </div>
             </div>
 
             {/* Voice & Audio Settings */}
@@ -479,6 +495,74 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
           </div>
         </div>
       </footer>
+
+      {/* Viral Optimizer Modal */}
+      {showViralOptimizer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-lg">✨</span>
+                  </div>
+                  <h2 className="text-2xl font-bold text-white">Viral Optimizer Results</h2>
+                </div>
+                <button
+                  onClick={() => setShowViralOptimizer(false)}
+                  className="text-gray-400 hover:text-white text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <p className="text-gray-400 mb-8 text-center">
+                Here are some AI-powered variations to boost your video's performance.
+              </p>
+
+              <div className="grid md:grid-cols-2 gap-8">
+                {/* Optimized Hooks */}
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-4">Optimized Hooks</h3>
+                  <div className="space-y-4">
+                    {viralResults.hooks.map((hook: any, index: number) => (
+                      <div key={index} className="bg-gray-700 rounded-lg p-4">
+                        <div className="text-purple-400 text-sm font-medium mb-2">{hook.type}</div>
+                        <p className="text-gray-300 mb-3">"{hook.text}"</p>
+                        <button
+                          onClick={() => handleUseHook(hook)}
+                          className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-white font-medium transition-colors"
+                        >
+                          ✓ Use This Hook
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Viral Titles */}
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-4">Viral Titles</h3>
+                  <div className="space-y-4">
+                    {viralResults.titles.map((title: string, index: number) => (
+                      <div key={index} className="bg-gray-700 rounded-lg p-4 flex items-center justify-between">
+                        <p className="text-gray-300 flex-1">{title}</p>
+                        <button
+                          onClick={() => handleCopyTitle(title)}
+                          className="ml-3 p-2 text-gray-400 hover:text-white transition-colors"
+                          title="Copy to clipboard"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
