@@ -108,6 +108,78 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
     }
   };
 
+  // Stability AI service for image editing
+  const processImageWithStabilityAI = async (imageData: string, tool: string, prompt: string): Promise<string> => {
+    const apiKey = process.env.REACT_APP_STABILITY_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('Stability AI API key not found. Please add REACT_APP_STABILITY_API_KEY to your environment variables.');
+    }
+
+    try {
+      // Convert base64 to blob
+      const base64Data = imageData.split(',')[1];
+      const imageBlob = await fetch(`data:image/jpeg;base64,${base64Data}`).then(r => r.blob());
+
+      const formData = new FormData();
+      formData.append('init_image', imageBlob);
+      formData.append('init_image_mode', 'IMAGE_STRENGTH');
+      formData.append('image_strength', tool === 'background' ? '0.35' : '0.5');
+      formData.append('steps', '40');
+      formData.append('seed', '0');
+      formData.append('cfg_scale', '5');
+      formData.append('samples', '1');
+      
+      // Create context-aware prompts based on tool
+      let enhancedPrompt = '';
+      if (tool === 'background') {
+        enhancedPrompt = `${prompt}, professional photography, high quality, detailed, realistic lighting, keeping the main subject unchanged`;
+      } else if (tool === 'style') {
+        enhancedPrompt = `${prompt}, artistic style, professional quality, maintaining subject composition`;
+      } else if (tool === 'enhance') {
+        enhancedPrompt = `${prompt}, enhanced quality, sharp details, improved lighting, photorealistic`;
+      } else {
+        enhancedPrompt = `${prompt}, realistic, high quality, professional photography`;
+      }
+      
+      formData.append('text_prompts[0][text]', enhancedPrompt);
+      formData.append('text_prompts[0][weight]', '1');
+
+      const response = await fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/image-to-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Accept': 'application/json',
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Stability AI request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.artifacts && data.artifacts[0] && data.artifacts[0].base64) {
+        return `data:image/png;base64,${data.artifacts[0].base64}`;
+      }
+      
+      throw new Error('No image returned from Stability AI');
+      
+    } catch (error: any) {
+      console.error('Stability AI Error:', error);
+      
+      if (error.message.includes('API key')) {
+        throw new Error('Invalid Stability AI API key. Please check your environment variables.');
+      } else if (error.message.includes('quota') || error.message.includes('credits')) {
+        throw new Error('Stability AI quota exceeded. Please check your usage limits.');
+      } else {
+        throw new Error(error.message || 'Failed to process image with Stability AI');
+      }
+    }
+  };
+
   const generateEdit = async () => {
     if (!user) {
       toast('Please sign in to use AI tools');
@@ -133,12 +205,9 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
     try {
       await consumeCredits('imageGeneration');
       
-      // Simulate AI processing - replace with actual AI service
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // For demo, we'll show the same image
-      // In production, this would call your AI service
-      setEditedImage(originalImage);
+      // Use Stability AI for real image processing
+      const resultUrl = await processImageWithStabilityAI(originalImage, selectedTool, prompt);
+      setEditedImage(resultUrl);
       toast.success(`${tool?.name} completed successfully!`);
       
     } catch (error: any) {
