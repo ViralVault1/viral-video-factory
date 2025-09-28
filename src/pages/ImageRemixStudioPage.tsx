@@ -81,21 +81,43 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const contextRef = useRef<CanvasRenderingContext2D | null>(null);
 
-    const { user, consumeCredits } = useAuth();
+    const { user, consumeCredits, credits } = useAuth();
+    
+    const IMAGE_GENERATION_COST = 5;
+
+    // Simple credit display component
+    const CreditDisplay = () => {
+        const getCreditColor = () => {
+            if (credits >= 20) return 'text-green-400';
+            if (credits >= 10) return 'text-yellow-400';
+            return 'text-red-400';
+        };
+
+        return (
+            <div className="flex items-center gap-2 bg-slate-800 px-4 py-2 rounded-lg">
+                <Coins className={`w-5 h-5 ${getCreditColor()}`} />
+                <span className={`font-bold ${getCreditColor()}`}>{credits}</span>
+                <span className="text-slate-400 text-sm">credits</span>
+            </div>
+        );
+    };
     
     // Setup canvas for drawing masks
     const setupCanvas = useCallback(() => {
         const image = imageRef.current;
         const canvas = canvasRef.current;
 
-        if (image && canvas && image.clientWidth > 0) {
-            canvas.width = image.clientWidth;
-            canvas.height = image.clientHeight;
+        if (image && canvas && image.complete && image.naturalWidth > 0) {
+            const rect = image.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            
             const context = canvas.getContext('2d');
             if (context) {
                 context.lineCap = 'round';
                 context.lineJoin = 'round';
                 context.globalAlpha = 0.5;
+                context.fillStyle = 'rgba(255, 255, 255, 0.5)';
                 contextRef.current = context;
             }
         }
@@ -103,17 +125,31 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
 
     useEffect(() => {
         const image = imageRef.current;
-        if (image) {
-            if (image.complete) {
-                setupCanvas();
-            } else {
-                image.addEventListener('load', setupCanvas);
-            }
+        
+        if (!image || !originalImage) return;
+        
+        const handleImageLoad = () => {
+            // Small delay to ensure image is fully rendered
+            setTimeout(setupCanvas, 100);
+        };
+        
+        if (image.complete && image.naturalWidth > 0) {
+            handleImageLoad();
+        } else {
+            image.addEventListener('load', handleImageLoad);
         }
+        
+        // Also setup on window resize
+        const handleResize = () => {
+            setTimeout(setupCanvas, 100);
+        };
+        window.addEventListener('resize', handleResize);
+        
         return () => {
             if (image) {
-                image.removeEventListener('load', setupCanvas);
+                image.removeEventListener('load', handleImageLoad);
             }
+            window.removeEventListener('resize', handleResize);
         };
     }, [originalImage, setupCanvas]);
 
@@ -161,23 +197,24 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
 
     // Drawing functions for mask creation
     const startDrawing = ({ nativeEvent }: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!contextRef.current || !canvasRef.current) return;
+        
         const { offsetX, offsetY } = nativeEvent;
-        if (contextRef.current) {
-            contextRef.current.beginPath();
-            contextRef.current.moveTo(offsetX, offsetY);
-            setIsDrawing(true);
-        }
+        contextRef.current.beginPath();
+        contextRef.current.moveTo(offsetX, offsetY);
+        setIsDrawing(true);
     };
 
     const stopDrawing = () => {
-        if (contextRef.current) {
-            contextRef.current.closePath();
-            setIsDrawing(false);
-        }
+        if (!contextRef.current) return;
+        
+        contextRef.current.closePath();
+        setIsDrawing(false);
     };
 
     const draw = ({ nativeEvent }: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!isDrawing || !contextRef.current) return;
+        if (!isDrawing || !contextRef.current || !canvasRef.current) return;
+        
         const { offsetX, offsetY } = nativeEvent;
         contextRef.current.lineWidth = brushSize;
         contextRef.current.strokeStyle = isErasing ? '#000000' : '#FFFFFF';
@@ -187,9 +224,9 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
     };
     
     const clearMask = () => {
-        if (canvasRef.current && contextRef.current) {
-            contextRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-        }
+        if (!canvasRef.current || !contextRef.current) return;
+        
+        contextRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     };
     
     const handleGenerateRemix = async () => {
@@ -458,13 +495,33 @@ const ImageRemixStudioPage: React.FC<ImageRemixStudioPageProps> = ({ onNavigate 
         <div className="min-h-screen bg-slate-900 py-20 px-4">
             <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-16">
-                    <Wand2 className="w-16 h-16 text-green-400 mx-auto mb-6" />
-                    <h1 className="text-4xl sm:text-5xl font-bold text-white mb-6">
-                        Image Remix Studio
-                    </h1>
+                    <div className="flex justify-between items-start mb-6">
+                        <div className="flex-1">
+                            <Wand2 className="w-16 h-16 text-green-400 mx-auto mb-6" />
+                            <h1 className="text-4xl sm:text-5xl font-bold text-white mb-6">
+                                Image Remix Studio
+                            </h1>
+                        </div>
+                        {user && <CreditDisplay />}
+                    </div>
                     <p className="text-slate-400 text-xl max-w-3xl mx-auto">
                         Upload a photo and use AI to change clothing, backgrounds, and more while keeping the original subject intact.
                     </p>
+                    
+                    {user && (
+                        <div className="mt-6 flex items-center justify-center gap-2 text-slate-400 text-sm">
+                            <Coins className="w-4 h-4" />
+                            <span>Each image remix costs {IMAGE_GENERATION_COST} credits</span>
+                        </div>
+                    )}
+                    
+                    {user && credits < IMAGE_GENERATION_COST && (
+                        <div className="mt-4 bg-red-900/20 border border-red-500/50 rounded-lg p-3 max-w-md mx-auto">
+                            <div className="text-red-400 text-sm">
+                                ⚠️ You need {IMAGE_GENERATION_COST} credits but only have {credits}. Contact support to add more credits.
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="max-w-2xl mx-auto">
