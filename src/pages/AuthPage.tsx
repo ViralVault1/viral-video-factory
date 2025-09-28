@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 
 export const AuthPage: React.FC = () => {
   const navigate = useNavigate();
-  const { signIn, signUp, signInAsGuest } = useAuth();
+  const { login, signup } = useAuth(); // Changed from signIn, signUp, signInAsGuest
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,10 +18,10 @@ export const AuthPage: React.FC = () => {
 
     try {
       if (isSignUp) {
-        await signUp(email, password);
+        await signup(email, password); // Changed from signUp to signup
         toast.success('Account created successfully!');
       } else {
-        await signIn(email, password);
+        await login(email, password); // Changed from signIn to login
         toast.success('Signed in successfully!');
       }
       navigate('/');
@@ -35,7 +35,8 @@ export const AuthPage: React.FC = () => {
   const handleGuestSignIn = async () => {
     setLoading(true);
     try {
-      await signInAsGuest();
+      // Create a simple guest login using the existing login function
+      await login('guest@example.com', 'guest'); // Mock guest credentials
       toast.success('Signed in as guest!');
       navigate('/');
     } catch (error) {
@@ -132,4 +133,3 @@ export const AuthPage: React.FC = () => {
     </div>
   );
 };
-
