@@ -1,4 +1,4 @@
-// contexts/AuthContext.tsx
+// contexts/AuthContext.tsx - Simplified version
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from 'react-hot-toast';
 
@@ -31,7 +31,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [credits, setCredits] = useState(0);
+  const [credits, setCredits] = useState(100); // Start with 100 credits
 
   // Credit costs configuration
   const CREDIT_COSTS = {
@@ -44,11 +44,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
   }, []);
 
+  // Load credits from localStorage when user changes
+  useEffect(() => {
+    if (user) {
+      const savedCredits = localStorage.getItem(`userCredits_${user.id}`);
+      if (savedCredits) {
+        setCredits(parseInt(savedCredits));
+      }
+    }
+  }, [user]);
+
   const initializeAuth = async () => {
     try {
+      // Check if user is logged in (this depends on your existing auth system)
       const token = localStorage.getItem('authToken');
       if (token) {
-        await validateToken(token);
+        // For now, create a mock user - replace with your actual auth validation
+        const mockUser: User = {
+          id: 'user123',
+          email: 'user@example.com',
+          name: 'Demo User',
+          credits: 100,
+          createdAt: new Date().toISOString()
+        };
+        setUser(mockUser);
       }
     } catch (error) {
       console.error('Auth initialization error:', error);
@@ -58,46 +77,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const validateToken = async (token: string) => {
-    try {
-      const response = await fetch('/api/auth/validate', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-        setCredits(userData.credits);
-      } else {
-        throw new Error('Invalid token');
-      }
-    } catch (error) {
-      localStorage.removeItem('authToken');
-      throw error;
-    }
-  };
-
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
-
-      localStorage.setItem('authToken', data.token);
-      setUser(data.user);
-      setCredits(data.user.credits);
+      // Mock login - replace with your actual login logic
+      const mockUser: User = {
+        id: 'user123',
+        email,
+        name: 'Demo User',
+        credits: 100,
+        createdAt: new Date().toISOString()
+      };
+      
+      localStorage.setItem('authToken', 'mock-token');
+      setUser(mockUser);
+      setCredits(100);
       toast.success('Login successful!');
     } catch (error: any) {
       toast.error(error.message || 'Login failed');
@@ -107,23 +100,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signup = async (email: string, password: string, name?: string) => {
     try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password, name })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Signup failed');
-      }
-
-      localStorage.setItem('authToken', data.token);
-      setUser(data.user);
-      setCredits(data.user.credits);
+      // Mock signup - replace with your actual signup logic
+      const mockUser: User = {
+        id: 'user123',
+        email,
+        name: name || 'New User',
+        credits: 100,
+        createdAt: new Date().toISOString()
+      };
+      
+      localStorage.setItem('authToken', 'mock-token');
+      setUser(mockUser);
+      setCredits(100);
       toast.success('Account created successfully! You received 100 free credits.');
     } catch (error: any) {
       toast.error(error.message || 'Signup failed');
@@ -133,6 +121,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('authToken');
+    if (user) {
+      localStorage.removeItem(`userCredits_${user.id}`);
+    }
     setUser(null);
     setCredits(0);
     toast.success('Logged out successfully');
@@ -142,64 +133,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const cost = CREDIT_COSTS[action];
     
     if (credits < cost) {
-      throw new Error(`Insufficient credits. You need ${cost} credits but have ${credits}. Please purchase more credits to continue.`);
+      throw new Error(`Insufficient credits. You need ${cost} credits but have ${credits}. Contact support to add more credits.`);
     }
 
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('/api/credits/consume', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ action, cost })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to consume credits');
-      }
-
-      setCredits(data.newBalance);
-      
-      if (user) {
-        setUser(prev => prev ? { ...prev, credits: data.newBalance } : null);
-      }
-
-      toast.success(`Used ${cost} credits. ${data.newBalance} credits remaining.`);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to consume credits');
-      throw error;
+    // Simple local credit consumption
+    const newBalance = credits - cost;
+    setCredits(newBalance);
+    
+    // Save to localStorage
+    if (user) {
+      localStorage.setItem(`userCredits_${user.id}`, String(newBalance));
+      setUser(prev => prev ? { ...prev, credits: newBalance } : null);
     }
+
+    toast.success(`Used ${cost} credits. ${newBalance} credits remaining.`);
   };
 
   const addCredits = async (amount: number) => {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('/api/credits/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ amount })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to add credits');
-      }
-
-      setCredits(data.newBalance);
+      const newBalance = credits + amount;
+      setCredits(newBalance);
       
+      // Save to localStorage
       if (user) {
-        setUser(prev => prev ? { ...prev, credits: data.newBalance } : null);
+        localStorage.setItem(`userCredits_${user.id}`, String(newBalance));
+        setUser(prev => prev ? { ...prev, credits: newBalance } : null);
       }
 
-      toast.success(`Added ${amount} credits! New balance: ${data.newBalance}`);
+      toast.success(`Added ${amount} credits! New balance: ${newBalance}`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to add credits');
       throw error;
@@ -207,24 +168,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const refreshCredits = async () => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('/api/credits/balance', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setCredits(data.credits);
-        if (user) {
-          setUser(prev => prev ? { ...prev, credits: data.credits } : null);
-        }
+    // For localStorage-based system, just reload from storage
+    if (user) {
+      const savedCredits = localStorage.getItem(`userCredits_${user.id}`);
+      if (savedCredits) {
+        const creditAmount = parseInt(savedCredits);
+        setCredits(creditAmount);
+        setUser(prev => prev ? { ...prev, credits: creditAmount } : null);
       }
-    } catch (error) {
-      console.error('Failed to refresh credits:', error);
     }
   };
 
