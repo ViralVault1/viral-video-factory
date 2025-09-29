@@ -1,32 +1,108 @@
-import OpenAI from 'openai';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-export default async function handler(req, res) {
+export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { task, prompt, provider } = req.body;
+  const { prompt, provider, maxTokens = 4000, temperature = 0.7 } = req.body;
+
+  if (!prompt) {
+    return res.status(400).json({ error: 'Prompt is required' });
+  }
 
   try {
-    if (provider === 'gemini' || !provider) {
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-      const result = await model.generateContent(prompt);
-      return res.status(200).json({ text: result.response.text() });
-    }
-
     if (provider === 'openai') {
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [{ role: "user", content: prompt }],
+      const apiKey = process.env.OPENAI_API_KEY;
+      
+      if (!apiKey) {
+        return res.status(500).json({ error: 'OpenAI API key not configured' });
+      }
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4-turbo-preview',
+          messages: [
+            { 
+              role: 'system', 
+              content: 'You are a professional content writer who creates high-quality, engaging content.' 
+            },
+            { 
+              role: 'user', 
+              content: prompt 
+            }
+          ],
+          max_tokens: Math.min(maxTokens, 4000),
+          temperature: temperature
+        })
       });
-      return res.status(200).json({ text: completion.choices[0].message.content });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return res.status(response.status).json({ 
+          error: `OpenAI API error: ${response.status} - ${errorText}` 
+        });
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+
+      if (!content) {
+        return res.status(500).json({ error: 'OpenAI returned empty content' });
+      }
+
+      return res.status(200).json({ content, provider: 'openai' });
     }
 
-    return res.status(400).json({ error: 'Invalid provider' });
+    // Gemini provider
+    const apiKey = process.env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      return res.status(500).json({ error: 'Gemini API key not configured' });
+    }
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ 
+            parts: [{ text: prompt }] 
+          }],
+          generationConfig: {
+            temperature: temperature,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: Math.min(maxTokens, 8000)
+          }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return res.status(response.status).json({ 
+        error: `Gemini API error: ${response.status} - ${errorText}` 
+      });
+    }
+
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!content) {
+      return res.status(500).json({ error: 'Gemini returned empty content' });
+    }
+
+    return res.status(200).json({ content, provider: 'gemini' });
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('LLM Router API error:', error);
+    return res.status(500).json({ 
+      error: error instanceof Error ? error.message : 'Internal server error' 
+    });
   }
 }
