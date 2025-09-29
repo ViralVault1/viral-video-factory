@@ -1,4 +1,4 @@
-// src/utils/llmRouter.ts
+// src/services/llmRouter.ts
 interface LLMConfig {
   provider: 'openai' | 'gemini';
   fallbackProvider?: 'openai' | 'gemini';
@@ -56,7 +56,6 @@ export async function executeTask({
   console.log('LLM Router: Using', finalConfig.provider, 'for task');
 
   try {
-    // Try primary provider
     const result = await callAPI(
       finalConfig.provider,
       task,
@@ -73,7 +72,6 @@ export async function executeTask({
     const primaryErrorMessage = primaryError instanceof Error ? primaryError.message : String(primaryError);
     console.warn(`${finalConfig.provider} failed, trying fallback:`, primaryError);
 
-    // Try fallback provider if available
     if (finalConfig.fallbackProvider && finalConfig.fallbackProvider !== finalConfig.provider) {
       try {
         const result = await callAPI(
@@ -105,5 +103,4 @@ export const llmRouter = {
   executeTask,
 };
 
-// Default export for backwards compatibility
 export default llmRouter;
