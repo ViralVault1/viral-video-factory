@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Image, Sparkles } from 'lucide-react';
-import openai from '../config/openai';
 
 interface ImageGenerationRequest {
   prompt: string;
@@ -48,7 +47,6 @@ export const ImageGeneratorPage: React.FC = () => {
 
   const handleDownload = async (imageUrl: string, index: number) => {
     try {
-      // Method 1: Direct link approach (fallback)
       const link = document.createElement('a');
       link.href = imageUrl;
       link.download = `ai-generated-image-${index + 1}.png`;
@@ -59,7 +57,6 @@ export const ImageGeneratorPage: React.FC = () => {
       document.body.removeChild(link);
     } catch (error) {
       console.error('Download failed:', error);
-      // Fallback: Open in new tab so user can right-click save
       window.open(imageUrl, '_blank');
       alert('Download failed. The image has opened in a new tab - you can right-click and "Save image as..." to download it.');
     }
@@ -74,38 +71,47 @@ export const ImageGeneratorPage: React.FC = () => {
     setIsGenerating(true);
     
     try {
-      // Map aspect ratios to DALL-E 3 supported sizes
       let size: "1024x1024" | "1792x1024" | "1024x1792";
       
       switch (formData.aspectRatio) {
         case 'landscape':
-          size = "1792x1024"; // 16:9 landscape
+          size = "1792x1024";
           break;
         case 'portrait':
         case 'portrait_alt':
-          size = "1024x1792"; // 9:16 portrait
+          size = "1024x1792";
           break;
         default:
-          size = "1024x1024"; // 1:1 square
+          size = "1024x1024";
           break;
       }
 
-      const response = await openai.images.generate({
-        model: "dall-e-3",
-        prompt: formData.prompt,
-        n: 1,
-        size: size,
+      const response = await fetch('/api/openai-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: formData.prompt,
+          model: "dall-e-3",
+          size: size
+        })
       });
-      
-      const imageUrl = response.data?.[0]?.url;
-      if (!imageUrl) {
-        throw new Error('No image URL returned from OpenAI');
+
+      if (!response.ok) {
+        throw new Error('Failed to generate image');
       }
+
+      const data = await response.json();
+      const imageUrl = data[0]?.url;
+      
+      if (!imageUrl) {
+        throw new Error('No image URL returned');
+      }
+      
       setGeneratedImages([imageUrl, ...generatedImages.slice(0, 3)]);
       
     } catch (error) {
       console.error('Image generation error:', error);
-      alert('Failed to generate image. Please check your API key and try again.');
+      alert('Failed to generate image. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -113,7 +119,6 @@ export const ImageGeneratorPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 text-white">
-      {/* Header */}
       <div className="text-center py-8 border-b border-slate-700">
         <div className="flex justify-center mb-4">
           <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -129,9 +134,7 @@ export const ImageGeneratorPage: React.FC = () => {
 
       <div className="max-w-4xl mx-auto p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column - Form */}
           <div className="space-y-6">
-            {/* Prompt Ideas */}
             <div>
               <label className="block text-sm font-medium mb-2">Prompt Ideas</label>
               <select
@@ -147,7 +150,6 @@ export const ImageGeneratorPage: React.FC = () => {
               </select>
             </div>
 
-            {/* Your Prompt */}
             <div>
               <label className="block text-sm font-medium mb-2">Your Prompt</label>
               <textarea
@@ -159,7 +161,6 @@ export const ImageGeneratorPage: React.FC = () => {
               />
             </div>
 
-            {/* Negative Prompt */}
             <div>
               <label className="block text-sm font-medium mb-2">
                 Negative Prompt <span className="text-slate-400">(optional)</span>
@@ -173,7 +174,6 @@ export const ImageGeneratorPage: React.FC = () => {
               />
             </div>
 
-            {/* Aspect Ratio */}
             <div>
               <label className="block text-sm font-medium mb-3">Aspect Ratio</label>
               <div className="grid grid-cols-2 gap-3">
@@ -193,7 +193,6 @@ export const ImageGeneratorPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Generate Button */}
             <button
               onClick={handleGenerateImage}
               disabled={isGenerating || !formData.prompt.trim()}
@@ -213,7 +212,6 @@ export const ImageGeneratorPage: React.FC = () => {
             </button>
           </div>
 
-          {/* Right Column - Generated Images */}
           <div className="bg-slate-800 rounded-lg p-6">
             <h3 className="text-xl font-semibold mb-4">Generated Images</h3>
             
@@ -254,7 +252,6 @@ export const ImageGeneratorPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Recent Generations */}
         {generatedImages.length > 0 && (
           <div className="mt-12">
             <h2 className="text-2xl font-bold mb-6">Your Recent Generations</h2>
@@ -288,7 +285,6 @@ export const ImageGeneratorPage: React.FC = () => {
         )}
       </div>
 
-      {/* Footer */}
       <footer className="bg-slate-800 border-t border-slate-700 mt-12">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
