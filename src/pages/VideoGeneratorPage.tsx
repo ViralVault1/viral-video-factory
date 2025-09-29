@@ -196,7 +196,8 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
       
     } catch (error) {
       console.error('Video generation failed:', error);
-      alert(`Failed to generate video: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to generate video: ${errorMessage}`);
     } finally {
       setIsGenerating(false);
     }
