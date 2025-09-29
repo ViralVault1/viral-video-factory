@@ -102,3 +102,6 @@ export async function executeTask({
 export const llmRouter = {
   executeTask,
 };
+
+// Default export for backwards compatibility
+export default llmRouter;
