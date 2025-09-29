@@ -70,6 +70,7 @@ export async function executeTask({
 
     return result;
   } catch (primaryError) {
+    const primaryErrorMessage = primaryError instanceof Error ? primaryError.message : String(primaryError);
     console.warn(`${finalConfig.provider} failed, trying fallback:`, primaryError);
 
     // Try fallback provider if available
@@ -88,9 +89,10 @@ export async function executeTask({
 
         return result;
       } catch (fallbackError) {
+        const fallbackErrorMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
         console.error('Both providers failed:', fallbackError);
         throw new Error(
-          `All AI providers failed. Original: ${primaryError.message}, Fallback: ${fallbackError.message}`
+          `All AI providers failed. Original: ${primaryErrorMessage}, Fallback: ${fallbackErrorMessage}`
         );
       }
     }
