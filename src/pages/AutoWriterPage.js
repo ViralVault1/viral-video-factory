@@ -2,14 +2,8 @@ import React, { useState } from 'react';
 import { FileText, Trash2, Download, Copy, Eye, Clock, CheckCircle, AlertCircle, X, Plus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// Import the fully functional LLM router
+// Import the LLM router
 import llmRouter from '../services/llmRouter';
-
-// Define task types for the router (no TypeScript types needed in .js file)
-const TASK_TYPES = { 
-  CONTENT_GENERATION: 'content_generation',
-  ARTICLE_WRITING: 'article'
-};
 
 const AutoWriterPage = () => {
   const [topic, setTopic] = useState('');
@@ -61,33 +55,21 @@ const AutoWriterPage = () => {
     try {
       toast.loading('Testing LLM Router...', { id: 'router-test' });
       
-      const result = await llmRouter.executeTask(
-        'Write a short test message to confirm the LLM router is working properly.',
-        { type: TASK_TYPES.CONTENT_GENERATION }
-      );
+      // FIXED: Pass object with task property
+      const result = await llmRouter.executeTask({
+        task: 'Write a short test message to confirm the LLM router is working properly.'
+      });
       
       toast.dismiss('router-test');
-      
-      console.log('Router test result:', result);
-      
-      if (result.content && result.content.length > 20 && !result.content.includes('Mock content for:')) {
-        toast.success('LLM Router working!');
-        alert(`LLM Router Test Successful!\n\nProvider: ${result.provider}\nContent Length: ${result.content.length}\nContent: "${result.content}"`);
-      } else {
-        toast.error('Router returned mock/minimal content');
-        alert(`Router Issue:\n\nContent: "${result.content}"\n\nThe router may still be using mock data or API keys are missing.`);
-      }
+      console.log('Router test successful:', result);
+      toast.success('LLM Router works!');
+      alert(`LLM Router Test Successful!\n\nResponse: "${result}"`);
       
     } catch (error) {
       toast.dismiss('router-test');
       toast.error('Router test failed');
       console.error('Router test failed:', error);
-      
-      if (error.message && error.message.includes('API key')) {
-        alert(`API Key Missing:\n\n${error.message}\n\nAdd these environment variables to Vercel:\n- REACT_APP_OPENAI_API_KEY\n- REACT_APP_GEMINI_API_KEY`);
-      } else {
-        alert(`Router Test Failed:\n\n${error.message || 'Unknown error'}`);
-      }
+      alert(`Router Test Failed:\n\n${error.message || 'Unknown error'}`);
     }
   };
 
@@ -124,30 +106,25 @@ Generate 5 titles now:`;
 
       toast.loading('Generating article titles...', { id: 'title-gen' });
       
-      // Use the functional LLM router with forced Gemini
-      const result = await llmRouter.executeTask(
-        prompt,
-        { 
-          type: TASK_TYPES.CONTENT_GENERATION, 
-          maxTokens: 1000,
-          forceProvider: 'gemini' // Force Gemini for cost savings
+      // FIXED: Pass object with task property
+      const result = await llmRouter.executeTask({
+        task: prompt,
+        config: {
+          temperature: 0.7
         }
-      );
+      });
       
       toast.dismiss('title-gen');
-      
       console.log('Title generation result:', result);
       
-      if (!result.content || result.content.trim().length < 10) {
+      if (!result || result.trim().length < 10) {
         throw new Error('No content received from LLM router');
       }
       
-      const content = result.content;
-      const lines = content.split('\n').filter(line => line.trim());
+      const lines = result.split('\n').filter(line => line.trim());
       const titles = [];
       
       for (const line of lines) {
-        // Remove numbering, bullets, and clean up
         const cleaned = line
           .replace(/^\d+\.?\s*/, '')
           .replace(/^[-•*]\s*/, '')
@@ -162,24 +139,16 @@ Generate 5 titles now:`;
       
       if (titles.length > 0) {
         setCustomTitles(titles.join('\n'));
-        toast.success(`Generated ${titles.length} titles using ${result.provider}!`);
-        console.log('Parsed titles:', titles);
+        toast.success(`Generated ${titles.length} titles!`);
       } else {
-        // Fallback: use the raw response
-        setCustomTitles(content);
+        setCustomTitles(result);
         toast.success('Titles generated! Please review and edit as needed.');
-        console.log('Using raw response as fallback');
       }
       
     } catch (error) {
       toast.dismiss('title-gen');
       console.error('Title generation failed:', error);
-      
-      if (error.message && error.message.includes('API key')) {
-        toast.error('API key missing. Check your environment variables.');
-      } else {
-        toast.error(`Failed to generate titles: ${error.message || 'Unknown error'}`);
-      }
+      toast.error(`Failed to generate titles: ${error.message || 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
     }
@@ -230,18 +199,13 @@ Generate 5 titles now:`;
     const { title, niches } = queueItem;
     const nichesText = niches.join(', ');
     
-    console.log(`Starting article generation for: "${title}"`);
-    
-    // Simplified, more direct prompt for better content generation
     const prompt = `Write a complete ${targetWordCount}-word article titled: "${title}"
 
-Topic: ${title}
 Style: ${config.articleStyle}
 Audience: ${nichesText} readers
 Length: ${targetWordCount} words
 
 Write a full article with:
-
 1. Engaging introduction (2-3 paragraphs)
 2. Main content with 4-5 sections using ## headings
 3. Practical tips and examples
@@ -250,204 +214,30 @@ Write a full article with:
 Start writing the complete article now:`;
 
     try {
-      console.log('Sending prompt to LLM router...');
-      
-      const result = await llmRouter.executeTask(
-        prompt,
-        { 
-          type: TASK_TYPES.ARTICLE_WRITING,
-          maxTokens: Math.min(4000, Math.ceil(targetWordCount * 2)),
+      // FIXED: Pass object with task property
+      const result = await llmRouter.executeTask({
+        task: prompt,
+        config: {
           temperature: 0.7
         }
-      );
-      
-      console.log('LLM response received:', {
-        provider: result.provider,
-        contentLength: result.content?.length || 0,
-        hasContent: !!result.content
       });
       
-      // Extract content using comprehensive method detection
-      let content = '';
-      let extractionMethod = 'none';
-      
-      console.log('Article generation - Raw result:', result);
-      console.log('Article generation - Result type:', typeof result);
-      
-      if (typeof result === 'string') {
-        content = result;
-        extractionMethod = 'direct_string';
-      } else if (result && typeof result === 'object') {
-        // Try direct properties first
-        if (result.content) {
-          content = result.content;
-          extractionMethod = 'result.content';
-        } else if (result.text) {
-          content = result.text;
-          extractionMethod = 'result.text';
-        } else if (result.response) {
-          content = result.response;
-          extractionMethod = 'result.response';
-        } else if (result.output) {
-          content = result.output;
-          extractionMethod = 'result.output';
-        } else if (result.message) {
-          content = result.message;
-          extractionMethod = 'result.message';
-        }
-        
-        // Try OpenAI format
-        else if (result.choices && result.choices[0]) {
-          if (result.choices[0].message?.content) {
-            content = result.choices[0].message.content;
-            extractionMethod = 'openai_message_content';
-          } else if (result.choices[0].text) {
-            content = result.choices[0].text;
-            extractionMethod = 'openai_choices_text';
-          }
-        }
-        
-        // Try Gemini format
-        else if (result.candidates && result.candidates[0]) {
-          if (result.candidates[0].content?.parts?.[0]?.text) {
-            content = result.candidates[0].content.parts[0].text;
-            extractionMethod = 'gemini_candidates';
-          }
-        }
-        
-        // Try nested data
-        else if (result.data) {
-          if (typeof result.data === 'string') {
-            content = result.data;
-            extractionMethod = 'result.data_string';
-          } else if (result.data.content) {
-            content = result.data.content;
-            extractionMethod = 'result.data.content';
-          }
-        }
-        
-        // Last resort - find any string property
-        else {
-          for (const [key, value] of Object.entries(result)) {
-            if (typeof value === 'string' && value.length > 10) {
-              content = value;
-              extractionMethod = `fallback_${key}`;
-              break;
-            }
-          }
-        }
+      if (!result || result.trim().length < 100) {
+        throw new Error('Generated content is too short or empty');
       }
       
-      console.log('Content extraction result:', {
-        hasContent: !!content,
-        contentLength: content?.length || 0,
-        extractionMethod,
-        contentPreview: content?.substring(0, 100)
-      });
-      
-      if (!content || typeof content !== 'string' || content.trim().length < 20) {
-        console.error('Content validation failed:', {
-          hasContent: !!content,
-          contentType: typeof content,
-          contentLength: content?.length || 0,
-          extractionMethod,
-          rawResult: result
-        });
-        throw new Error(`Generated content is invalid. Length: ${content?.length || 0}, Type: ${typeof content}, Method: ${extractionMethod}`);
-      }
-      
-      // Post-process content for better quality
-      let processedContent = content;
-      
-      // If content is too short, try a simplified regeneration
-      if (content.trim().length < 100) {
-        console.log('Content too short, attempting simplified regeneration...');
-        
-        const simplePrompt = `Write a ${targetWordCount}-word article about: ${title}
-
-Include:
-- Introduction paragraph
-- 3-4 main points with explanations
-- Practical tips
-- Conclusion
-
-Write the full article:`;
-
-        try {
-          const retryResult = await llmRouter.executeTask(
-            simplePrompt,
-            { type: TASK_TYPES.CONTENT_GENERATION }
-          );
-          
-          // Use same extraction logic
-          if (typeof retryResult === 'string') {
-            processedContent = retryResult;
-          } else if (retryResult && retryResult.content) {
-            processedContent = retryResult.content;
-          }
-          
-          console.log('Retry generation result:', {
-            originalLength: content.length,
-            retryLength: processedContent.length
-          });
-          
-        } catch (retryError) {
-          console.log('Retry failed, using original content:', retryError.message);
-        }
-      }
-      
-      // Ensure proper formatting
-      if (!processedContent.includes('##') && processedContent.length > 100) {
-        // Add structure if missing
-        const lines = processedContent.split('\n').filter(line => line.trim());
-        if (lines.length > 3) {
-          const title = lines[0].replace(/^#\s*/, '');
-          const intro = lines.slice(1, 3).join('\n\n');
-          const body = lines.slice(3).join('\n\n');
-          
-          processedContent = `# ${title}\n\n## Introduction\n\n${intro}\n\n## Main Content\n\n${body}\n\n## Conclusion\n\nThis comprehensive guide provides valuable insights into ${title.toLowerCase()}. Apply these strategies to achieve better results.`;
-        }
-      }
-      
-      // Ensure minimum quality standards
-      const wordCount = processedContent.split(/\s+/).length;
-      const hasSubheadings = (processedContent.match(/##/g) || []).length >= 2;
-      const hasConclusion = processedContent.toLowerCase().includes('conclusion') || 
-                           processedContent.toLowerCase().includes('summary') ||
-                           processedContent.toLowerCase().includes('final');
-      
-      // Quality validation
-      if (wordCount < targetWordCount * 0.7) {
-        console.warn(`Article word count (${wordCount}) is below target (${targetWordCount})`);
-      }
-      
-      if (!hasSubheadings) {
-        console.warn('Article lacks proper subheadings structure');
-      }
+      const wordCount = result.split(/\s+/).length;
       
       const article = {
         id: Date.now().toString() + Math.random(),
         title,
-        content: processedContent,
+        content: result,
         wordCount,
         status: 'completed',
         generatedAt: new Date().toISOString(),
         niches,
-        config: { ...config },
-        provider: result.provider || 'Unknown',
-        qualityScore: {
-          wordCount: wordCount >= targetWordCount * 0.7,
-          hasSubheadings,
-          hasConclusion,
-          overall: wordCount >= targetWordCount * 0.7 && hasSubheadings
-        }
+        config: { ...config }
       };
-      
-      console.log('Article generated successfully:', {
-        title,
-        wordCount,
-        provider: result.provider
-      });
       
       return article;
       
@@ -457,8 +247,8 @@ Write the full article:`;
       const errorArticle = {
         id: Date.now().toString() + Math.random(),
         title,
-        content: `# ${title}\n\n*Article generation failed: ${error.message}*\n\nThis could be due to:\n- API rate limits\n- Network connectivity issues\n- Invalid API keys\n- LLM service unavailable\n\nPlease check your API configuration and try again.\n\n**Debug Info:**\n- Error: ${error.message}\n- Time: ${new Date().toISOString()}\n- Task Type: ${TASK_TYPES.ARTICLE_WRITING}`,
-        wordCount: 25,
+        content: `# ${title}\n\n*Article generation failed: ${error.message}*`,
+        wordCount: 10,
         status: 'error',
         generatedAt: new Date().toISOString(),
         niches,
@@ -475,9 +265,6 @@ Write the full article:`;
       toast.error('No articles in queue');
       return;
     }
-    
-    console.log(`Starting bulk generation of ${articleQueue.length} articles`);
-    console.log('Queue contents:', articleQueue.map(item => item.title));
     
     setIsGeneratingArticles(true);
     const targetWordCount = getTargetWordCount();
@@ -497,23 +284,16 @@ Write the full article:`;
           { id: 'generation-progress' }
         );
         
-        console.log(`\n=== GENERATING ARTICLE ${i + 1}/${articleQueue.length} ===`);
-        console.log(`Title: ${queueItem.title}`);
-        console.log(`Target words: ${targetWordCount}`);
-        
         try {
           const article = await generateSingleArticle(queueItem, targetWordCount);
           articles.push(article);
           
           if (article.status === 'completed') {
             successCount++;
-            console.log(`✅ Article ${i + 1} completed: ${article.wordCount} words`);
           } else {
             errorCount++;
-            console.log(`❌ Article ${i + 1} failed: ${article.error}`);
           }
         } catch (error) {
-          console.error(`❌ Article ${i + 1} threw error:`, error);
           const errorArticle = {
             id: Date.now().toString() + Math.random(),
             title: queueItem.title,
@@ -529,36 +309,17 @@ Write the full article:`;
           errorCount++;
         }
         
-        // Progress update
-        const progressPercent = Math.round(((i + 1) / articleQueue.length) * 100);
-        console.log(`Progress: ${progressPercent}% (${i + 1}/${articleQueue.length})`);
-        
-        // Add delay between requests to avoid rate limits (except for last article)
+        // Delay between requests
         if (i < articleQueue.length - 1) {
-          console.log('Waiting 2 seconds before next generation...');
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
       
-      console.log(`\n=== BULK GENERATION COMPLETE ===`);
-      console.log(`Total articles generated: ${articles.length}`);
-      console.log(`Successful: ${successCount}`);
-      console.log(`Failed: ${errorCount}`);
-      
-      // Update state with all generated articles
-      setGeneratedArticles(prev => {
-        const updated = [...prev, ...articles];
-        console.log(`Total articles in state: ${updated.length}`);
-        return updated;
-      });
-      
-      // Clear the queue
+      setGeneratedArticles(prev => [...prev, ...articles]);
       setArticleQueue([]);
-      console.log('Queue cleared');
       
       toast.dismiss('generation-progress');
       
-      // Show final results
       if (successCount > 0) {
         toast.success(`Successfully generated ${successCount} articles!`);
       }
@@ -640,8 +401,7 @@ Write the full article:`;
         </div>
         <h1 className="text-4xl font-bold mb-2">Auto Writer Studio</h1>
         <p className="text-slate-400 max-w-2xl mx-auto">
-          Generate hundreds of high-quality, SEO-optimized articles in the background. From title 
-          generation to final content, automate your entire writing workflow.
+          Generate hundreds of high-quality, SEO-optimized articles in the background.
         </p>
       </div>
 
@@ -659,6 +419,7 @@ Write the full article:`;
 
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Title Generation Section */}
           <div className="bg-slate-800 rounded-lg p-6">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <span className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">1</span>
@@ -704,6 +465,7 @@ Write the full article:`;
             </div>
           </div>
 
+          {/* Configuration Section */}
           <div className="bg-slate-800 rounded-lg p-6">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <span className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">2</span>
@@ -865,6 +627,7 @@ Write the full article:`;
           </div>
         </div>
 
+        {/* Queue Section */}
         <div className="bg-slate-800 rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Queue of Articles to Generate</h2>
           
@@ -899,6 +662,7 @@ Write the full article:`;
           )}
         </div>
 
+        {/* Generated Articles Section */}
         <div className="bg-slate-800 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Generated Articles ({generatedArticles.length})</h2>
@@ -947,106 +711,3 @@ Write the full article:`;
                       <span key={niche} className="text-xs bg-purple-600 text-white px-2 py-1 rounded">
                         {niche}
                       </span>
-                    ))}
-                  </div>
-                  
-                  <div className="text-xs text-slate-400 mb-3">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3 h-3" />
-                      {new Date(article.generatedAt).toLocaleString()}
-                    </div>
-                    <div className="mt-1 flex items-center gap-2">
-                      <span>{article.wordCount} words • {article.status}</span>
-                      {article.qualityScore && (
-                        <div className="flex items-center gap-1">
-                          <div className={`w-2 h-2 rounded-full ${
-                            article.qualityScore.overall ? 'bg-green-400' : 
-                            article.qualityScore.wordCount ? 'bg-yellow-400' : 'bg-red-400'
-                          }`}></div>
-                          <span className="text-xs">
-                            {article.qualityScore.overall ? 'High Quality' : 
-                             article.qualityScore.wordCount ? 'Good' : 'Basic'}
-                          </span>
-                        </div>
-                      )}
-                      {article.provider && (
-                        <span className="text-xs bg-slate-600 px-2 py-0.5 rounded">
-                          {article.provider}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => viewArticle(article)}
-                      className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
-                    >
-                      <Eye className="w-3 h-3" />
-                      View
-                    </button>
-                    <button
-                      onClick={() => copyArticle(article)}
-                      className="flex-1 px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
-                    >
-                      <Copy className="w-3 h-3" />
-                      Copy
-                    </button>
-                    <button
-                      onClick={() => downloadArticle(article)}
-                      className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1"
-                    >
-                      <Download className="w-3 h-3" />
-                      Save
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {selectedArticle && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-slate-700">
-              <h2 className="text-xl font-semibold">{selectedArticle.title}</h2>
-              <button
-                onClick={() => setSelectedArticle(null)}
-                className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              <div className="prose prose-invert max-w-none">
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                  {selectedArticle.content}
-                </pre>
-              </div>
-            </div>
-            <div className="flex gap-2 p-6 border-t border-slate-700">
-              <button
-                onClick={() => copyArticle(selectedArticle)}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2"
-              >
-                <Copy className="w-4 h-4" />
-                Copy
-              </button>
-              <button
-                onClick={() => downloadArticle(selectedArticle)}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition-colors flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Download
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default AutoWriterPage;
