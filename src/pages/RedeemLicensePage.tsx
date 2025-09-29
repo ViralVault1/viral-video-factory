@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
+import { redeemLicenseKey } from '../services/licenseService';
+import { useAuth } from '../contexts/AuthContext';
 
 export const RedeemLicensePage: React.FC = () => {
   const [licenseKey, setLicenseKey] = useState('');
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
+  
+  const { user } = useAuth();
 
   const handleRedeemKey = async () => {
+    if (!user) {
+      setMessage('You must be logged in to redeem a license key');
+      setMessageType('error');
+      return;
+    }
+
     if (!licenseKey.trim()) {
       setMessage('Please enter a license key');
       setMessageType('error');
@@ -25,15 +35,19 @@ export const RedeemLicensePage: React.FC = () => {
     setMessage('');
 
     try {
-      // Simulate API call to redeem license
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Call the real Supabase function
+      const result = await redeemLicenseKey(licenseKey.toUpperCase());
       
-      // For demo purposes, accept any properly formatted key
-      setMessage('License key redeemed successfully! Your premium access has been activated.');
-      setMessageType('success');
-      setLicenseKey('');
-    } catch (error) {
-      setMessage('Failed to redeem license key. Please try again.');
+      if (result.success) {
+        setMessage(result.message);
+        setMessageType('success');
+        setLicenseKey('');
+      } else {
+        setMessage(result.message);
+        setMessageType('error');
+      }
+    } catch (error: any) {
+      setMessage(error.message || 'Failed to redeem license key. Please try again.');
       setMessageType('error');
     } finally {
       setIsRedeeming(false);
@@ -113,7 +127,7 @@ export const RedeemLicensePage: React.FC = () => {
             {/* Redeem Button */}
             <button
               onClick={handleRedeemKey}
-              disabled={isRedeeming || !licenseKey.trim()}
+              disabled={isRedeeming || !licenseKey.trim() || !user}
               className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
             >
               {isRedeeming ? (
@@ -125,6 +139,12 @@ export const RedeemLicensePage: React.FC = () => {
                 '✓ Redeem Key'
               )}
             </button>
+
+            {!user && (
+              <div className="text-center text-sm text-yellow-400">
+                You must be logged in to redeem a license key
+              </div>
+            )}
 
             {/* Help Text */}
             <div className="text-center text-sm text-gray-500">
@@ -185,4 +205,3 @@ export const RedeemLicensePage: React.FC = () => {
     </div>
   );
 };
-
