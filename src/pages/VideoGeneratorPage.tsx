@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Wand2, Copy } from 'lucide-react';
+import { Play, Wand2, Copy, Download } from 'lucide-react';
 
 interface VideoIdea {
   title: string;
@@ -14,6 +14,15 @@ interface Hook {
 interface ViralResults {
   hooks: Hook[];
   titles: string[];
+}
+
+interface VideoResult {
+  id: string;
+  imageUrl?: string;
+  audioUrl?: string;
+  status: 'processing' | 'completed' | 'failed';
+  createdAt: string;
+  script: string;
 }
 
 const VideoGeneratorPage: React.FC = () => {
@@ -32,6 +41,7 @@ const VideoGeneratorPage: React.FC = () => {
   const [isFindingIdeas, setIsFindingIdeas] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [generatedIdeas, setGeneratedIdeas] = useState<VideoIdea[]>([]);
+  const [generatedVideos, setGeneratedVideos] = useState<VideoResult[]>([]);
   const [showViralOptimizer, setShowViralOptimizer] = useState(false);
   const [viralResults, setViralResults] = useState<ViralResults>({
     hooks: [],
@@ -160,10 +170,36 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
     }
     
     setIsGenerating(true);
-    setTimeout(() => {
-      setIsGenerating(false);
+    
+    try {
+      const response = await fetch('/api/simple-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          script,
+          voice,
+          visualPrompt: visualPrompt || `${presetStyle} style scene`,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Video generation failed');
+      }
+
+      const result = await response.json();
+      
+      setGeneratedVideos(prev => [result, ...prev]);
       alert('Video generated successfully! Check your creations below.');
-    }, 3000);
+      
+    } catch (error) {
+      console.error('Video generation failed:', error);
+      alert(`Failed to generate video: ${error.message}`);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -365,34 +401,6 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">Visual Style</label>
-                    <select
-                      value={visualStyle}
-                      onChange={(e) => setVisualStyle(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                    >
-                      <option>AI Generation</option>
-                      <option>Stock Footage</option>
-                      <option>Mixed Media</option>
-                      <option>Animation</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">AI Model</label>
-                    <select
-                      value={aiModel}
-                      onChange={(e) => setAiModel(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                    >
-                      <option>Google VEO (Fast & Reliable)</option>
-                      <option>Runway Gen-3 (High Quality)</option>
-                      <option>Stable Video (Cost Effective)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
                     <label className="block text-sm font-medium mb-2">Preset Style</label>
                     <select
                       value={presetStyle}
@@ -450,7 +458,7 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
                 )}
               </button>
               <p className="text-center text-sm mt-2 text-white text-opacity-80">
-                Estimated time: 2-5 minutes
+                Estimated time: 30-60 seconds
               </p>
             </div>
           </div>
@@ -460,33 +468,73 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">🎥 Your Generated Videos</h2>
             <div className="text-sm text-gray-400">
-              0 videos generated
+              {generatedVideos.length} videos generated
             </div>
           </div>
           
-          <div className="text-center py-12">
-            <Play className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-400 mb-2">No videos generated yet</h3>
-            <p className="text-gray-500">
-              Create your first video using the generator above
-            </p>
-          </div>
+          {generatedVideos.length === 0 ? (
+            <div className="text-center py-12">
+              <Play className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-400 mb-2">No videos generated yet</h3>
+              <p className="text-gray-500">
+                Create your first video using the generator above
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {generatedVideos.map((video) => (
+                <div key={video.id} className="bg-gray-700 rounded-lg overflow-hidden">
+                  <div className="relative">
+                    {video.imageUrl && (
+                      <img 
+                        src={video.imageUrl} 
+                        alt="Video thumbnail"
+                        className="w-full h-48 object-cover"
+                      />
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                      <Play className="w-12 h-12 text-white" />
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-400">
+                        {new Date(video.createdAt).toLocaleDateString()}
+                      </span>
+                      <span className="text-xs bg-green-600 px-2 py-1 rounded">
+                        {video.status}
+                      </span>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      {video.imageUrl && (
+                        <button 
+                          onClick={() => window.open(video.imageUrl, '_blank')}
+                          className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm flex items-center justify-center gap-1"
+                        >
+                          <Download className="w-3 h-3" />
+                          Image
+                        </button>
+                      )}
+                      {video.audioUrl && (
+                        <button 
+                          onClick={() => {
+                            const audio = new Audio(video.audioUrl);
+                            audio.play();
+                          }}
+                          className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm flex items-center justify-center gap-1"
+                        >
+                          <Play className="w-3 h-3" />
+                          Audio
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-
-      <footer className="bg-gray-800 border-t border-gray-700 mt-12">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="border-t border-gray-700 mt-8 pt-8 flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-6 h-6 bg-purple-500 rounded mr-2"></div>
-              <span className="font-semibold">Viral Video Factory</span>
-            </div>
-            <div className="text-gray-400 text-sm">
-              © 2025 Viral Video Factory. All rights reserved.
-            </div>
-          </div>
-        </div>
-      </footer>
 
       {showViralOptimizer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
