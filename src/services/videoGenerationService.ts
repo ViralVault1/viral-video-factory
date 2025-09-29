@@ -65,4 +65,4 @@ class VideoGenerationService {
 }
 
 export const videoGenerationService = new VideoGenerationService();
-export default videoGenerationService; oh
+export default videoGenerationService; 
