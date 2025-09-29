@@ -1,108 +1,137 @@
-export default async function handler(req: any, res: any) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+// src/services/llmRouter.ts - Secure version with API routes
+
+export type TaskType = 
+  | 'analysis'
+  | 'complex'
+  | 'coding'
+  | 'creative'
+  | 'social'
+  | 'content'
+  | 'video_script'
+  | 'article'
+  | 'content_generation'
+  | 'script_writing'
+  | 'image_analysis'
+  | 'data_processing';
+
+export type LLMProvider = 'openai' | 'gemini';
+
+export interface RouterOptions {
+  type?: TaskType;
+  forceProvider?: LLMProvider;
+  maxCost?: number;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+interface LLMResponse {
+  content: string;
+  provider: LLMProvider;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
   }
+  return String(error);
+}
 
-  const { prompt, provider, maxTokens = 4000, temperature = 0.7 } = req.body;
-
-  if (!prompt) {
-    return res.status(400).json({ error: 'Prompt is required' });
-  }
-
-  try {
-    if (provider === 'openai') {
-      const apiKey = process.env.OPENAI_API_KEY;
-      
-      if (!apiKey) {
-        return res.status(500).json({ error: 'OpenAI API key not configured' });
-      }
-
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gpt-4-turbo-preview',
-          messages: [
-            { 
-              role: 'system', 
-              content: 'You are a professional content writer who creates high-quality, engaging content.' 
-            },
-            { 
-              role: 'user', 
-              content: prompt 
-            }
-          ],
-          max_tokens: Math.min(maxTokens, 4000),
-          temperature: temperature
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        return res.status(response.status).json({ 
-          error: `OpenAI API error: ${response.status} - ${errorText}` 
-        });
-      }
-
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
-
-      if (!content) {
-        return res.status(500).json({ error: 'OpenAI returned empty content' });
-      }
-
-      return res.status(200).json({ content, provider: 'openai' });
-    }
-
-    // Gemini provider
-    const apiKey = process.env.GEMINI_API_KEY;
+class LLMRouter {
+  selectProvider(prompt: string, options: RouterOptions = {}): LLMProvider {
+    const { type, forceProvider, maxCost } = options;
     
-    if (!apiKey) {
-      return res.status(500).json({ error: 'Gemini API key not configured' });
+    if (forceProvider) return forceProvider;
+    if (maxCost && maxCost < 0.001) return 'gemini';
+    
+    // Force Gemini for all content generation tasks
+    switch (type) {
+      case 'creative':
+      case 'social':
+      case 'content':
+      case 'video_script':
+      case 'article':
+      case 'content_generation':
+      case 'script_writing':
+        return 'gemini';
+      case 'analysis':
+      case 'complex':
+      case 'coding':
+        return 'openai';
+      default:
+        return 'gemini'; // Default to Gemini for cost savings
     }
+  }
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ 
-            parts: [{ text: prompt }] 
-          }],
-          generationConfig: {
-            temperature: temperature,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: Math.min(maxTokens, 8000)
-          }
-        })
+  async executeTask(prompt: string, options: RouterOptions = {}): Promise<LLMResponse> {
+    const provider = this.selectProvider(prompt, options);
+    const { maxTokens = 4000, temperature = 0.7 } = options;
+    
+    console.log(`LLM Router: Using ${provider} for task`);
+    
+    try {
+      if (provider === 'openai') {
+        return await this.callOpenAI(prompt, maxTokens, temperature);
+      } else {
+        return await this.callGemini(prompt, maxTokens, temperature);
       }
-    );
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
+      console.error(`${provider} failed, trying fallback:`, error);
+      
+      try {
+        if (provider === 'openai') {
+          return await this.callGemini(prompt, maxTokens, temperature);
+        } else {
+          return await this.callOpenAI(prompt, maxTokens, temperature);
+        }
+      } catch (fallbackError: unknown) {
+        const fallbackMessage = getErrorMessage(fallbackError);
+        console.error('Both providers failed:', fallbackError);
+        throw new Error(`All AI providers failed. Original: ${errorMessage}, Fallback: ${fallbackMessage}`);
+      }
+    }
+  }
+
+  private async callOpenAI(prompt: string, maxTokens: number, temperature: number): Promise<LLMResponse> {
+    const response = await fetch('/api/llm-router', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        prompt, 
+        provider: 'openai', 
+        maxTokens, 
+        temperature 
+      })
+    });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      return res.status(response.status).json({ 
-        error: `Gemini API error: ${response.status} - ${errorText}` 
-      });
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(errorData.error || 'OpenAI request failed');
     }
 
-    const data = await response.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    return await response.json();
+  }
 
-    if (!content) {
-      return res.status(500).json({ error: 'Gemini returned empty content' });
-    }
-
-    return res.status(200).json({ content, provider: 'gemini' });
-
-  } catch (error) {
-    console.error('LLM Router API error:', error);
-    return res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Internal server error'
+  private async callGemini(prompt: string, maxTokens: number, temperature: number): Promise<LLMResponse> {
+    const response = await fetch('/api/llm-router', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        prompt, 
+        provider: 'gemini', 
+        maxTokens, 
+        temperature 
+      })
     });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(errorData.error || 'Gemini request failed');
+    }
+
+    return await response.json();
   }
 }
+
+const llmRouter = new LLMRouter();
+export default llmRouter;
