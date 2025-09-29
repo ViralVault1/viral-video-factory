@@ -40,4 +40,4 @@ class SimpleVideoService {
 }
 
 export const simpleVideoService = new SimpleVideoService();
-export default simpleVideoService; look at this in my voice I stand on the bird is going
+export default simpleVideoService; 
