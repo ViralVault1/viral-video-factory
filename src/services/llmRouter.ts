@@ -102,7 +102,7 @@ export default async function handler(req: any, res: any) {
   } catch (error) {
     console.error('LLM Router API error:', error);
     return res.status(500).json({ 
-      error: error.message || 'Internal server error' 
+      error: error instanceof Error ? error.message : 'Internal server error'
     });
   }
 }
