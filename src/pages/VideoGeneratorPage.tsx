@@ -6,6 +6,16 @@ interface VideoIdea {
   description: string;
 }
 
+interface Hook {
+  type: string;
+  text: string;
+}
+
+interface ViralResults {
+  hooks: Hook[];
+  titles: string[];
+}
+
 const VideoGeneratorPage: React.FC = () => {
   const [ideaInput, setIdeaInput] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -23,7 +33,7 @@ const VideoGeneratorPage: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [generatedIdeas, setGeneratedIdeas] = useState<VideoIdea[]>([]);
   const [showViralOptimizer, setShowViralOptimizer] = useState(false);
-  const [viralResults, setViralResults] = useState({
+  const [viralResults, setViralResults] = useState<ViralResults>({
     hooks: [],
     titles: []
   });
@@ -37,7 +47,6 @@ const VideoGeneratorPage: React.FC = () => {
     setIsFindingIdeas(true);
     setGeneratedIdeas([]);
 
-    // Simulate API call - replace with actual implementation
     setTimeout(() => {
       const mockIdeas: VideoIdea[] = [
         {
@@ -65,7 +74,6 @@ const VideoGeneratorPage: React.FC = () => {
     }
     
     setIsAnalyzing(true);
-    // Simulate analysis
     setTimeout(() => {
       setIsAnalyzing(false);
       alert('Video analyzed! Key viral elements identified.');
@@ -79,7 +87,6 @@ const VideoGeneratorPage: React.FC = () => {
     }
     
     setIsAnalyzing(true);
-    // Simulate transcript analysis
     setTimeout(() => {
       setIsAnalyzing(false);
       alert('Transcript analyzed for viral patterns!');
@@ -92,8 +99,7 @@ const VideoGeneratorPage: React.FC = () => {
       return;
     }
 
-    // Generate viral hooks and titles based on the script
-    const mockResults = {
+    const mockResults: ViralResults = {
       hooks: [
         {
           type: "Challenge & Curiosity Gap",
@@ -119,8 +125,7 @@ const VideoGeneratorPage: React.FC = () => {
     setShowViralOptimizer(true);
   };
 
-  const handleUseHook = (hook: any) => {
-    // Replace the first line of the script with the new hook
+  const handleUseHook = (hook: Hook) => {
     const lines = script.split('\n');
     lines[0] = `Hook: ${hook.text}`;
     setScript(lines.join('\n'));
@@ -133,7 +138,6 @@ const VideoGeneratorPage: React.FC = () => {
   };
 
   const handleUseIdea = (idea: VideoIdea) => {
-    // Convert the idea into a script format
     const newScript = `Hook: ${idea.title}
 
 Opening: ${idea.description.split('.')[0]}.
@@ -144,7 +148,6 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
 
     setScript(newScript);
     
-    // Scroll to script section
     setTimeout(() => {
       document.getElementById('script-section')?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -165,7 +168,6 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      {/* Header */}
       <div className="text-center py-8 border-b border-gray-700">
         <div className="flex justify-center mb-4">
           <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
@@ -180,9 +182,7 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column - Input & Configuration */}
           <div className="space-y-6">
-            {/* Find Ideas Section */}
             <div className="bg-gray-800 rounded-lg p-6">
               <h2 className="text-xl font-semibold mb-4 flex items-center">
                 <span className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">1</span>
@@ -269,7 +269,6 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
                 </div>
               </div>
 
-              {/* Generated Ideas Display */}
               {generatedIdeas.length > 0 && (
                 <div className="mt-6 space-y-4">
                   {generatedIdeas.map((idea, index) => (
@@ -289,9 +288,7 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
             </div>
           </div>
 
-          {/* Right Column - Video Generation */}
           <div className="space-y-6">
-            {/* Script Section */}
             <div id="script-section" className="bg-gray-800 rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold flex items-center">
@@ -328,7 +325,6 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
               </div>
             </div>
 
-            {/* Voice & Audio Settings */}
             <div className="bg-gray-800 rounded-lg p-6">
               <h3 className="text-lg font-semibold mb-4">🎤 Voice & Audio</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -364,7 +360,6 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
               </div>
             </div>
 
-            {/* Visual Settings */}
             <div className="bg-gray-800 rounded-lg p-6">
               <h3 className="text-lg font-semibold mb-4">🎨 Visual Settings</h3>
               <div className="space-y-4">
@@ -436,7 +431,6 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
               </div>
             </div>
 
-            {/* Generate Button */}
             <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6">
               <button
                 onClick={handleGenerateVideo}
@@ -462,7 +456,6 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
           </div>
         </div>
 
-        {/* Generated Videos Section */}
         <div className="mt-12 bg-gray-800 rounded-lg p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">🎥 Your Generated Videos</h2>
@@ -481,7 +474,6 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="bg-gray-800 border-t border-gray-700 mt-12">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="border-t border-gray-700 mt-8 pt-8 flex items-center justify-between">
@@ -496,7 +488,6 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
         </div>
       </footer>
 
-      {/* Viral Optimizer Modal */}
       {showViralOptimizer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -521,11 +512,10 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
               </p>
 
               <div className="grid md:grid-cols-2 gap-8">
-                {/* Optimized Hooks */}
                 <div>
                   <h3 className="text-xl font-bold text-white mb-4">Optimized Hooks</h3>
                   <div className="space-y-4">
-                    {viralResults.hooks.map((hook: any, index: number) => (
+                    {viralResults.hooks.map((hook: Hook, index: number) => (
                       <div key={index} className="bg-gray-700 rounded-lg p-4">
                         <div className="text-purple-400 text-sm font-medium mb-2">{hook.type}</div>
                         <p className="text-gray-300 mb-3">"{hook.text}"</p>
@@ -540,7 +530,6 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
                   </div>
                 </div>
 
-                {/* Viral Titles */}
                 <div>
                   <h3 className="text-xl font-bold text-white mb-4">Viral Titles</h3>
                   <div className="space-y-4">
