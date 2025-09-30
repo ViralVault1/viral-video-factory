@@ -263,6 +263,18 @@ const App: React.FC = () => {
                     } 
                   />
 
+                  {/* NEW ROUTE - Add this */}
+                  <Route 
+                    path="/license-generator" 
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <LicenseGeneratorPage />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    } 
+                  />
+
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
 
