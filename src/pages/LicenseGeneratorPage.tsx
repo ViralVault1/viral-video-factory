@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { createLicenseKey, LicenseKey } from '../services/LicenseService';
+import { createLicenseKey, LicenseKey } from '../services/licenseService';
 
 export const LicenseGeneratorPage: React.FC = () => {
   const { user } = useAuth();
