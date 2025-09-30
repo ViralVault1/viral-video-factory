@@ -49,10 +49,11 @@ export default async function handler(req, res) {
 
     const videoPayload = {
       key: MODELSLAB_API_KEY,
+      model_id: 'seedance-video',
       prompt: visualPrompt || script,
       negative_prompt: 'blurry, low quality, distorted, watermark, text, logo',
-      height: 1080,
-      width: 1920,
+      height: 1024,
+      width: 576, // 9:16 aspect ratio for vertical video
       num_frames: 150, // ~5 seconds at 30fps
       num_inference_steps: 20,
       guidance_scale: 7.5,
