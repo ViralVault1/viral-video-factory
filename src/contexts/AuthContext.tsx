@@ -1,6 +1,7 @@
-// contexts/AuthContext.tsx - Simplified version
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from 'react-hot-toast';
+import { supabase } from '../lib/supabaseClient';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface User {
   id: string;
@@ -31,20 +32,35 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [credits, setCredits] = useState(100); // Start with 100 credits
+  const [credits, setCredits] = useState(100);
 
-  // Credit costs configuration
   const CREDIT_COSTS = {
     imageGeneration: 5,
     articleGeneration: 1
   };
 
-  // Initialize auth state on app load
   useEffect(() => {
     initializeAuth();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.full_name,
+          credits: 100,
+          createdAt: session.user.created_at
+        });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
-  // Load credits from localStorage when user changes
   useEffect(() => {
     if (user) {
       const savedCredits = localStorage.getItem(`userCredits_${user.id}`);
@@ -56,22 +72,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const initializeAuth = async () => {
     try {
-      // Check if user is logged in (this depends on your existing auth system)
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        // For now, create a mock user - replace with your actual auth validation
-        const mockUser: User = {
-          id: 'user123',
-          email: 'user@example.com',
-          name: 'Demo User',
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.full_name,
           credits: 100,
-          createdAt: new Date().toISOString()
-        };
-        setUser(mockUser);
+          createdAt: session.user.created_at
+        });
       }
     } catch (error) {
       console.error('Auth initialization error:', error);
-      localStorage.removeItem('authToken');
     } finally {
       setLoading(false);
     }
@@ -79,18 +92,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      // Mock login - replace with your actual login logic
-      const mockUser: User = {
-        id: 'user123',
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        name: 'Demo User',
-        credits: 100,
-        createdAt: new Date().toISOString()
-      };
+        password,
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        setUser({
+          id: data.user.id,
+          email: data.user.email || '',
+          name: data.user.user_metadata?.full_name,
+          credits: 100,
+          createdAt: data.user.created_at
+        });
+        setCredits(100);
+      }
       
-      localStorage.setItem('authToken', 'mock-token');
-      setUser(mockUser);
-      setCredits(100);
       toast.success('Login successful!');
     } catch (error: any) {
       toast.error(error.message || 'Login failed');
@@ -100,18 +119,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signup = async (email: string, password: string, name?: string) => {
     try {
-      // Mock signup - replace with your actual signup logic
-      const mockUser: User = {
-        id: 'user123',
+      const { data, error } = await supabase.auth.signUp({
         email,
-        name: name || 'New User',
-        credits: 100,
-        createdAt: new Date().toISOString()
-      };
+        password,
+        options: {
+          data: {
+            full_name: name
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        setUser({
+          id: data.user.id,
+          email: data.user.email || '',
+          name: name,
+          credits: 100,
+          createdAt: data.user.created_at
+        });
+        setCredits(100);
+      }
       
-      localStorage.setItem('authToken', 'mock-token');
-      setUser(mockUser);
-      setCredits(100);
       toast.success('Account created successfully! You received 100 free credits.');
     } catch (error: any) {
       toast.error(error.message || 'Signup failed');
@@ -119,14 +149,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('authToken');
-    if (user) {
-      localStorage.removeItem(`userCredits_${user.id}`);
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      if (user) {
+        localStorage.removeItem(`userCredits_${user.id}`);
+      }
+      setUser(null);
+      setCredits(0);
+      toast.success('Logged out successfully');
+    } catch (error: any) {
+      toast.error('Logout failed');
     }
-    setUser(null);
-    setCredits(0);
-    toast.success('Logged out successfully');
   };
 
   const consumeCredits = async (action: 'imageGeneration' | 'articleGeneration') => {
@@ -136,11 +170,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw new Error(`Insufficient credits. You need ${cost} credits but have ${credits}. Contact support to add more credits.`);
     }
 
-    // Simple local credit consumption
     const newBalance = credits - cost;
     setCredits(newBalance);
     
-    // Save to localStorage
     if (user) {
       localStorage.setItem(`userCredits_${user.id}`, String(newBalance));
       setUser(prev => prev ? { ...prev, credits: newBalance } : null);
@@ -154,7 +186,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const newBalance = credits + amount;
       setCredits(newBalance);
       
-      // Save to localStorage
       if (user) {
         localStorage.setItem(`userCredits_${user.id}`, String(newBalance));
         setUser(prev => prev ? { ...prev, credits: newBalance } : null);
@@ -168,7 +199,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const refreshCredits = async () => {
-    // For localStorage-based system, just reload from storage
     if (user) {
       const savedCredits = localStorage.getItem(`userCredits_${user.id}`);
       if (savedCredits) {
