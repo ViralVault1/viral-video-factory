@@ -9,8 +9,7 @@ module.exports = async (req, res) => {
     const { imageData, mimeType } = req.body;
     
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
     const prompt = `Analyze this product image and create a compelling video ad campaign. Provide:
 1. A catchy headline (max 10 words)
 2. A 30-second video ad script (engaging, benefit-focused)
