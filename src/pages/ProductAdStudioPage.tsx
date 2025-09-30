@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
-
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabaseClient';
 
 interface AdContent {
   headline: string;
@@ -11,11 +12,13 @@ interface AdContent {
 }
 
 export const ProductAdStudioPage: React.FC = () => {
+  const { user } = useAuth();
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [adContent, setAdContent] = useState<AdContent | null>(null);
 
@@ -88,59 +91,89 @@ export const ProductAdStudioPage: React.FC = () => {
     setError('');
   };
 
- const generateAd = async () => {
-  if (!uploadedImage) {
-    setError('Please upload a product image first');
-    return;
-  }
+  const generateAd = async () => {
+    if (!uploadedImage) {
+      setError('Please upload a product image first');
+      return;
+    }
 
-  setIsGenerating(true);
-  setError('');
+    setIsGenerating(true);
+    setError('');
 
-  try {
-    // Convert image to base64
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64 = (reader.result as string).split(',')[1];
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+        
+        const response = await fetch('/api/generate-product-ad', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageData: base64,
+            mimeType: uploadedImage.type
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate ad');
+        }
+
+        const data = await response.json();
+        const jsonMatch = data.content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('Could not parse AI response');
+        }
+
+        const content: AdContent = JSON.parse(jsonMatch[0]);
+        setAdContent(content);
+        toast.success('Ad content generated successfully!');
+        setIsGenerating(false);
+      };
       
-      const response = await fetch('/api/generate-product-ad', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageData: base64,
-          mimeType: uploadedImage.type
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate ad');
-      }
-
-      const data = await response.json();
-      const jsonMatch = data.content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Could not parse AI response');
-      }
-
-      const content: AdContent = JSON.parse(jsonMatch[0]);
-      setAdContent(content);
-      toast.success('Ad content generated successfully!');
+      reader.onerror = () => {
+        setIsGenerating(false);
+        throw new Error('Failed to read image');
+      };
+      
+      reader.readAsDataURL(uploadedImage);
+    } catch (error: any) {
+      console.error('Ad generation error:', error);
+      setError(error.message || 'Failed to generate ad. Please try again.');
+      toast.error('Failed to generate ad content');
       setIsGenerating(false);
-    };
-    
-    reader.onerror = () => {
-      setIsGenerating(false);
-      throw new Error('Failed to read image');
-    };
-    
-    reader.readAsDataURL(uploadedImage);
-  } catch (error: any) {
-    console.error('Ad generation error:', error);
-    setError(error.message || 'Failed to generate ad. Please try again.');
-    toast.error('Failed to generate ad content');
-    setIsGenerating(false);
-  }
-};
+    }
+  };
+
+  const saveAd = async () => {
+    if (!adContent || !user) {
+      toast.error('Please log in to save ad campaigns');
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from('product_ads')
+        .insert({
+          user_id: user.id,
+          product_image_url: imagePreview,
+          headline: adContent.headline,
+          script: adContent.script,
+          call_to_action: adContent.callToAction,
+          target_audience: adContent.targetAudience,
+          key_features: adContent.keyFeatures
+        });
+
+      if (error) throw error;
+      toast.success('Ad campaign saved successfully!');
+    } catch (error: any) {
+      console.error('Save error:', error);
+      toast.error('Failed to save ad campaign');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -245,7 +278,16 @@ export const ProductAdStudioPage: React.FC = () => {
 
               {adContent && (
                 <div className="bg-gray-800 rounded-lg p-6 space-y-6">
-                  <h2 className="text-2xl font-bold text-green-400">Generated Ad Campaign</h2>
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-bold text-green-400">Generated Ad Campaign</h2>
+                    <button
+                      onClick={saveAd}
+                      disabled={isSaving}
+                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+                    >
+                      {isSaving ? 'Saving...' : 'Save Campaign'}
+                    </button>
+                  </div>
                   
                   <div>
                     <h3 className="text-lg font-semibold mb-2 text-gray-300">Headline</h3>
