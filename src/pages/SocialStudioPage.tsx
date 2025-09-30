@@ -25,12 +25,19 @@ export const SocialStudioPage: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: `Generate 3 viral video concept ideas about "${topic}". For each idea, provide:
-1. A compelling video title/hook
-2. The emotional angle or storytelling approach
-3. Why this would resonate with viewers
+          prompt: `Generate exactly 3 viral video concept ideas about "${topic}".
 
-Format as JSON array with objects containing: title, hook, angle`,
+For EACH of the 3 ideas, provide:
+- title: A compelling video title/hook
+- hook: An engaging opening line or emotional hook
+- angle: The content strategy or storytelling approach
+
+Return ONLY valid JSON in this exact format:
+[
+  {"title": "...", "hook": "...", "angle": "..."},
+  {"title": "...", "hook": "...", "angle": "..."},
+  {"title": "...", "hook": "...", "angle": "..."}
+]`,
           type: 'video-ideas'
         })
       });
@@ -48,15 +55,28 @@ Format as JSON array with objects containing: title, hook, angle`,
         if (jsonMatch) {
           ideas = JSON.parse(jsonMatch[0]);
         } else {
-          // Fallback parsing if not proper JSON
           ideas = parseIdeasFromText(data.content || data);
         }
       } catch {
         ideas = parseIdeasFromText(data.content || data);
       }
 
+      // Ensure we always have exactly 3 ideas
+      if (ideas.length < 3) {
+        // Pad with generated variations if needed
+        while (ideas.length < 3) {
+          ideas.push({
+            title: `${topic} - Viral Approach ${ideas.length + 1}`,
+            hook: `Discover the unexpected side of ${topic}`,
+            angle: `Educational storytelling with emotional hooks`
+          });
+        }
+      } else if (ideas.length > 3) {
+        ideas = ideas.slice(0, 3);
+      }
+
       setGeneratedIdeas(ideas);
-      toast.success(`Generated ${ideas.length} viral video concepts!`);
+      toast.success(`Generated 3 viral video concepts!`);
       
     } catch (error) {
       console.error('Error generating ideas:', error);
