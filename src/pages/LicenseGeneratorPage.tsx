@@ -3,17 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { licenseService } from '../services/LicenseService';
+import { createLicenseKey, getActiveLicenseKeys, LicenseKey } from '../services/LicenseService';
 
 export const LicenseGeneratorPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
-  const [licenseType, setLicenseType] = useState<'trial' | 'premium'>('trial');
-  const [duration, setDuration] = useState(30);
+  const [description, setDescription] = useState('');
+  const [durationDays, setDurationDays] = useState(30);
+  const [planPriceId, setPlanPriceId] = useState('price_premium');
   const [quantity, setQuantity] = useState(1);
-  const [generatedLicenses, setGeneratedLicenses] = useState<string[]>([]);
+  const [generatedLicenses, setGeneratedLicenses] = useState<LicenseKey[]>([]);
   const [generating, setGenerating] = useState(false);
 
   // Check if user is admin
@@ -58,16 +59,22 @@ export const LicenseGeneratorPage: React.FC = () => {
       return;
     }
 
+    if (!description.trim()) {
+      toast.error('Please enter a description');
+      return;
+    }
+
     setGenerating(true);
-    const newLicenses: string[] = [];
+    const newLicenses: LicenseKey[] = [];
 
     try {
       for (let i = 0; i < quantity; i++) {
-        const license = await licenseService.generateLicense(
-          licenseType,
-          duration
+        const license = await createLicenseKey(
+          description,
+          durationDays,
+          planPriceId
         );
-        newLicenses.push(license.key);
+        newLicenses.push(license);
       }
 
       setGeneratedLicenses(newLicenses);
@@ -86,7 +93,7 @@ export const LicenseGeneratorPage: React.FC = () => {
   };
 
   const copyAllLicenses = () => {
-    const allLicenses = generatedLicenses.join('\n');
+    const allLicenses = generatedLicenses.map(l => l.key_code).join('\n');
     navigator.clipboard.writeText(allLicenses);
     toast.success('All licenses copied to clipboard');
   };
@@ -123,18 +130,33 @@ export const LicenseGeneratorPage: React.FC = () => {
           </div>
 
           <div className="space-y-6">
-            {/* License Type */}
+            {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                License Type
+                Description
+              </label>
+              <input
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g. 30-day Premium Trial"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Plan Price ID */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Plan Type
               </label>
               <select
-                value={licenseType}
-                onChange={(e) => setLicenseType(e.target.value as 'trial' | 'premium')}
+                value={planPriceId}
+                onChange={(e) => setPlanPriceId(e.target.value)}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="trial">Trial</option>
-                <option value="premium">Premium</option>
+                <option value="price_trial">Trial</option>
+                <option value="price_premium">Premium</option>
+                <option value="price_pro">Pro</option>
               </select>
             </div>
 
@@ -145,8 +167,8 @@ export const LicenseGeneratorPage: React.FC = () => {
               </label>
               <input
                 type="number"
-                value={duration}
-                onChange={(e) => setDuration(parseInt(e.target.value) || 30)}
+                value={durationDays}
+                onChange={(e) => setDurationDays(parseInt(e.target.value) || 30)}
                 min="1"
                 max="3650"
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -194,14 +216,17 @@ export const LicenseGeneratorPage: React.FC = () => {
                 <div className="space-y-2">
                   {generatedLicenses.map((license, index) => (
                     <div
-                      key={index}
+                      key={license.id || index}
                       className="flex items-center justify-between bg-gray-700 p-3 rounded-lg border border-gray-600"
                     >
-                      <code className="text-sm font-mono text-gray-200">
-                        {license}
-                      </code>
+                      <div className="flex-1">
+                        <code className="text-sm font-mono text-gray-200 block">
+                          {license.key_code}
+                        </code>
+                        <span className="text-xs text-gray-400">{license.description}</span>
+                      </div>
                       <button
-                        onClick={() => copyToClipboard(license)}
+                        onClick={() => copyToClipboard(license.key_code)}
                         className="ml-4 text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
                       >
                         Copy
