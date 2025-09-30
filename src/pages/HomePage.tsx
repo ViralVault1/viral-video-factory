@@ -190,7 +190,12 @@ export const HomePage: React.FC = () => {
       setGenerationStatus('Generating your video with AI...');
       setGenerationProgress(40);
       
-      const videoResponse = await fetch('/api/generate-video', {
+      // Check if running locally or in production
+      const apiBase = window.location.hostname === 'localhost' 
+        ? 'http://localhost:3000'
+        : '';
+      
+      const videoResponse = await fetch(`${apiBase}/api/generate-video`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
