@@ -71,22 +71,33 @@ export default async function handler(req, res) {
     });
 
     if (!byteplusResponse.ok) {
-      const errorData = await byteplusResponse.json();
-      throw new Error(`BytePlus API error: ${errorData.message || byteplusResponse.status}`);
+      const errorData = await byteplusResponse.json().catch(() => ({}));
+      console.error('BytePlus API error response:', errorData);
+      throw new Error(`BytePlus API error (${byteplusResponse.status}): ${errorData.message || errorData.error || 'Unknown error'}`);
     }
 
     const byteplusData = await byteplusResponse.json();
 
-    console.log('BytePlus job created:', byteplusData.job_id);
+    console.log('BytePlus response:', JSON.stringify(byteplusData, null, 2));
+
+    // Handle different possible response formats
+    const jobId = byteplusData.job_id || byteplusData.jobId || byteplusData.id || byteplusData.request_id;
+    
+    if (!jobId) {
+      console.error('No job ID in BytePlus response:', byteplusData);
+      throw new Error(`BytePlus API did not return a job ID. Response: ${JSON.stringify(byteplusData)}`);
+    }
+
+    console.log('BytePlus job created:', jobId);
 
     // Step 3: Return job ID for polling
     return res.status(200).json({
       success: true,
-      jobId: byteplusData.job_id,
+      jobId: jobId,
       status: 'processing',
       message: 'Video generation started',
-      estimatedTime: byteplusData.estimated_time || 60,
-      videoUrl: byteplusData.video_url || null // Some APIs return URL immediately
+      estimatedTime: byteplusData.estimated_time || byteplusData.eta || 60,
+      videoUrl: byteplusData.video_url || byteplusData.output_url || byteplusData.url || null
     });
 
   } catch (error) {
