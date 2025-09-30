@@ -1,1 +1,105 @@
+// /api/analyze-youtube endpoint
+// This uses youtube-transcript library to extract captions and OpenAI to optimize the script
 
+import { YoutubeTranscript } from 'youtube-transcript';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { videoId } = req.body;
+
+  if (!videoId) {
+    return res.status(400).json({ error: 'Video ID is required' });
+  }
+
+  try {
+    // Step 1: Fetch YouTube transcript
+    console.log('Fetching transcript for video:', videoId);
+    
+    const transcriptItems = await YoutubeTranscript.fetchTranscript(videoId);
+    
+    if (!transcriptItems || transcriptItems.length === 0) {
+      return res.status(404).json({ 
+        error: 'No transcript found. Make sure the video has captions enabled.' 
+      });
+    }
+
+    // Combine transcript items into full text
+    const fullTranscript = transcriptItems
+      .map(item => item.text)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    console.log('Transcript extracted, length:', fullTranscript.length);
+
+    // Step 2: Use AI to analyze and optimize the transcript
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a viral content expert. Analyze video transcripts and extract the key hooks, storytelling elements, and viral patterns. Then rewrite them as optimized 30-60 second scripts for social media.'
+        },
+        {
+          role: 'user',
+          content: `Analyze this YouTube video transcript and create an optimized viral video script from it. Keep the core message but make it punchier and more engaging:\n\n${fullTranscript}`
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 1000
+    });
+
+    const optimizedScript = completion.choices[0].message.content;
+
+    // Step 3: Return both the original transcript and optimized version
+    return res.status(200).json({
+      success: true,
+      transcript: fullTranscript,
+      optimizedScript: optimizedScript,
+      videoId: videoId,
+      transcriptLength: fullTranscript.length
+    });
+
+  } catch (error) {
+    console.error('Error analyzing YouTube video:', error);
+    
+    // Handle specific errors
+    if (error.message.includes('Transcript is disabled')) {
+      return res.status(404).json({ 
+        error: 'This video does not have captions/transcripts enabled.' 
+      });
+    }
+    
+    if (error.message.includes('Video unavailable')) {
+      return res.status(404).json({ 
+        error: 'Video not found or unavailable.' 
+      });
+    }
+
+    return res.status(500).json({ 
+      error: 'Failed to analyze video. Please try again.',
+      details: error.message 
+    });
+  }
+}
+
+// Alternative implementation using Gemini instead of OpenAI:
+/*
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// In the analyze step, replace OpenAI call with:
+const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+const prompt = `Analyze this YouTube video transcript and create an optimized viral video script from it:\n\n${fullTranscript}`;
+const result = await model.generateContent(prompt);
+const optimizedScript = result.response.text();
+*/
