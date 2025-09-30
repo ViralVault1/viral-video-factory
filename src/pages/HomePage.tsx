@@ -24,7 +24,13 @@ export const HomePage: React.FC = () => {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationStatus, setGenerationStatus] = useState('');
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState('');
-  const [savedCreations, setSavedCreations] = useState([]);
+  const [savedCreations, setSavedCreations] = useState<Array<{
+    id: number;
+    type: string;
+    url: string;
+    script: string;
+    timestamp: string;
+  }>>([]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
