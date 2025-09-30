@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Image, Sparkles } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { usageService } from '../services/usageService';
+import { toast } from 'react-hot-toast';
 
 interface ImageGenerationRequest {
   prompt: string;
@@ -9,6 +12,7 @@ interface ImageGenerationRequest {
 }
 
 export const ImageGeneratorPage: React.FC = () => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState<ImageGenerationRequest>({
     prompt: '',
     negativePrompt: '',
@@ -68,6 +72,32 @@ export const ImageGeneratorPage: React.FC = () => {
       return;
     }
 
+    if (!user) {
+      toast.error('Please log in to generate images');
+      return;
+    }
+
+    // CHECK USAGE LIMIT
+    try {
+      const userPlan = (user as any).plan || 'free';
+      const limitCheck = await usageService.checkLimit(user.id, 'images', userPlan);
+      
+      if (!limitCheck.allowed) {
+        toast.error(`You've reached your limit of ${limitCheck.limit} images this month.`);
+        const upgrade = window.confirm(
+          `Upgrade to Creator plan for 100 images/month?\n\nCurrent usage: ${limitCheck.current}/${limitCheck.limit}\n\nClick OK to view pricing.`
+        );
+        if (upgrade) {
+          window.location.href = '/pricing';
+        }
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking usage limit:', error);
+      toast.error('Error checking usage limits');
+      return;
+    }
+
     setIsGenerating(true);
     
     try {
@@ -109,9 +139,13 @@ export const ImageGeneratorPage: React.FC = () => {
       
       setGeneratedImages([imageUrl, ...generatedImages.slice(0, 3)]);
       
+      // INCREMENT USAGE AFTER SUCCESS
+      await usageService.incrementUsage(user.id, 'images');
+      toast.success('Image generated successfully!');
+      
     } catch (error) {
       console.error('Image generation error:', error);
-      alert('Failed to generate image. Please try again.');
+      toast.error('Failed to generate image. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -291,29 +325,26 @@ export const ImageGeneratorPage: React.FC = () => {
             <div>
               <h3 className="font-semibold mb-4 text-white">SOLUTIONS</h3>
               <ul className="space-y-2 text-slate-400">
-                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">API</a></li>
+                <li><a href="/pricing" className="hover:text-white transition-colors">Pricing</a></li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold mb-4 text-white">PRODUCTS</h3>
               <ul className="space-y-2 text-slate-400">
-                <li><a href="#" className="hover:text-white transition-colors">AI Video Generator</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Script Generator</a></li>
+                <li><a href="/image-generator" className="hover:text-white transition-colors">AI Image Generator</a></li>
+                <li><a href="/product-ad-studio" className="hover:text-white transition-colors">Product Ad Studio</a></li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold mb-4 text-white">RESOURCES</h3>
               <ul className="space-y-2 text-slate-400">
                 <li><a href="#" className="hover:text-white transition-colors">User Guide</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Community</a></li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold mb-4 text-white">COMPANY</h3>
               <ul className="space-y-2 text-slate-400">
-                <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
               </ul>
             </div>
