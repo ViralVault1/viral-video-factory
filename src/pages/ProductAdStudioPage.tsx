@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -11,6 +11,17 @@ interface AdContent {
   keyFeatures: string[];
 }
 
+interface SavedAd {
+  id: string;
+  product_image_url: string;
+  headline: string;
+  script: string;
+  call_to_action: string;
+  target_audience: string;
+  key_features: string[];
+  created_at: string;
+}
+
 export const ProductAdStudioPage: React.FC = () => {
   const { user } = useAuth();
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
@@ -21,6 +32,51 @@ export const ProductAdStudioPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [adContent, setAdContent] = useState<AdContent | null>(null);
+  const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
+  const [loadingSavedAds, setLoadingSavedAds] = useState(true);
+
+  // Load saved ads on mount
+  useEffect(() => {
+    if (user) {
+      loadSavedAds();
+    }
+  }, [user]);
+
+  const loadSavedAds = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('product_ads')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setSavedAds(data || []);
+    } catch (error) {
+      console.error('Error loading saved ads:', error);
+    } finally {
+      setLoadingSavedAds(false);
+    }
+  };
+
+  const deleteSavedAd = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('product_ads')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setSavedAds(savedAds.filter(ad => ad.id !== id));
+      toast.success('Ad campaign deleted');
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete ad campaign');
+    }
+  };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -166,7 +222,8 @@ export const ProductAdStudioPage: React.FC = () => {
         });
 
       if (error) throw error;
-      toast.success('Ad campaign saved! Your content remains visible above.');
+      toast.success('Ad campaign saved successfully!');
+      loadSavedAds(); // Refresh the saved ads list
     } catch (error: any) {
       console.error('Save error:', error);
       toast.error('Failed to save ad campaign');
@@ -323,7 +380,75 @@ export const ProductAdStudioPage: React.FC = () => {
           )}
         </div>
 
-        <div className="text-center">
+        {/* My Saved Ads Section */}
+        {user && (
+          <div className="max-w-6xl mx-auto mt-16">
+            <h2 className="text-3xl font-bold mb-8 text-center">My Saved Ad Campaigns</h2>
+            
+            {loadingSavedAds ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto"></div>
+                <p className="mt-4 text-gray-400">Loading saved campaigns...</p>
+              </div>
+            ) : savedAds.length === 0 ? (
+              <div className="text-center py-12 bg-gray-800 rounded-lg">
+                <p className="text-gray-400 text-lg">No saved ad campaigns yet.</p>
+                <p className="text-gray-500 text-sm mt-2">Generate and save your first ad campaign above!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {savedAds.map((ad) => (
+                  <div key={ad.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-gray-600 transition-colors">
+                    {ad.product_image_url && (
+                      <img
+                        src={ad.product_image_url}
+                        alt="Product"
+                        className="w-full h-40 object-contain mb-4 rounded-lg bg-gray-700"
+                      />
+                    )}
+                    
+                    <h3 className="text-xl font-bold text-white mb-2 line-clamp-2">{ad.headline}</h3>
+                    <p className="text-sm text-gray-400 mb-2">
+                      {new Date(ad.created_at).toLocaleDateString()}
+                    </p>
+                    <p className="text-sm text-gray-300 mb-4 line-clamp-3">{ad.script}</p>
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setImagePreview(ad.product_image_url);
+                          setAdContent({
+                            headline: ad.headline,
+                            script: ad.script,
+                            callToAction: ad.call_to_action,
+                            targetAudience: ad.target_audience,
+                            keyFeatures: ad.key_features
+                          });
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm transition-colors"
+                      >
+                        View Full
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('Are you sure you want to delete this ad campaign?')) {
+                            deleteSavedAd(ad.id);
+                          }
+                        }}
+                        className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="text-center mt-12">
           <p className="text-sm text-gray-500">
             Need help? Check out our{' '}
             <a href="#" className="text-green-400 hover:text-green-300 underline">
