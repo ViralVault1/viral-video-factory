@@ -25,7 +25,7 @@ export const SocialStudioPage: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: `Generate 5 viral video concept ideas about "${topic}". For each idea, provide:
+          prompt: `Generate 3 viral video concept ideas about "${topic}". For each idea, provide:
 1. A compelling video title/hook
 2. The emotional angle or storytelling approach
 3. Why this would resonate with viewers
@@ -71,7 +71,7 @@ Format as JSON array with objects containing: title, hook, angle`,
     const lines = text.split('\n').filter(line => line.trim());
     const ideas: VideoIdea[] = [];
     
-    for (let i = 0; i < Math.min(5, Math.floor(lines.length / 3)); i++) {
+    for (let i = 0; i < Math.min(3, Math.floor(lines.length / 3)); i++) {
       ideas.push({
         title: lines[i * 3] || `Idea ${i + 1}`,
         hook: lines[i * 3 + 1] || 'Engaging hook',
@@ -84,6 +84,11 @@ Format as JSON array with objects containing: title, hook, angle`,
       hook: 'Engaging storytelling approach',
       angle: 'Relatable and shareable content'
     }];
+  };
+
+  const handleCreateVideo = (idea: VideoIdea) => {
+    // Navigate to main dashboard with the idea pre-filled
+    window.location.href = `/?topic=${encodeURIComponent(idea.title)}`;
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -162,10 +167,16 @@ Format as JSON array with objects containing: title, hook, angle`,
               <div className="bg-gray-800 rounded-lg p-6 text-left">
                 <h3 className="text-xl font-semibold mb-4">Ready-to-Use Video Concepts</h3>
                 <div className="space-y-4">
-                  {generatedIdeas.map((idea, index) => (
+                  {generatedIdeas.slice(0, 3).map((idea, index) => (
                     <div key={index} className="bg-gray-700 p-4 rounded-lg">
                       <h4 className="font-semibold text-white mb-2">{idea.title}</h4>
                       <p className="text-gray-400 text-sm italic mb-3">"{idea.hook}"</p>
+                      <button
+                        onClick={() => handleCreateVideo(idea)}
+                        className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded transition-colors"
+                      >
+                        Create Video from This Idea →
+                      </button>
                     </div>
                   ))}
                 </div>
