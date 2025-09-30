@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+
 
 interface AdContent {
   headline: string;
@@ -141,23 +141,6 @@ export const ProductAdStudioPage: React.FC = () => {
     setIsGenerating(false);
   }
 };
-
-  const fileToGenerativePart = async (file: File): Promise<{ inlineData: { data: string; mimeType: string } }> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = (reader.result as string).split(',')[1];
-        resolve({
-          inlineData: {
-            data: base64,
-            mimeType: file.type,
-          },
-        });
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
