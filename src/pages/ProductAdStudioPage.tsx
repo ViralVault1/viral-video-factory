@@ -432,7 +432,7 @@ export const ProductAdStudioPage: React.FC = () => {
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm('Are you sure you want to delete this ad campaign?')) {
+                          if (window.confirm('Are you sure you want to delete this ad campaign?')) {
                             deleteSavedAd(ad.id);
                           }
                         }}
