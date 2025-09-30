@@ -166,7 +166,7 @@ export const ProductAdStudioPage: React.FC = () => {
         });
 
       if (error) throw error;
-      toast.success('Ad campaign saved successfully!');
+      toast.success('Ad campaign saved! Your content remains visible above.');
     } catch (error: any) {
       console.error('Save error:', error);
       toast.error('Failed to save ad campaign');
