@@ -416,16 +416,17 @@ export const ProductAdStudioPage: React.FC = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
-                          setImagePreview(ad.product_image_url);
-                          setAdContent({
-                            headline: ad.headline,
-                            script: ad.script,
-                            callToAction: ad.call_to_action,
-                            targetAudience: ad.target_audience,
-                            keyFeatures: ad.key_features
-                          });
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
+  setUploadedImage(new File([], 'saved-ad')); // Set a dummy file to trigger the display
+  setImagePreview(ad.product_image_url);
+  setAdContent({
+    headline: ad.headline,
+    script: ad.script,
+    callToAction: ad.call_to_action,
+    targetAudience: ad.target_audience,
+    keyFeatures: ad.key_features
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}}
                         className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm transition-colors"
                       >
                         View Full
