@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { createLicenseKey, getActiveLicenseKeys, LicenseKey } from '../services/LicenseService';
+import { createLicenseKey, LicenseKey } from '../services/LicenseService';
 
 export const LicenseGeneratorPage: React.FC = () => {
   const { user } = useAuth();
@@ -17,7 +17,6 @@ export const LicenseGeneratorPage: React.FC = () => {
   const [generatedLicenses, setGeneratedLicenses] = useState<LicenseKey[]>([]);
   const [generating, setGenerating] = useState(false);
 
-  // Check if user is admin
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (!user) {
@@ -45,7 +44,6 @@ export const LicenseGeneratorPage: React.FC = () => {
     checkAdminStatus();
   }, [user]);
 
-  // Redirect if not admin
   useEffect(() => {
     if (!checkingAdmin && (!user || !isAdmin)) {
       toast.error('You do not have permission to access this page.');
@@ -69,11 +67,7 @@ export const LicenseGeneratorPage: React.FC = () => {
 
     try {
       for (let i = 0; i < quantity; i++) {
-        const license = await createLicenseKey(
-          description,
-          durationDays,
-          planPriceId
-        );
+        const license = await createLicenseKey(description, durationDays, planPriceId);
         newLicenses.push(license);
       }
 
@@ -118,23 +112,15 @@ export const LicenseGeneratorPage: React.FC = () => {
       <div className="max-w-3xl mx-auto">
         <div className="bg-gray-800 rounded-lg shadow-xl p-8 border border-gray-700">
           <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-white">
-              License Generator
-            </h1>
-            <button
-              onClick={() => navigate('/')}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
+            <h1 className="text-3xl font-bold text-white">License Generator</h1>
+            <button onClick={() => navigate('/')} className="text-gray-400 hover:text-white transition-colors">
               ← Back to Home
             </button>
           </div>
 
           <div className="space-y-6">
-            {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Description
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
               <input
                 type="text"
                 value={description}
@@ -144,11 +130,8 @@ export const LicenseGeneratorPage: React.FC = () => {
               />
             </div>
 
-            {/* Plan Price ID */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Plan Type
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Plan Type</label>
               <select
                 value={planPriceId}
                 onChange={(e) => setPlanPriceId(e.target.value)}
@@ -160,11 +143,8 @@ export const LicenseGeneratorPage: React.FC = () => {
               </select>
             </div>
 
-            {/* Duration */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Duration (days)
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Duration (days)</label>
               <input
                 type="number"
                 value={durationDays}
@@ -175,11 +155,8 @@ export const LicenseGeneratorPage: React.FC = () => {
               />
             </div>
 
-            {/* Quantity */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Quantity (1-100)
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Quantity (1-100)</label>
               <input
                 type="number"
                 value={quantity}
@@ -190,7 +167,6 @@ export const LicenseGeneratorPage: React.FC = () => {
               />
             </div>
 
-            {/* Generate Button */}
             <button
               onClick={handleGenerateLicenses}
               disabled={generating}
@@ -199,36 +175,24 @@ export const LicenseGeneratorPage: React.FC = () => {
               {generating ? 'Generating...' : `Generate ${quantity} License(s)`}
             </button>
 
-            {/* Generated Licenses */}
             {generatedLicenses.length > 0 && (
               <div className="mt-8 border-t border-gray-700 pt-8">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold text-white">
                     Generated Licenses ({generatedLicenses.length})
                   </h2>
-                  <button
-                    onClick={copyAllLicenses}
-                    className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
-                  >
+                  <button onClick={copyAllLicenses} className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
                     Copy All
                   </button>
                 </div>
                 <div className="space-y-2">
                   {generatedLicenses.map((license, index) => (
-                    <div
-                      key={license.id || index}
-                      className="flex items-center justify-between bg-gray-700 p-3 rounded-lg border border-gray-600"
-                    >
+                    <div key={license.id || index} className="flex items-center justify-between bg-gray-700 p-3 rounded-lg border border-gray-600">
                       <div className="flex-1">
-                        <code className="text-sm font-mono text-gray-200 block">
-                          {license.key_code}
-                        </code>
+                        <code className="text-sm font-mono text-gray-200 block">{license.key_code}</code>
                         <span className="text-xs text-gray-400">{license.description}</span>
                       </div>
-                      <button
-                        onClick={() => copyToClipboard(license.key_code)}
-                        className="ml-4 text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
-                      >
+                      <button onClick={() => copyToClipboard(license.key_code)} className="ml-4 text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
                         Copy
                       </button>
                     </div>
