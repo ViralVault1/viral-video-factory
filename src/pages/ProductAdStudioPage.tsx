@@ -1,11 +1,23 @@
 import React, { useState, useCallback } from 'react';
+import { toast } from 'react-hot-toast';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+interface AdContent {
+  headline: string;
+  script: string;
+  callToAction: string;
+  targetAudience: string;
+  keyFeatures: string[];
+}
 
 export const ProductAdStudioPage: React.FC = () => {
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
+  const [adContent, setAdContent] = useState<AdContent | null>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -32,15 +44,13 @@ export const ProductAdStudioPage: React.FC = () => {
   }, []);
 
   const handleFileUpload = (file: File) => {
-    // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (!validTypes.includes(file.type)) {
       setError('Please upload a valid image file (JPG, PNG, GIF, WebP)');
       return;
     }
 
-    // Validate file size (10MB max)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
       setError('File size must be less than 10MB');
       return;
@@ -49,7 +59,6 @@ export const ProductAdStudioPage: React.FC = () => {
     setError('');
     setIsUploading(true);
 
-    // Create preview
     const reader = new FileReader();
     reader.onload = (e) => {
       setImagePreview(e.target?.result as string);
@@ -57,13 +66,6 @@ export const ProductAdStudioPage: React.FC = () => {
       setIsUploading(false);
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileUpload(file);
-    }
   };
 
   const handleBrowseClick = () => {
@@ -82,23 +84,85 @@ export const ProductAdStudioPage: React.FC = () => {
   const removeImage = () => {
     setUploadedImage(null);
     setImagePreview(null);
+    setAdContent(null);
     setError('');
   };
 
-  const generateAd = () => {
+  const generateAd = async () => {
     if (!uploadedImage) {
       setError('Please upload a product image first');
       return;
     }
 
-    // Simulate ad generation
-    alert('Ad generation started! This would typically process your product image and create compelling ad content.');
+    setIsGenerating(true);
+    setError('');
+
+    try {
+      // Get API key from environment
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        throw new Error('Gemini API key not configured. Please add VITE_GEMINI_API_KEY to your environment variables.');
+      }
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+      // Convert image to base64
+      const imageData = await fileToGenerativePart(uploadedImage);
+
+      const prompt = `Analyze this product image and create a compelling video ad campaign. Provide:
+
+1. A catchy headline (max 10 words)
+2. A 30-second video ad script (engaging, benefit-focused)
+3. A strong call-to-action
+4. Target audience description
+5. 3-5 key product features to highlight
+
+Format your response as JSON with these exact keys: headline, script, callToAction, targetAudience, keyFeatures (array)`;
+
+      const result = await model.generateContent([prompt, imageData]);
+      const response = await result.response;
+      const text = response.text();
+
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Could not parse AI response');
+      }
+
+      const content: AdContent = JSON.parse(jsonMatch[0]);
+      setAdContent(content);
+      toast.success('Ad content generated successfully!');
+    } catch (error: any) {
+      console.error('Ad generation error:', error);
+      setError(error.message || 'Failed to generate ad. Please try again.');
+      toast.error('Failed to generate ad content');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const fileToGenerativePart = async (file: File): Promise<{ inlineData: { data: string; mimeType: string } }> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        resolve({
+          inlineData: {
+            data: base64,
+            mimeType: file.type,
+          },
+        });
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-16">
-        {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">AI Product Ad Studio</h1>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
@@ -107,8 +171,7 @@ export const ProductAdStudioPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Upload Section */}
-        <div className="max-w-2xl mx-auto mb-12">
+        <div className="max-w-4xl mx-auto mb-12">
           {!uploadedImage ? (
             <div
               className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors duration-200 ${
@@ -157,38 +220,85 @@ export const ProductAdStudioPage: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div className="bg-gray-800 rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Uploaded Product Image</h3>
-                <button
-                  onClick={removeImage}
-                  className="text-red-400 hover:text-red-300 text-sm"
-                >
-                  Remove
-                </button>
-              </div>
-              
-              <div className="mb-6">
-                <img
-                  src={imagePreview!}
-                  alt="Product preview"
-                  className="max-w-full h-64 object-contain mx-auto rounded-lg"
-                />
+            <div className="space-y-6">
+              <div className="bg-gray-800 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Uploaded Product Image</h3>
+                  <button
+                    onClick={removeImage}
+                    className="text-red-400 hover:text-red-300 text-sm"
+                  >
+                    Remove
+                  </button>
+                </div>
+                
+                <div className="mb-6">
+                  <img
+                    src={imagePreview!}
+                    alt="Product preview"
+                    className="max-w-full h-64 object-contain mx-auto rounded-lg"
+                  />
+                </div>
+
+                <div className="text-center">
+                  <button
+                    onClick={generateAd}
+                    disabled={isGenerating}
+                    className="bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200"
+                  >
+                    {isGenerating ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Analyzing Product...
+                      </span>
+                    ) : (
+                      'Generate Product Ad'
+                    )}
+                  </button>
+                </div>
               </div>
 
-              <div className="text-center">
-                <button
-                  onClick={generateAd}
-                  className="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200"
-                >
-                  Generate Product Ad
-                </button>
-              </div>
+              {adContent && (
+                <div className="bg-gray-800 rounded-lg p-6 space-y-6">
+                  <h2 className="text-2xl font-bold text-green-400">Generated Ad Campaign</h2>
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 text-gray-300">Headline</h3>
+                    <p className="text-xl font-bold text-white">{adContent.headline}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 text-gray-300">30-Second Video Script</h3>
+                    <p className="text-gray-200 whitespace-pre-line">{adContent.script}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 text-gray-300">Call to Action</h3>
+                    <p className="text-lg text-green-400 font-semibold">{adContent.callToAction}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 text-gray-300">Target Audience</h3>
+                    <p className="text-gray-200">{adContent.targetAudience}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 text-gray-300">Key Features to Highlight</h3>
+                    <ul className="list-disc list-inside space-y-1 text-gray-200">
+                      {adContent.keyFeatures.map((feature, index) => (
+                        <li key={index}>{feature}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Help Section */}
         <div className="text-center">
           <p className="text-sm text-gray-500">
             Need help? Check out our{' '}
@@ -198,55 +308,6 @@ export const ProductAdStudioPage: React.FC = () => {
           </p>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-gray-800 py-12">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-white font-semibold mb-4">SOLUTIONS</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="/pricing" className="hover:text-white">Pricing</a></li>
-                <li><a href="/api" className="hover:text-white">API</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-white font-semibold mb-4">PRODUCTS</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="/video-generator" className="hover:text-white">AI Video Generator</a></li>
-                <li><a href="/auto-writer" className="hover:text-white">Script Generator</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-white font-semibold mb-4">RESOURCES</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="/guide" className="hover:text-white">User Guide</a></li>
-                <li><a href="/blog" className="hover:text-white">Blog</a></li>
-                <li><a href="/community" className="hover:text-white">Community</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-white font-semibold mb-4">COMPANY</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="/about" className="hover:text-white">About Us</a></li>
-                <li><a href="/contact" className="hover:text-white">Contact</a></li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-700 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <div className="w-6 h-6 bg-purple-500 rounded flex items-center justify-center">
-                <span className="text-white text-xs">✦</span>
-              </div>
-              <span className="text-white font-semibold">Viral Video Factory</span>
-            </div>
-            <div className="text-gray-400 text-sm">
-              © 2025 Viral Video Factory. All rights reserved.
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
