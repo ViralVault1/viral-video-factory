@@ -3,7 +3,7 @@
   "name": "viral-video-factory",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api).*)",
       "destination": "/index.html"
     }
   ],
@@ -19,4 +19,3 @@
     }
   ]
 }
-
