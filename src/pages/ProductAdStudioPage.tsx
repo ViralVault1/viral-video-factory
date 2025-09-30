@@ -88,45 +88,36 @@ export const ProductAdStudioPage: React.FC = () => {
     setError('');
   };
 
-  const generateAd = async () => {
-    if (!uploadedImage) {
-      setError('Please upload a product image first');
-      return;
-    }
+ const generateAd = async () => {
+  if (!uploadedImage) {
+    setError('Please upload a product image first');
+    return;
+  }
 
-    setIsGenerating(true);
-    setError('');
+  setIsGenerating(true);
+  setError('');
 
-    try {
-      // Get API key from environment
-      const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
+  try {
+    // Convert image to base64
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = (reader.result as string).split(',')[1];
       
-      if (!apiKey) {
-        throw new Error('Gemini API key not configured. Please add REACT_APP_GEMINI_API_KEY to your environment variables.');
+      const response = await fetch('/api/generate-product-ad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageData: base64,
+          mimeType: uploadedImage.type
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate ad');
       }
 
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
-      // Convert image to base64
-      const imageData = await fileToGenerativePart(uploadedImage);
-
-      const prompt = `Analyze this product image and create a compelling video ad campaign. Provide:
-
-1. A catchy headline (max 10 words)
-2. A 30-second video ad script (engaging, benefit-focused)
-3. A strong call-to-action
-4. Target audience description
-5. 3-5 key product features to highlight
-
-Format your response as JSON with these exact keys: headline, script, callToAction, targetAudience, keyFeatures (array)`;
-
-      const result = await model.generateContent([prompt, imageData]);
-      const response = await result.response;
-      const text = response.text();
-
-      // Extract JSON from response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const data = await response.json();
+      const jsonMatch = data.content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('Could not parse AI response');
       }
@@ -134,14 +125,22 @@ Format your response as JSON with these exact keys: headline, script, callToActi
       const content: AdContent = JSON.parse(jsonMatch[0]);
       setAdContent(content);
       toast.success('Ad content generated successfully!');
-    } catch (error: any) {
-      console.error('Ad generation error:', error);
-      setError(error.message || 'Failed to generate ad. Please try again.');
-      toast.error('Failed to generate ad content');
-    } finally {
       setIsGenerating(false);
-    }
-  };
+    };
+    
+    reader.onerror = () => {
+      setIsGenerating(false);
+      throw new Error('Failed to read image');
+    };
+    
+    reader.readAsDataURL(uploadedImage);
+  } catch (error: any) {
+    console.error('Ad generation error:', error);
+    setError(error.message || 'Failed to generate ad. Please try again.');
+    toast.error('Failed to generate ad content');
+    setIsGenerating(false);
+  }
+};
 
   const fileToGenerativePart = async (file: File): Promise<{ inlineData: { data: string; mimeType: string } }> => {
     return new Promise((resolve, reject) => {
