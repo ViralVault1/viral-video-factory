@@ -99,7 +99,7 @@ export const ProductAdStudioPage: React.FC = () => {
 
     try {
       // Get API key from environment
-      const apiKey = import.meta.env.REACT_APP_GEMINI_API_KEY;
+      const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
       
       if (!apiKey) {
         throw new Error('Gemini API key not configured. Please add REACT_APP_GEMINI_API_KEY to your environment variables.');
