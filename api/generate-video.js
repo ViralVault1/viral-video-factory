@@ -1,4 +1,4 @@
-// api/generate-video.js - Using Runway ML Gen-3
+// api/generate-video.js - Using Replicate
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
@@ -25,9 +25,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('Starting video generation with Runway ML');
+    console.log('Starting video generation with Replicate');
 
-    // Step 1: Generate voice-over
+    // Generate voice-over
     const audioResponse = await openai.audio.speech.create({
       model: 'tts-1',
       voice: voice || 'alloy',
@@ -38,45 +38,45 @@ export default async function handler(req, res) {
     const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
     console.log('Voice-over generated');
 
-    // Step 2: Call Runway ML Gen-3 API
-    const RUNWAY_API_KEY = process.env.RUNWAY_API_KEY;
+    const REPLICATE_API_KEY = process.env.REPLICATE_API_KEY;
 
-    if (!RUNWAY_API_KEY) {
-      throw new Error('Runway API key not configured');
+    if (!REPLICATE_API_KEY) {
+      throw new Error('Replicate API key not configured');
     }
 
-    const runwayResponse = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
+    // Using Zeroscope v2 XL - good quality, affordable
+    const replicateResponse = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RUNWAY_API_KEY}`,
-        'Content-Type': 'application/json',
-        'X-Runway-Version': '2024-11-06'
+        'Authorization': `Token ${REPLICATE_API_KEY}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        promptText: (visualPrompt || script).substring(0, 1000),
-        model: 'veo3',
-        ratio: '720:1280',
-        duration: 8,
-        seed: Math.floor(Math.random() * 4294967295)
+        version: "9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
+        input: {
+          prompt: (visualPrompt || script).substring(0, 500),
+          negative_prompt: "blurry, low quality, distorted, watermark",
+          num_frames: 24,
+          num_inference_steps: 50
+        }
       })
     });
 
-    if (!runwayResponse.ok) {
-      const errorData = await runwayResponse.json().catch(() => ({}));
-      console.error('Runway API error:', errorData);
-      throw new Error(`Runway API error: ${errorData.message || runwayResponse.status}`);
+    if (!replicateResponse.ok) {
+      const errorData = await replicateResponse.json().catch(() => ({}));
+      console.error('Replicate API error:', errorData);
+      throw new Error(`Replicate API error: ${replicateResponse.status}`);
     }
 
-    const runwayData = await runwayResponse.json();
-
-console.log('Full Runway response:', JSON.stringify(runwayData, null, 2));
-console.log('Runway job created:', runwayData.id);
+    const replicateData = await replicateResponse.json();
+    
+    console.log('Replicate job created:', replicateData.id);
 
     return res.status(200).json({
       success: true,
-      jobId: runwayData.id,
+      jobId: replicateData.id,
       status: 'processing',
-      message: 'Video generation started with Runway ML'
+      message: 'Video generation started'
     });
 
   } catch (error) {
