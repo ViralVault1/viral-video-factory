@@ -1,4 +1,4 @@
-// api/videostatus.js - For Runway ML
+// api/videostatus.js - For Replicate
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -19,45 +19,42 @@ export default async function handler(req, res) {
   }
 
   try {
-    const RUNWAY_API_KEY = process.env.RUNWAY_API_KEY;
+    const REPLICATE_API_KEY = process.env.REPLICATE_API_KEY;
 
-    if (!RUNWAY_API_KEY) {
-      throw new Error('Runway API key not configured');
+    if (!REPLICATE_API_KEY) {
+      throw new Error('Replicate API key not configured');
     }
 
-    // Check status from Runway
-    const statusResponse = await fetch(`https://api.dev.runwayml.com/v1/tasks/${jobId}`, {
+    const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${jobId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${RUNWAY_API_KEY}`,
-        'Content-Type': 'application/json',
-        'X-Runway-Version': '2024-09-13'
+        'Authorization': `Token ${REPLICATE_API_KEY}`,
+        'Content-Type': 'application/json'
       }
     });
 
     if (!statusResponse.ok) {
-      throw new Error(`Runway API error: ${statusResponse.status}`);
+      throw new Error(`Replicate API error: ${statusResponse.status}`);
     }
 
     const statusData = await statusResponse.json();
 
-    console.log('Runway status:', statusData);
+    console.log('Replicate status:', statusData.status);
 
-    // Map Runway status to standardized format
     let status = 'processing';
     let videoUrl = null;
     let progress = 50;
 
-    if (statusData.status === 'SUCCEEDED') {
+    if (statusData.status === 'succeeded') {
       status = 'completed';
-      videoUrl = statusData.output?.[0];
+      videoUrl = statusData.output;
       progress = 100;
-    } else if (statusData.status === 'FAILED') {
+    } else if (statusData.status === 'failed' || statusData.status === 'canceled') {
       status = 'failed';
       progress = 0;
-    } else if (statusData.status === 'RUNNING') {
+    } else if (statusData.status === 'processing' || statusData.status === 'starting') {
       status = 'processing';
-      progress = statusData.progress ? statusData.progress * 100 : 50;
+      progress = 50;
     }
 
     return res.status(200).json({
@@ -65,7 +62,7 @@ export default async function handler(req, res) {
       status,
       progress,
       videoUrl,
-      error: status === 'failed' ? statusData.failure_reason : null
+      error: status === 'failed' ? statusData.error : null
     });
 
   } catch (error) {
