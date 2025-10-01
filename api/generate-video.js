@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
     console.log('Voice-over generated');
 
-    const REPLICATE_API_KEY = process.env.REPLICATE_API_KEY;
+    const REPLICATE_API_KEY = process.env.REPLICATE_API_TOKEN;
 
     if (!REPLICATE_API_KEY) {
       throw new Error('Replicate API key not configured');
