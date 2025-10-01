@@ -1,4 +1,4 @@
-// api/video-status.js - For ModelsLab
+// api/video-status.js - For Runway ML
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -19,50 +19,43 @@ export default async function handler(req, res) {
   }
 
   try {
-    const MODELSLAB_API_KEY = process.env.MODELSLAB_API_KEY;
+    const RUNWAY_API_KEY = process.env.RUNWAY_API_KEY;
 
-    if (!MODELSLAB_API_KEY) {
-      throw new Error('ModelsLab API key not configured');
+    if (!RUNWAY_API_KEY) {
+      throw new Error('Runway API key not configured');
     }
 
-    // ModelsLab fetch endpoint (v6 for fetching, even though v7 for creation)
-    const statusResponse = await fetch('https://modelslab.com/api/v6/video/fetch', {
-      method: 'POST',
+    const statusResponse = await fetch(`https://api.dev.runwayml.com/v1/tasks/${jobId}`, {
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        key: MODELSLAB_API_KEY,
-        request_id: jobId
-      })
+        'Authorization': `Bearer ${RUNWAY_API_KEY}`,
+        'Content-Type': 'application/json',
+        'X-Runway-Version': '2024-09-13'
+      }
     });
 
     if (!statusResponse.ok) {
-      const errorText = await statusResponse.text();
-      console.error('ModelsLab status check error:', errorText);
-      throw new Error(`ModelsLab API error: ${statusResponse.status}`);
+      throw new Error(`Runway API error: ${statusResponse.status}`);
     }
 
     const statusData = await statusResponse.json();
 
-    console.log('ModelsLab status response:', JSON.stringify(statusData, null, 2));
+    console.log('Runway status:', statusData);
 
-    // Map ModelsLab status to standardized format
     let status = 'processing';
     let videoUrl = null;
     let progress = 50;
 
-    if (statusData.status === 'success') {
+    if (statusData.status === 'SUCCEEDED') {
       status = 'completed';
-      // Get video URL from links or proxy_links array
-      videoUrl = statusData.links?.[0] || statusData.proxy_links?.[0] || statusData.output?.[0];
+      videoUrl = statusData.output?.[0];
       progress = 100;
-    } else if (statusData.status === 'error' || statusData.status === 'failed') {
+    } else if (statusData.status === 'FAILED') {
       status = 'failed';
       progress = 0;
-    } else if (statusData.status === 'processing' || statusData.status === 'pending') {
+    } else if (statusData.status === 'RUNNING') {
       status = 'processing';
-      progress = statusData.eta ? 75 : 50;
+      progress = statusData.progress ? statusData.progress * 100 : 50;
     }
 
     return res.status(200).json({
@@ -70,13 +63,7 @@ export default async function handler(req, res) {
       status,
       progress,
       videoUrl,
-      error: status === 'failed' ? (statusData.message || statusData.error) : null,
-      eta: statusData.eta,
-      generationTime: statusData.generationTime,
-      metadata: {
-        message: statusData.message || statusData.messege,
-        generationTime: statusData.generationTime
-      }
+      error: status === 'failed' ? statusData.failure_reason : null
     });
 
   } catch (error) {
