@@ -45,19 +45,19 @@ export default async function handler(req, res) {
       throw new Error('Runway API key not configured');
     }
 
-    const runwayResponse = await fetch('https://api.dev.runwayml.com/v1/text-to-video', {
+    const runwayResponse = await fetch('https://api.runwayml.com/v1/text_to_video', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${RUNWAY_API_KEY}`,
         'Content-Type': 'application/json',
-        'X-Runway-Version': '2024-09-13'
+        'X-Runway-Version': '2024-11-06'
       },
       body: JSON.stringify({
-        model: 'gen3a_turbo',
-        prompt_text: visualPrompt || script,
-        duration: 5,
-        ratio: '9:16',
-        watermark: false
+        promptText: visualPrompt || script,
+        model: 'veo3',
+        ratio: '720:1280',
+        duration: 8,
+        seed: Math.floor(Math.random() * 4294967295)
       })
     });
 
