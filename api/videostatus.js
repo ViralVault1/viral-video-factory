@@ -1,4 +1,4 @@
-// api/video-status.js - For Runway ML
+// api/videostatus.js - For Runway ML
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -25,6 +25,7 @@ export default async function handler(req, res) {
       throw new Error('Runway API key not configured');
     }
 
+    // Check status from Runway
     const statusResponse = await fetch(`https://api.dev.runwayml.com/v1/tasks/${jobId}`, {
       method: 'GET',
       headers: {
@@ -42,6 +43,7 @@ export default async function handler(req, res) {
 
     console.log('Runway status:', statusData);
 
+    // Map Runway status to standardized format
     let status = 'processing';
     let videoUrl = null;
     let progress = 50;
