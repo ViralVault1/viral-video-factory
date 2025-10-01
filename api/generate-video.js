@@ -68,8 +68,9 @@ export default async function handler(req, res) {
     }
 
     const runwayData = await runwayResponse.json();
-    
-    console.log('Runway job created:', runwayData.id);
+
+console.log('Full Runway response:', JSON.stringify(runwayData, null, 2));
+console.log('Runway job created:', runwayData.id);
 
     return res.status(200).json({
       success: true,
