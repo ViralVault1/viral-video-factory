@@ -1,4 +1,4 @@
-// api/generate-video.js - Using Runway ML Gen-3
+// api/generate-video.js - Using Runway ML Veo 3
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
@@ -27,7 +27,6 @@ export default async function handler(req, res) {
   try {
     console.log('Starting video generation with Runway ML');
 
-    // Step 1: Generate voice-over
     const audioResponse = await openai.audio.speech.create({
       model: 'tts-1',
       voice: voice || 'alloy',
@@ -38,14 +37,13 @@ export default async function handler(req, res) {
     const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
     console.log('Voice-over generated');
 
-    // Step 2: Call Runway ML Gen-3 API
     const RUNWAY_API_KEY = process.env.RUNWAY_API_KEY;
 
     if (!RUNWAY_API_KEY) {
       throw new Error('Runway API key not configured');
     }
 
-    const runwayResponse = await fetch('https://api.runwayml.com/v1/text_to_video', {
+    const runwayResponse = await fetch('https://api.dev.runwayml.com/v1/text_to_video', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${RUNWAY_API_KEY}`,
@@ -64,7 +62,7 @@ export default async function handler(req, res) {
     if (!runwayResponse.ok) {
       const errorData = await runwayResponse.json().catch(() => ({}));
       console.error('Runway API error:', errorData);
-      throw new Error(`Runway API error: ${errorData.message || runwayResponse.status}`);
+      throw new Error(`Runway API error: ${runwayResponse.status}`);
     }
 
     const runwayData = await runwayResponse.json();
