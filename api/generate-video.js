@@ -1,4 +1,4 @@
-// /api/generate-video.js - Using ModelsLab Seedance
+// api/generate-video.js - Using Runway ML Gen-3
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
@@ -18,16 +18,16 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { script, visualPrompt, voice, music, style } = req.body;
+  const { script, visualPrompt, voice } = req.body;
 
   if (!script) {
     return res.status(400).json({ error: 'Script is required' });
   }
 
   try {
-    console.log('Starting video generation for script:', script.substring(0, 50) + '...');
+    console.log('Starting video generation with Runway ML');
 
-    // Step 1: Generate voice-over using OpenAI TTS
+    // Step 1: Generate voice-over
     const audioResponse = await openai.audio.speech.create({
       model: 'tts-1',
       voice: voice || 'alloy',
@@ -36,71 +36,46 @@ export default async function handler(req, res) {
     });
 
     const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
-    const audioBase64 = audioBuffer.toString('base64');
+    console.log('Voice-over generated');
 
-    console.log('Voice-over generated, length:', audioBuffer.length);
+    // Step 2: Call Runway ML Gen-3 API
+    const RUNWAY_API_KEY = process.env.RUNWAY_API_KEY;
 
-    // Step 2: Call ModelsLab Seedance API for video generation
-    const MODELSLAB_API_KEY = process.env.MODELSLAB_API_KEY;
-
-    if (!MODELSLAB_API_KEY) {
-      throw new Error('ModelsLab API key not configured');
+    if (!RUNWAY_API_KEY) {
+      throw new Error('Runway API key not configured');
     }
 
-    const videoPayload = {
-      key: MODELSLAB_API_KEY,
-      model_id: 'seedance-t2v',
-      prompt: visualPrompt || script,
-      negative_prompt: 'blurry, low quality, distorted, watermark, text, logo',
-      height: 1024,
-      width: 576,
-      num_frames: 49,
-      num_inference_steps: 50,
-      guidance_scale: 6,
-      seed: Math.floor(Math.random() * 1000000),
-      webhook: null,
-      track_id: null
-    };
-
-    console.log('Calling ModelsLab Seedance API...');
-
-    // ModelsLab video-fusion text-to-video endpoint (v7)
-    const modelsLabResponse = await fetch('https://modelslab.com/api/v7/video-fusion/text-to-video', {
+    const runwayResponse = await fetch('https://api.dev.runwayml.com/v1/text-to-video', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Authorization': `Bearer ${RUNWAY_API_KEY}`,
+        'Content-Type': 'application/json',
+        'X-Runway-Version': '2024-09-13'
       },
-      body: JSON.stringify(videoPayload)
+      body: JSON.stringify({
+        model: 'gen3a_turbo',
+        prompt_text: visualPrompt || script,
+        duration: 5,
+        ratio: '9:16',
+        watermark: false
+      })
     });
 
-    if (!modelsLabResponse.ok) {
-      const errorData = await modelsLabResponse.json().catch(() => ({}));
-      console.error('ModelsLab API error response:', errorData);
-      throw new Error(`ModelsLab API error (${modelsLabResponse.status}): ${errorData.message || errorData.error || 'Unknown error'}`);
+    if (!runwayResponse.ok) {
+      const errorData = await runwayResponse.json().catch(() => ({}));
+      console.error('Runway API error:', errorData);
+      throw new Error(`Runway API error: ${errorData.message || runwayResponse.status}`);
     }
 
-    const modelsLabData = await modelsLabResponse.json();
-
-    console.log('ModelsLab response:', JSON.stringify(modelsLabData, null, 2));
-
-    // ModelsLab returns different field names
-    const jobId = modelsLabData.id || modelsLabData.fetch_id || modelsLabData.request_id;
+    const runwayData = await runwayResponse.json();
     
-    if (!jobId) {
-      console.error('No job ID in ModelsLab response:', modelsLabData);
-      throw new Error(`ModelsLab API did not return a job ID. Response: ${JSON.stringify(modelsLabData)}`);
-    }
+    console.log('Runway job created:', runwayData.id);
 
-    console.log('ModelsLab job created:', jobId);
-
-    // Step 3: Return job ID for polling
     return res.status(200).json({
       success: true,
-      jobId: jobId,
-      status: modelsLabData.status || 'processing',
-      message: 'Video generation started',
-      estimatedTime: modelsLabData.eta || 60,
-      meta: modelsLabData.meta
+      jobId: runwayData.id,
+      status: 'processing',
+      message: 'Video generation started with Runway ML'
     });
 
   } catch (error) {
@@ -108,8 +83,7 @@ export default async function handler(req, res) {
 
     return res.status(500).json({
       error: 'Failed to generate video',
-      details: error.message,
-      suggestion: 'Please check your ModelsLab API key and try again'
+      details: error.message
     });
   }
 }
