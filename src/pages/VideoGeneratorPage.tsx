@@ -1,3 +1,7 @@
+video page 2
+
+
+
 import React, { useState } from 'react';
 import { Play, Wand2, Copy, Download } from 'lucide-react';
 
@@ -629,3 +633,5 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
     </div>
   );
 };
+
+export default VideoGeneratorPage;
