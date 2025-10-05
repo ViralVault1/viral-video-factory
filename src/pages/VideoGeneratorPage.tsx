@@ -173,7 +173,7 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
     
     try {
       // Make.com webhook URL - replace with your actual webhook URL from Make.com
-      const makeWebhookUrl = 'https://hook.eu2.make.com/oavuuxz6nq8u6lkl1e83vez7yhgdxdyy';
+      const makeWebhookUrl = 'https://hook.eu2.make.com/7dvpj18s94mam5gcx0xioyeinawtjvrh';
       
       const payload = {
         script: script,
@@ -629,5 +629,3 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
     </div>
   );
 };
-
-export default VideoGeneratorPage;
