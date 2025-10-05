@@ -172,27 +172,52 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
     setIsGenerating(true);
     
     try {
-      const response = await fetch('/api/simple-video', {
+      // Make.com webhook URL - replace with your actual webhook URL from Make.com
+      const makeWebhookUrl = 'YOUR_MAKE_COM_WEBHOOK_URL_HERE';
+      
+      const payload = {
+        script: script,
+        visualPrompt: visualPrompt || `${presetStyle} style scene`,
+        voice: voice,
+        music: music,
+        soundEffects: soundEffects,
+        presetStyle: presetStyle,
+        platform: 'fal-ai',
+        timestamp: new Date().toISOString(),
+        // Include user identifier if you want to track who requested the video
+        requestId: `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      };
+
+      const response = await fetch(makeWebhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          script,
-          voice,
-          visualPrompt: visualPrompt || `${presetStyle} style scene`,
-        }),
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Video generation failed');
+        throw new Error('Failed to trigger video generation');
       }
 
       const result = await response.json();
       
-      setGeneratedVideos(prev => [result, ...prev]);
-      alert('Video generated successfully! Check your creations below.');
+      // If Make.com returns immediate video data
+      if (result.videoUrl || result.imageUrl || result.audioUrl) {
+        const newVideo: VideoResult = {
+          id: result.id || payload.requestId,
+          imageUrl: result.imageUrl,
+          audioUrl: result.audioUrl,
+          status: 'completed',
+          createdAt: new Date().toISOString(),
+          script: script
+        };
+        setGeneratedVideos(prev => [newVideo, ...prev]);
+        alert('Video generated successfully! Check your creations below.');
+      } else {
+        // If processing is async
+        alert('Video generation started! You will be notified when ready. Check back in 2-5 minutes.');
+      }
       
     } catch (error) {
       console.error('Video generation failed:', error);
@@ -459,7 +484,7 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
                 )}
               </button>
               <p className="text-center text-sm mt-2 text-white text-opacity-80">
-                Estimated time: 30-60 seconds
+                Estimated time: 2-5 minutes via Make.com & fal.ai
               </p>
             </div>
           </div>
