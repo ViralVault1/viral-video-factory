@@ -1,7 +1,3 @@
-video page 2
-
-
-
 import React, { useState } from 'react';
 import { Play, Wand2, Copy, Download } from 'lucide-react';
 
