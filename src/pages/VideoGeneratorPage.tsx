@@ -18,6 +18,7 @@ interface ViralResults {
 
 interface VideoResult {
   id: string;
+  videoUrl?: string;
   imageUrl?: string;
   audioUrl?: string;
   status: 'processing' | 'completed' | 'failed';
@@ -172,7 +173,6 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
     setIsGenerating(true);
     
     try {
-      // Make.com webhook URL - replace with your actual webhook URL from Make.com
       const makeWebhookUrl = 'https://hook.eu2.make.com/7dvpj18s94mam5gcx0xioyeinawtjvrh';
       
       const payload = {
@@ -184,7 +184,6 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
         presetStyle: presetStyle,
         platform: 'fal-ai',
         timestamp: new Date().toISOString(),
-        // Include user identifier if you want to track who requested the video
         requestId: `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       };
 
@@ -202,10 +201,10 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
 
       const result = await response.json();
       
-      // If Make.com returns immediate video data
       if (result.videoUrl || result.imageUrl || result.audioUrl) {
         const newVideo: VideoResult = {
           id: result.id || payload.requestId,
+          videoUrl: result.videoUrl,
           imageUrl: result.imageUrl,
           audioUrl: result.audioUrl,
           status: 'completed',
@@ -215,8 +214,7 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
         setGeneratedVideos(prev => [newVideo, ...prev]);
         alert('Video generated successfully! Check your creations below.');
       } else {
-        // If processing is async
-        alert('Video generation started! You will be notified when ready. Check back in 2-5 minutes.');
+        alert('Video generation started! Check back in 2-5 minutes.');
       }
       
     } catch (error) {
@@ -324,7 +322,7 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
                     {isAnalyzing ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     ) : (
-                      '✏️'
+                        '✏️'
                     )}
                     Analyze Transcript
                   </button>
@@ -532,6 +530,15 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
                       </span>
                     </div>
                     <div className="flex gap-2 mt-3">
+                      {video.videoUrl && (
+                        <button 
+                          onClick={() => window.open(video.videoUrl, '_blank')}
+                          className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm flex items-center justify-center gap-1"
+                        >
+                          <Play className="w-3 h-3" />
+                          Video
+                        </button>
+                      )}
                       {video.imageUrl && (
                         <button 
                           onClick={() => window.open(video.imageUrl, '_blank')}
@@ -543,10 +550,7 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
                       )}
                       {video.audioUrl && (
                         <button 
-                          onClick={() => {
-                            const audio = new Audio(video.audioUrl);
-                            audio.play();
-                          }}
+                          onClick={() => window.open(video.audioUrl, '_blank')}
                           className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm flex items-center justify-center gap-1"
                         >
                           <Play className="w-3 h-3" />
