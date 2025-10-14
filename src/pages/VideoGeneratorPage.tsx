@@ -33,8 +33,6 @@ const VideoGeneratorPage: React.FC = () => {
   const [script, setScript] = useState('This is the one thing you\'re doing wrong with your marketing. You\'re focusing too much on features, and not enough on the story. People don\'t buy what you do, they buy why you do it. Start with why, and watch your brand grow.');
   const [voice, setVoice] = useState('Natural Female Voice');
   const [music, setMusic] = useState('Upbeat Corporate');
-  const [visualStyle, setVisualStyle] = useState('AI Generation');
-  const [aiModel, setAiModel] = useState('Google VEO (Fast & Reliable)');
   const [presetStyle, setPresetStyle] = useState('Cinematic');
   const [visualPrompt, setVisualPrompt] = useState('');
   const [soundEffects, setSoundEffects] = useState('');
@@ -44,15 +42,12 @@ const VideoGeneratorPage: React.FC = () => {
   const [generatedIdeas, setGeneratedIdeas] = useState<VideoIdea[]>([]);
   const [generatedVideos, setGeneratedVideos] = useState<VideoResult[]>([]);
   const [showViralOptimizer, setShowViralOptimizer] = useState(false);
-  const [currentAudioUrl, setCurrentAudioUrl] = useState<string>('');
-  const [currentRequestId, setCurrentRequestId] = useState<string>('');
   const [viralResults, setViralResults] = useState<ViralResults>({
     hooks: [],
     titles: []
   });
 
-  // Replicate API
-  const REPLICATE_API_KEY = 'r8_YOUR_KEY_HERE'; // Get from replicate.com
+  const VIDEO_WEBHOOK_URL = 'https://hook.eu2.make.com/pookemkmpmd4joku89ni436lsok6t7ev';
 
   const handleFindIdeas = async () => {
     if (!ideaInput.trim()) {
@@ -175,60 +170,48 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
       return;
     }
     
-    setIsGeneratingVideo(true);
+    setIsGenerating(true);
     
     try {
-      // Single API call to Replicate
-      const response = await fetch('https://api.replicate.com/v1/predictions', {
+      const response = await fetch(VIDEO_WEBHOOK_URL, {
         method: 'POST',
         headers: {
-          'Authorization': `Token ${REPLICATE_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          version: "minimax-video", // Text-to-video model
-          input: {
-            prompt: script
-          }
+          prompt: script,
+          visualPrompt: visualPrompt || `${presetStyle} style scene`,
+          presetStyle: presetStyle,
+          requestId: `video_${Date.now()}`,
+          timestamp: new Date().toISOString()
         })
       });
 
-      const prediction = await response.json();
+      if (!response.ok) {
+        throw new Error('Failed to generate video');
+      }
+
+      const result = await response.json();
       
-      if (prediction.id) {
-        alert('✅ Video is generating! Check back in 2-3 minutes.');
-        
-        // Poll for result
-        const checkVideo = setInterval(async () => {
-          const statusRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-            headers: { 'Authorization': `Token ${REPLICATE_API_KEY}` }
-          });
-          const status = await statusRes.json();
-          
-          if (status.status === 'succeeded') {
-            clearInterval(checkVideo);
-            const newVideo: VideoResult = {
-              id: prediction.id,
-              videoUrl: status.output,
-              status: 'completed',
-              createdAt: new Date().toISOString(),
-              script: script
-            };
-            setGeneratedVideos(prev => [newVideo, ...prev]);
-            alert('✅ Video ready!');
-            setIsGeneratingVideo(false);
-          } else if (status.status === 'failed') {
-            clearInterval(checkVideo);
-            alert('❌ Video generation failed');
-            setIsGeneratingVideo(false);
-          }
-        }, 10000); // Check every 10 seconds
+      if (result.success && result.videoUrl) {
+        const newVideo: VideoResult = {
+          id: result.requestId || `video_${Date.now()}`,
+          videoUrl: result.videoUrl,
+          status: 'completed',
+          createdAt: new Date().toISOString(),
+          script: script
+        };
+        setGeneratedVideos(prev => [newVideo, ...prev]);
+        alert('✅ Video generated successfully!');
+      } else {
+        alert('🎬 Video is generating! This takes 3-5 minutes. Check back soon.');
       }
       
     } catch (error) {
       console.error('Video generation failed:', error);
       alert(`❌ Failed: ${error}`);
-      setIsGeneratingVideo(false);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -469,14 +452,13 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
               </div>
             </div>
 
-            {/* Single Generate Video Button */}
             <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6">
               <button
                 onClick={handleGenerateVideo}
-                disabled={isGeneratingVideo || !script.trim()}
+                disabled={isGenerating || !script.trim()}
                 className="w-full px-6 py-4 bg-white bg-opacity-20 hover:bg-opacity-30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold text-lg transition-all flex items-center justify-center gap-2"
               >
-                {isGeneratingVideo ? (
+                {isGenerating ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                     Generating Video...
@@ -489,7 +471,7 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
                 )}
               </button>
               <p className="text-center text-sm mt-2 text-white text-opacity-80">
-                ⏱️ Takes 2-3 minutes
+                ⏱️ Takes 3-5 minutes via Hunyuan AI
               </p>
             </div>
           </div>
