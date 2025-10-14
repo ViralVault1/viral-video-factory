@@ -38,16 +38,23 @@ const VideoGeneratorPage: React.FC = () => {
   const [presetStyle, setPresetStyle] = useState('Cinematic');
   const [visualPrompt, setVisualPrompt] = useState('');
   const [soundEffects, setSoundEffects] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [isFindingIdeas, setIsFindingIdeas] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [generatedIdeas, setGeneratedIdeas] = useState<VideoIdea[]>([]);
   const [generatedVideos, setGeneratedVideos] = useState<VideoResult[]>([]);
   const [showViralOptimizer, setShowViralOptimizer] = useState(false);
+  const [currentAudioUrl, setCurrentAudioUrl] = useState<string>('');
+  const [currentRequestId, setCurrentRequestId] = useState<string>('');
   const [viralResults, setViralResults] = useState<ViralResults>({
     hooks: [],
     titles: []
   });
+
+  // Webhook URLs
+  const AUDIO_WEBHOOK_URL = 'https://hook.eu2.make.com/7dvpj18s94mam5gcx0xioyeinawtjvrh';
+  const VIDEO_WEBHOOK_URL = 'https://hook.eu2.make.com/pookemkmpmd4joku89ni436lsok6t7ev';
 
   const handleFindIdeas = async () => {
     if (!ideaInput.trim()) {
@@ -164,30 +171,76 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
     }, 100);
   };
 
-  const handleGenerateVideo = async () => {
+  const handleGenerateAudio = async () => {
     if (!script.trim()) {
-      alert('Please enter a script to generate video.');
+      alert('Please enter a script to generate audio.');
       return;
     }
     
-    setIsGenerating(true);
+    setIsGeneratingAudio(true);
     
     try {
-      const makeWebhookUrl = 'https://hook.eu2.make.com/7dvpj18s94mam5gcx0xioyeinawtjvrh';
+      const requestId = `audio_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      setCurrentRequestId(requestId);
       
       const payload = {
         script: script,
-        visualPrompt: visualPrompt || `${presetStyle} style scene`,
         voice: voice,
-        music: music,
-        soundEffects: soundEffects,
-        presetStyle: presetStyle,
-        platform: 'fal-ai',
-        timestamp: new Date().toISOString(),
-        requestId: `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        requestId: requestId,
+        timestamp: new Date().toISOString()
       };
 
-      const response = await fetch(makeWebhookUrl, {
+      const response = await fetch(AUDIO_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate audio');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.audioUrl) {
+        setCurrentAudioUrl(result.audioUrl);
+        alert('✅ Audio generated successfully! Now you can generate the video.');
+      } else {
+        throw new Error('No audio URL received');
+      }
+      
+    } catch (error) {
+      console.error('Audio generation failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`❌ Failed to generate audio: ${errorMessage}`);
+    } finally {
+      setIsGeneratingAudio(false);
+    }
+  };
+
+  const handleGenerateVideo = async () => {
+    if (!currentAudioUrl) {
+      alert('Please generate audio first!');
+      return;
+    }
+    
+    setIsGeneratingVideo(true);
+    
+    try {
+      const videoRequestId = `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const payload = {
+        script: script,
+        audioUrl: currentAudioUrl,
+        visualPrompt: visualPrompt || `${presetStyle} style scene`,
+        presetStyle: presetStyle,
+        requestId: videoRequestId,
+        timestamp: new Date().toISOString()
+      };
+
+      const response = await fetch(VIDEO_WEBHOOK_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -201,28 +254,31 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
 
       const result = await response.json();
       
-      if (result.videoUrl || result.imageUrl || result.audioUrl) {
+      if (result.success && result.videoUrl) {
         const newVideo: VideoResult = {
-          id: result.id || payload.requestId,
+          id: videoRequestId,
           videoUrl: result.videoUrl,
-          imageUrl: result.imageUrl,
-          audioUrl: result.audioUrl,
+          audioUrl: currentAudioUrl,
           status: 'completed',
           createdAt: new Date().toISOString(),
           script: script
         };
         setGeneratedVideos(prev => [newVideo, ...prev]);
-        alert('Video generated successfully! Check your creations below.');
+        alert('✅ Video generated successfully! Check your creations below.');
+        
+        // Reset for next generation
+        setCurrentAudioUrl('');
+        setCurrentRequestId('');
       } else {
-        alert('Video generation started! Check back in 2-5 minutes.');
+        alert('🎬 Video generation started! This will take 3-5 minutes. The video will appear below when ready.');
       }
       
     } catch (error) {
       console.error('Video generation failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      alert(`Failed to generate video: ${errorMessage}`);
+      alert(`❌ Failed to generate video: ${errorMessage}`);
     } finally {
-      setIsGenerating(false);
+      setIsGeneratingVideo(false);
     }
   };
 
@@ -463,28 +519,59 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
               </div>
             </div>
 
-            <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6">
+            {/* Step 1: Generate Audio */}
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg p-6">
               <button
-                onClick={handleGenerateVideo}
-                disabled={isGenerating || !script.trim()}
+                onClick={handleGenerateAudio}
+                disabled={isGeneratingAudio || !script.trim()}
                 className="w-full px-6 py-4 bg-white bg-opacity-20 hover:bg-opacity-30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold text-lg transition-all flex items-center justify-center gap-2"
               >
-                {isGenerating ? (
+                {isGeneratingAudio ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Generating Video...
+                    Generating Audio...
                   </>
                 ) : (
                   <>
-                    <Wand2 className="w-5 h-5" />
-                    🎬 Generate Video
+                    🎤 Step 1: Generate Audio
                   </>
                 )}
               </button>
               <p className="text-center text-sm mt-2 text-white text-opacity-80">
-                Estimated time: 2-5 minutes via Make.com & fal.ai
+                ⚡ Fast: ~5 seconds
               </p>
             </div>
+
+            {/* Step 2: Generate Video (only shown after audio is generated) */}
+            {currentAudioUrl && (
+              <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6">
+                <div className="mb-3 text-center">
+                  <span className="text-sm bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                    ✅ Audio Ready
+                  </span>
+                </div>
+                <button
+                  onClick={handleGenerateVideo}
+                  disabled={isGeneratingVideo}
+                  className="w-full px-6 py-4 bg-white bg-opacity-20 hover:bg-opacity-30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold text-lg transition-all flex items-center justify-center gap-2"
+                >
+                  {isGeneratingVideo ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Generating Video...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-5 h-5" />
+                      🎬 Step 2: Generate Video
+                    </>
+                  )}
+                </button>
+                <p className="text-center text-sm mt-2 text-white text-opacity-80">
+                  ⏱️ This takes 3-5 minutes
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
