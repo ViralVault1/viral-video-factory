@@ -47,9 +47,6 @@ const VideoGeneratorPage: React.FC = () => {
     titles: []
   });
 
-  // No more webhooks - use our own API
-  const VIDEO_API_URL = '/api/generate-video';
-
   const handleFindIdeas = async () => {
     if (!ideaInput.trim()) {
       alert('Please enter a topic to find ideas.');
@@ -172,66 +169,38 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
     }
     
     setIsGenerating(true);
-    const requestId = `video_${Date.now()}`;
     
     try {
-      const response = await fetch(VIDEO_WEBHOOK_URL, {
+      const response = await fetch('/api/generate-video', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           prompt: script,
-          visualPrompt: visualPrompt || `${presetStyle} style scene`,
-          presetStyle: presetStyle,
-          requestId: requestId,
-          timestamp: new Date().toISOString()
+          visualPrompt: visualPrompt || `${presetStyle} style scene`
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to start video generation');
+        throw new Error('Failed to generate video');
       }
 
-      // Add placeholder video
-      const placeholderVideo: VideoResult = {
-        id: requestId,
-        status: 'processing',
-        createdAt: new Date().toISOString(),
-        script: script
-      };
-      setGeneratedVideos(prev => [placeholderVideo, ...prev]);
+      const result = await response.json();
       
-      alert('🎬 Video is generating! Will appear below when ready (2-3 minutes).');
-      
-      // Poll for completion every 15 seconds
-      const pollInterval = setInterval(async () => {
-        try {
-          const checkResponse = await fetch(VIDEO_WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ checkStatus: true, requestId: requestId })
-          });
-          
-          const checkResult = await checkResponse.json();
-          
-          if (checkResult.videoUrl) {
-            clearInterval(pollInterval);
-            setGeneratedVideos(prev => 
-              prev.map(v => v.id === requestId 
-                ? { ...v, videoUrl: checkResult.videoUrl, status: 'completed' }
-                : v
-              )
-            );
-            alert('✅ Video ready!');
-          }
-        } catch (err) {
-          console.log('Still processing...');
-        }
-      }, 15000); // Check every 15 seconds
-      
-      // Stop polling after 5 minutes
-      setTimeout(() => clearInterval(pollInterval), 300000);
+      if (result.success && result.videoUrl) {
+        const newVideo: VideoResult = {
+          id: `video_${Date.now()}`,
+          videoUrl: result.videoUrl,
+          status: 'completed',
+          createdAt: new Date().toISOString(),
+          script: script
+        };
+        setGeneratedVideos(prev => [newVideo, ...prev]);
+        alert('✅ Video generated successfully!');
+      } else {
+        throw new Error('No video URL returned');
+      }
       
     } catch (error) {
       console.error('Video generation failed:', error);
@@ -497,7 +466,7 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
                 )}
               </button>
               <p className="text-center text-sm mt-2 text-white text-opacity-80">
-                ⏱️ Takes 3-5 minutes via Hunyuan AI
+                ⏱️ Takes 30-60 seconds
               </p>
             </div>
           </div>
@@ -524,16 +493,17 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
               {generatedVideos.map((video) => (
                 <div key={video.id} className="bg-gray-700 rounded-lg overflow-hidden">
                   <div className="relative">
-                    {video.imageUrl && (
-                      <img 
-                        src={video.imageUrl} 
-                        alt="Video thumbnail"
+                    {video.videoUrl ? (
+                      <video 
+                        src={video.videoUrl} 
                         className="w-full h-48 object-cover"
+                        controls
                       />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-600 flex items-center justify-center">
+                        <Play className="w-12 h-12 text-gray-400" />
+                      </div>
                     )}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                      <Play className="w-12 h-12 text-white" />
-                    </div>
                   </div>
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
@@ -544,35 +514,15 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
                         {video.status}
                       </span>
                     </div>
-                    <div className="flex gap-2 mt-3">
-                      {video.videoUrl && (
-                        <button 
-                          onClick={() => window.open(video.videoUrl, '_blank')}
-                          className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm flex items-center justify-center gap-1"
-                        >
-                          <Play className="w-3 h-3" />
-                          Video
-                        </button>
-                      )}
-                      {video.imageUrl && (
-                        <button 
-                          onClick={() => window.open(video.imageUrl, '_blank')}
-                          className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm flex items-center justify-center gap-1"
-                        >
-                          <Download className="w-3 h-3" />
-                          Image
-                        </button>
-                      )}
-                      {video.audioUrl && (
-                        <button 
-                          onClick={() => window.open(video.audioUrl, '_blank')}
-                          className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm flex items-center justify-center gap-1"
-                        >
-                          <Play className="w-3 h-3" />
-                          Audio
-                        </button>
-                      )}
-                    </div>
+                    {video.videoUrl && (
+                      <button 
+                        onClick={() => window.open(video.videoUrl, '_blank')}
+                        className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm flex items-center justify-center gap-1"
+                      >
+                        <Download className="w-3 h-3" />
+                        Download Video
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
