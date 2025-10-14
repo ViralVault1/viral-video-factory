@@ -6,8 +6,6 @@ export default async function handler(req, res) {
   const { prompt } = req.body;
 
   try {
-    console.log('Generating video with prompt:', prompt);
-    
     const response = await fetch('https://fal.run/fal-ai/minimax/video-01-live', {
       method: 'POST',
       headers: {
@@ -15,12 +13,12 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: prompt
+        prompt: prompt,
+        duration: '10s'  // Options: '5s' or '10s'
       })
     });
 
     const result = await response.json();
-    console.log('fal.ai response:', result);
 
     if (!response.ok) {
       return res.status(500).json({ 
@@ -44,7 +42,6 @@ export default async function handler(req, res) {
     });
     
   } catch (error) {
-    console.error('Error:', error);
     return res.status(500).json({ 
       success: false, 
       error: error.message
