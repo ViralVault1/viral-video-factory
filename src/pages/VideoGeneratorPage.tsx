@@ -38,8 +38,7 @@ const VideoGeneratorPage: React.FC = () => {
   const [presetStyle, setPresetStyle] = useState('Cinematic');
   const [visualPrompt, setVisualPrompt] = useState('');
   const [soundEffects, setSoundEffects] = useState('');
-  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
-  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isFindingIdeas, setIsFindingIdeas] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [generatedIdeas, setGeneratedIdeas] = useState<VideoIdea[]>([]);
@@ -52,9 +51,8 @@ const VideoGeneratorPage: React.FC = () => {
     titles: []
   });
 
-  // Webhook URLs
-  const AUDIO_WEBHOOK_URL = 'https://hook.eu2.make.com/7dvpj18s94mam5gcx0xioyeinawtjvrh';
-  const VIDEO_WEBHOOK_URL = 'https://hook.eu2.make.com/pookemkmpmd4joku89ni436lsok6t7ev';
+  // Replicate API
+  const REPLICATE_API_KEY = 'r8_YOUR_KEY_HERE'; // Get from replicate.com
 
   const handleFindIdeas = async () => {
     if (!ideaInput.trim()) {
@@ -171,113 +169,65 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
     }, 100);
   };
 
-  const handleGenerateAudio = async () => {
-    if (!script.trim()) {
-      alert('Please enter a script to generate audio.');
-      return;
-    }
-    
-    setIsGeneratingAudio(true);
-    
-    try {
-      const requestId = `audio_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      setCurrentRequestId(requestId);
-      
-      const payload = {
-        script: script,
-        voice: voice,
-        requestId: requestId,
-        timestamp: new Date().toISOString()
-      };
-
-      const response = await fetch(AUDIO_WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate audio');
-      }
-
-      const result = await response.json();
-      
-      if (result.success && result.audioUrl) {
-        setCurrentAudioUrl(result.audioUrl);
-        alert('✅ Audio generated successfully! Now you can generate the video.');
-      } else {
-        throw new Error('No audio URL received');
-      }
-      
-    } catch (error) {
-      console.error('Audio generation failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      alert(`❌ Failed to generate audio: ${errorMessage}`);
-    } finally {
-      setIsGeneratingAudio(false);
-    }
-  };
-
   const handleGenerateVideo = async () => {
-    if (!currentAudioUrl) {
-      alert('Please generate audio first!');
+    if (!script.trim()) {
+      alert('Please enter a script.');
       return;
     }
     
     setIsGeneratingVideo(true);
     
     try {
-      const videoRequestId = `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      const payload = {
-        script: script,
-        audioUrl: currentAudioUrl,
-        visualPrompt: visualPrompt || `${presetStyle} style scene`,
-        presetStyle: presetStyle,
-        requestId: videoRequestId,
-        timestamp: new Date().toISOString()
-      };
-
-      const response = await fetch(VIDEO_WEBHOOK_URL, {
+      // Single API call to Replicate
+      const response = await fetch('https://api.replicate.com/v1/predictions', {
         method: 'POST',
         headers: {
+          'Authorization': `Token ${REPLICATE_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          version: "minimax-video", // Text-to-video model
+          input: {
+            prompt: script
+          }
+        })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to trigger video generation');
-      }
-
-      const result = await response.json();
+      const prediction = await response.json();
       
-      if (result.success && result.videoUrl) {
-        const newVideo: VideoResult = {
-          id: videoRequestId,
-          videoUrl: result.videoUrl,
-          audioUrl: currentAudioUrl,
-          status: 'completed',
-          createdAt: new Date().toISOString(),
-          script: script
-        };
-        setGeneratedVideos(prev => [newVideo, ...prev]);
-        alert('✅ Video generated successfully! Check your creations below.');
+      if (prediction.id) {
+        alert('✅ Video is generating! Check back in 2-3 minutes.');
         
-        // Reset for next generation
-        setCurrentAudioUrl('');
-        setCurrentRequestId('');
-      } else {
-        alert('🎬 Video generation started! This will take 3-5 minutes. The video will appear below when ready.');
+        // Poll for result
+        const checkVideo = setInterval(async () => {
+          const statusRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+            headers: { 'Authorization': `Token ${REPLICATE_API_KEY}` }
+          });
+          const status = await statusRes.json();
+          
+          if (status.status === 'succeeded') {
+            clearInterval(checkVideo);
+            const newVideo: VideoResult = {
+              id: prediction.id,
+              videoUrl: status.output,
+              status: 'completed',
+              createdAt: new Date().toISOString(),
+              script: script
+            };
+            setGeneratedVideos(prev => [newVideo, ...prev]);
+            alert('✅ Video ready!');
+            setIsGeneratingVideo(false);
+          } else if (status.status === 'failed') {
+            clearInterval(checkVideo);
+            alert('❌ Video generation failed');
+            setIsGeneratingVideo(false);
+          }
+        }, 10000); // Check every 10 seconds
       }
       
     } catch (error) {
       console.error('Video generation failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      alert(`❌ Failed to generate video: ${errorMessage}`);
-    } finally {
+      alert(`❌ Failed: ${error}`);
       setIsGeneratingVideo(false);
     }
   };
@@ -519,59 +469,29 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
               </div>
             </div>
 
-            {/* Step 1: Generate Audio */}
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg p-6">
+            {/* Single Generate Video Button */}
+            <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6">
               <button
-                onClick={handleGenerateAudio}
-                disabled={isGeneratingAudio || !script.trim()}
+                onClick={handleGenerateVideo}
+                disabled={isGeneratingVideo || !script.trim()}
                 className="w-full px-6 py-4 bg-white bg-opacity-20 hover:bg-opacity-30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold text-lg transition-all flex items-center justify-center gap-2"
               >
-                {isGeneratingAudio ? (
+                {isGeneratingVideo ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Generating Audio...
+                    Generating Video...
                   </>
                 ) : (
                   <>
-                    🎤 Step 1: Generate Audio
+                    <Wand2 className="w-5 h-5" />
+                    🎬 Generate Video
                   </>
                 )}
               </button>
               <p className="text-center text-sm mt-2 text-white text-opacity-80">
-                ⚡ Fast: ~5 seconds
+                ⏱️ Takes 2-3 minutes
               </p>
             </div>
-
-            {/* Step 2: Generate Video (only shown after audio is generated) */}
-            {currentAudioUrl && (
-              <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6">
-                <div className="mb-3 text-center">
-                  <span className="text-sm bg-white bg-opacity-20 px-3 py-1 rounded-full">
-                    ✅ Audio Ready
-                  </span>
-                </div>
-                <button
-                  onClick={handleGenerateVideo}
-                  disabled={isGeneratingVideo}
-                  className="w-full px-6 py-4 bg-white bg-opacity-20 hover:bg-opacity-30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold text-lg transition-all flex items-center justify-center gap-2"
-                >
-                  {isGeneratingVideo ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Generating Video...
-                    </>
-                  ) : (
-                    <>
-                      <Wand2 className="w-5 h-5" />
-                      🎬 Step 2: Generate Video
-                    </>
-                  )}
-                </button>
-                <p className="text-center text-sm mt-2 text-white text-opacity-80">
-                  ⏱️ This takes 3-5 minutes
-                </p>
-              </div>
-            )}
           </div>
         </div>
 
