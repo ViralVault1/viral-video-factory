@@ -6,6 +6,8 @@ export default async function handler(req, res) {
   const { prompt } = req.body;
 
   try {
+    console.log('Calling fal.ai with prompt:', prompt);
+    
     const response = await fetch('https://fal.run/fal-ai/fast-svd', {
       method: 'POST',
       headers: {
@@ -19,16 +21,29 @@ export default async function handler(req, res) {
     });
 
     const result = await response.json();
+    console.log('fal.ai response:', JSON.stringify(result, null, 2));
+
+    // Handle different response formats
+    const videoUrl = result.video?.url || result.output || result.data?.video?.url;
+
+    if (!videoUrl) {
+      console.error('No video URL in response:', result);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'No video URL in response',
+        debug: result
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      videoUrl: result.video?.url || result.output
+      videoUrl: videoUrl
     });
   } catch (error) {
     console.error('Video generation error:', error);
     return res.status(500).json({ 
       success: false, 
-      error: 'Failed to generate video' 
+      error: error.message
     });
   }
 }
