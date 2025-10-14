@@ -47,7 +47,8 @@ const VideoGeneratorPage: React.FC = () => {
     titles: []
   });
 
-  const VIDEO_WEBHOOK_URL = 'https://hook.eu2.make.com/pookemkmpmd4joku89ni436lsok6t7ev';
+  // No more webhooks - use our own API
+  const VIDEO_API_URL = '/api/generate-video';
 
   const handleFindIdeas = async () => {
     if (!ideaInput.trim()) {
@@ -171,6 +172,7 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
     }
     
     setIsGenerating(true);
+    const requestId = `video_${Date.now()}`;
     
     try {
       const response = await fetch(VIDEO_WEBHOOK_URL, {
@@ -182,30 +184,54 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
           prompt: script,
           visualPrompt: visualPrompt || `${presetStyle} style scene`,
           presetStyle: presetStyle,
-          requestId: `video_${Date.now()}`,
+          requestId: requestId,
           timestamp: new Date().toISOString()
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate video');
+        throw new Error('Failed to start video generation');
       }
 
-      const result = await response.json();
+      // Add placeholder video
+      const placeholderVideo: VideoResult = {
+        id: requestId,
+        status: 'processing',
+        createdAt: new Date().toISOString(),
+        script: script
+      };
+      setGeneratedVideos(prev => [placeholderVideo, ...prev]);
       
-      if (result.success && result.videoUrl) {
-        const newVideo: VideoResult = {
-          id: result.requestId || `video_${Date.now()}`,
-          videoUrl: result.videoUrl,
-          status: 'completed',
-          createdAt: new Date().toISOString(),
-          script: script
-        };
-        setGeneratedVideos(prev => [newVideo, ...prev]);
-        alert('✅ Video generated successfully!');
-      } else {
-        alert('🎬 Video is generating! This takes 3-5 minutes. Check back soon.');
-      }
+      alert('🎬 Video is generating! Will appear below when ready (2-3 minutes).');
+      
+      // Poll for completion every 15 seconds
+      const pollInterval = setInterval(async () => {
+        try {
+          const checkResponse = await fetch(VIDEO_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ checkStatus: true, requestId: requestId })
+          });
+          
+          const checkResult = await checkResponse.json();
+          
+          if (checkResult.videoUrl) {
+            clearInterval(pollInterval);
+            setGeneratedVideos(prev => 
+              prev.map(v => v.id === requestId 
+                ? { ...v, videoUrl: checkResult.videoUrl, status: 'completed' }
+                : v
+              )
+            );
+            alert('✅ Video ready!');
+          }
+        } catch (err) {
+          console.log('Still processing...');
+        }
+      }, 15000); // Check every 15 seconds
+      
+      // Stop polling after 5 minutes
+      setTimeout(() => clearInterval(pollInterval), 300000);
       
     } catch (error) {
       console.error('Video generation failed:', error);
