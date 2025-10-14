@@ -6,15 +6,14 @@ export default async function handler(req, res) {
   const { prompt } = req.body;
 
   try {
-    const response = await fetch('https://fal.run/fal-ai/minimax/video-01-live', {
+    const response = await fetch('https://fal.run/fal-ai/minimax/hailuo-02/text-to-video', {
       method: 'POST',
       headers: {
         'Authorization': `Key ${process.env.FAL_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: prompt,
-        duration: '10s'  // Options: '5s' or '10s'
+        prompt: prompt
       })
     });
 
