@@ -56,51 +56,26 @@ const VideoGeneratorPage: React.FC = () => {
     setIsFindingIdeas(true);
     setGeneratedIdeas([]);
 
-    setTimeout(() => {
-      const topic = ideaInput.charAt(0).toUpperCase() + ideaInput.slice(1);
-      
-      const templates = [
-        {
-          title: `${topic}: Expectation vs. REALITY (You Won't Believe This!)`,
-          description: `The truth about ${ideaInput} nobody tells you. This video exposes the hilarious gap between what you expect and what actually happens. From surprise challenges to unexpected moments, this is the real, unfiltered experience that will make you laugh and nod in recognition.`
-        },
-        {
-          title: `I Tried ${topic} for 30 Days... Here's What Happened`,
-          description: `An honest 30-day journey with ${ideaInput}. Watch the transformation, the struggles, the wins, and the surprising discoveries along the way. Real results, real reactions, no BS. This is what actually happens when you commit.`
-        },
-        {
-          title: `${topic} Mistakes Everyone Makes (Don't Do This!)`,
-          description: `Learn from these common ${ideaInput} mistakes before it's too late! This video reveals the top errors people make and how to avoid them. Save time, money, and frustration by knowing what NOT to do.`
-        },
-        {
-          title: `The ${topic} Secret Nobody Talks About`,
-          description: `There's one thing about ${ideaInput} that makes all the difference, but nobody seems to mention it. This video reveals the insider tip that changed everything. Once you know this, you'll never look at ${ideaInput} the same way.`
-        },
-        {
-          title: `${topic}: The First 24 Hours (Time-Lapse)`,
-          description: `Watch the incredible first day with ${ideaInput} compressed into one fascinating video. From the very first moment to the end of day one, see every important milestone, challenge, and heartwarming moment unfold.`
-        },
-        {
-          title: `Is ${topic} Worth It? Honest Review After 6 Months`,
-          description: `The brutally honest truth about ${ideaInput} after living with it for half a year. No fluff, no sponsorship - just real talk about the good, the bad, and whether you should actually do this.`
-        },
-        {
-          title: `${topic} Hacks That Actually Work (Tested!)`,
-          description: `Tried and tested ${ideaInput} life hacks that actually deliver results. Forget the clickbait - these are practical, proven techniques that make a real difference. Simple changes, major impact.`
-        },
-        {
-          title: `Why Your ${topic} Isn't Working (Fix This Now!)`,
-          description: `Struggling with ${ideaInput}? This video reveals the one critical mistake that's holding you back. Learn the simple fix that makes everything click into place. Game-changing advice you need to hear.`
-        }
-      ];
+    try {
+      const response = await fetch('/api/generate-ideas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: ideaInput })
+      });
 
-      // Randomly select 3 different ideas
-      const shuffled = templates.sort(() => 0.5 - Math.random());
-      const selected = shuffled.slice(0, 3);
-      
-      setGeneratedIdeas(selected);
+      const result = await response.json();
+
+      if (result.success && result.ideas) {
+        setGeneratedIdeas(result.ideas);
+      } else {
+        throw new Error('Failed to generate ideas');
+      }
+    } catch (error) {
+      console.error('Idea generation failed:', error);
+      alert('Failed to generate ideas. Please try again.');
+    } finally {
       setIsFindingIdeas(false);
-    }, 2000);
+    }
   };
 
   const handleAnalyzeUrl = async () => {
@@ -110,10 +85,27 @@ const VideoGeneratorPage: React.FC = () => {
     }
     
     setIsAnalyzing(true);
-    setTimeout(() => {
+    
+    try {
+      const response = await fetch('/api/analyze-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: youtubeUrl, type: 'url' })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.ideas) {
+        setGeneratedIdeas(result.ideas);
+        setYoutubeUrl('');
+      } else {
+        alert('Analysis complete! Check the generated ideas below.');
+      }
+    } catch (error) {
+      alert('Failed to analyze video. Please try again.');
+    } finally {
       setIsAnalyzing(false);
-      alert('Video analyzed! Key viral elements identified.');
-    }, 2000);
+    }
   };
 
   const handleAnalyzeTranscript = async () => {
@@ -123,10 +115,27 @@ const VideoGeneratorPage: React.FC = () => {
     }
     
     setIsAnalyzing(true);
-    setTimeout(() => {
+    
+    try {
+      const response = await fetch('/api/analyze-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: transcript, type: 'transcript' })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.ideas) {
+        setGeneratedIdeas(result.ideas);
+        setTranscript('');
+      } else {
+        alert('Analysis complete! Check the generated ideas below.');
+      }
+    } catch (error) {
+      alert('Failed to analyze transcript. Please try again.');
+    } finally {
       setIsAnalyzing(false);
-      alert('Transcript analyzed for viral patterns!');
-    }, 1500);
+    }
   };
 
   const handleViralOptimizer = () => {
