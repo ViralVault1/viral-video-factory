@@ -57,21 +57,48 @@ const VideoGeneratorPage: React.FC = () => {
     setGeneratedIdeas([]);
 
     setTimeout(() => {
-      const mockIdeas: VideoIdea[] = [
+      const topic = ideaInput.charAt(0).toUpperCase() + ideaInput.slice(1);
+      
+      const templates = [
         {
-          title: `${ideaInput.charAt(0).toUpperCase() + ideaInput.slice(1)}: Expectation vs. REALITY (My house is a disaster!)`,
-          description: `You think getting a new ${ideaInput} is all cuddles and cute naps? Think again! This video hilariously captures the unfiltered reality of bringing home a tiny furball, from chewed shoes to surprise potty breaks and zoomies at 3 AM. It's a relatable and funny ride for anyone who's survived ${ideaInput}hood or is contemplating it. Get ready for some honest, adorable chaos!`
+          title: `${topic}: Expectation vs. REALITY (You Won't Believe This!)`,
+          description: `The truth about ${ideaInput} nobody tells you. This video exposes the hilarious gap between what you expect and what actually happens. From surprise challenges to unexpected moments, this is the real, unfiltered experience that will make you laugh and nod in recognition.`
         },
         {
-          title: `Warning: Cuteness Overload! My New ${ideaInput.charAt(0).toUpperCase() + ideaInput.slice(1)}'s First Week Adventures`,
-          description: `Prepare for an explosion of cuteness! Follow our new ${ideaInput} through their first week at home, showcasing all their adorable 'firsts': first nap in their new bed, first wobbly walk, first tiny bark, and endless cuddles. This heartwarming compilation is designed to melt hearts and is perfect for a feel-good moment. You'll want to watch it on repeat!`
+          title: `I Tried ${topic} for 30 Days... Here's What Happened`,
+          description: `An honest 30-day journey with ${ideaInput}. Watch the transformation, the struggles, the wins, and the surprising discoveries along the way. Real results, real reactions, no BS. This is what actually happens when you commit.`
         },
         {
-          title: `${ideaInput.charAt(0).toUpperCase() + ideaInput.slice(1)} Crying At Night? This Sound Trick SAVED My Sleep! #${ideaInput.charAt(0).toUpperCase() + ideaInput.slice(1)}Hack`,
-          description: `Is your new ${ideaInput} keeping you up all night with their crying? You're not alone! This quick video reveals a simple, game-changing trick using a specific sound that helped our ${ideaInput} settle down in their crate and sleep through the night. It's a must-watch for any new ${ideaInput} parent desperate for some peace and quiet. Tried, tested, and works like a charm!`
+          title: `${topic} Mistakes Everyone Makes (Don't Do This!)`,
+          description: `Learn from these common ${ideaInput} mistakes before it's too late! This video reveals the top errors people make and how to avoid them. Save time, money, and frustration by knowing what NOT to do.`
+        },
+        {
+          title: `The ${topic} Secret Nobody Talks About`,
+          description: `There's one thing about ${ideaInput} that makes all the difference, but nobody seems to mention it. This video reveals the insider tip that changed everything. Once you know this, you'll never look at ${ideaInput} the same way.`
+        },
+        {
+          title: `${topic}: The First 24 Hours (Time-Lapse)`,
+          description: `Watch the incredible first day with ${ideaInput} compressed into one fascinating video. From the very first moment to the end of day one, see every important milestone, challenge, and heartwarming moment unfold.`
+        },
+        {
+          title: `Is ${topic} Worth It? Honest Review After 6 Months`,
+          description: `The brutally honest truth about ${ideaInput} after living with it for half a year. No fluff, no sponsorship - just real talk about the good, the bad, and whether you should actually do this.`
+        },
+        {
+          title: `${topic} Hacks That Actually Work (Tested!)`,
+          description: `Tried and tested ${ideaInput} life hacks that actually deliver results. Forget the clickbait - these are practical, proven techniques that make a real difference. Simple changes, major impact.`
+        },
+        {
+          title: `Why Your ${topic} Isn't Working (Fix This Now!)`,
+          description: `Struggling with ${ideaInput}? This video reveals the one critical mistake that's holding you back. Learn the simple fix that makes everything click into place. Game-changing advice you need to hear.`
         }
       ];
-      setGeneratedIdeas(mockIdeas);
+
+      // Randomly select 3 different ideas
+      const shuffled = templates.sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, 3);
+      
+      setGeneratedIdeas(selected);
       setIsFindingIdeas(false);
     }, 2000);
   };
@@ -182,11 +209,12 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate video');
-      }
-
       const result = await response.json();
+      console.log('API response:', result);
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate video');
+      }
       
       if (result.success && result.videoUrl) {
         const newVideo: VideoResult = {
