@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Upload, Trash2, Save } from 'lucide-react';
+import { Upload, Trash2, Save, Play, Download } from 'lucide-react';
 
 interface AdContent {
   headline: string;
@@ -9,15 +9,11 @@ interface AdContent {
   keyFeatures: string[];
 }
 
-interface SavedAd {
+interface VideoResult {
   id: string;
-  product_image_url: string;
-  headline: string;
-  script: string;
-  call_to_action: string;
-  target_audience: string;
-  key_features: string[];
-  created_at: string;
+  videoUrl: string;
+  status: 'completed';
+  createdAt: string;
 }
 
 export const ProductAdStudioPage: React.FC = () => {
@@ -25,8 +21,10 @@ export const ProductAdStudioPage: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [error, setError] = useState('');
   const [adContent, setAdContent] = useState<AdContent | null>(null);
+  const [generatedVideos, setGeneratedVideos] = useState<VideoResult[]>([]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
