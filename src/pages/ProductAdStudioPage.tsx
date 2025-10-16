@@ -1,8 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { toast } from 'react-hot-toast';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabaseClient';
-import { usageService } from '../services/usageService';
+import { Upload, Trash2, Save } from 'lucide-react';
 
 interface AdContent {
   headline: string;
@@ -24,59 +21,12 @@ interface SavedAd {
 }
 
 export const ProductAdStudioPage: React.FC = () => {
-  const { user } = useAuth();
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [adContent, setAdContent] = useState<AdContent | null>(null);
-  const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
-  const [loadingSavedAds, setLoadingSavedAds] = useState(true);
-
-  useEffect(() => {
-    if (user) {
-      loadSavedAds();
-    }
-  }, [user]);
-
-  const loadSavedAds = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('product_ads')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setSavedAds(data || []);
-    } catch (error) {
-      console.error('Error loading saved ads:', error);
-    } finally {
-      setLoadingSavedAds(false);
-    }
-  };
-
-  const deleteSavedAd = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('product_ads')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      
-      setSavedAds(savedAds.filter(ad => ad.id !== id));
-      toast.success('Ad campaign deleted');
-    } catch (error) {
-      console.error('Delete error:', error);
-      toast.error('Failed to delete ad campaign');
-    }
-  };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -116,13 +66,11 @@ export const ProductAdStudioPage: React.FC = () => {
     }
 
     setError('');
-    setIsUploading(true);
 
     const reader = new FileReader();
     reader.onload = (e) => {
       setImagePreview(e.target?.result as string);
       setUploadedImage(file);
-      setIsUploading(false);
     };
     reader.readAsDataURL(file);
   };
@@ -150,32 +98,6 @@ export const ProductAdStudioPage: React.FC = () => {
   const generateAd = async () => {
     if (!uploadedImage) {
       setError('Please upload a product image first');
-      return;
-    }
-
-    if (!user) {
-      toast.error('Please log in to generate product ads');
-      return;
-    }
-
-    // CHECK USAGE LIMIT
-    try {
-      const userPlan = (user as any).plan || 'free';
-      const limitCheck = await usageService.checkLimit(user.id, 'productAds', userPlan);
-      
-      if (!limitCheck.allowed) {
-        toast.error(`You've reached your limit of ${limitCheck.limit} product ads this month.`);
-        const upgrade = window.confirm(
-          `Upgrade to Creator for unlimited product ads?\n\nCurrent usage: ${limitCheck.current}/${limitCheck.limit}\n\nClick OK to view pricing.`
-        );
-        if (upgrade) {
-          window.location.href = '/pricing';
-        }
-        return;
-      }
-    } catch (error) {
-      console.error('Error checking usage limit:', error);
-      toast.error('Error checking usage limits');
       return;
     }
 
@@ -208,15 +130,10 @@ export const ProductAdStudioPage: React.FC = () => {
 
         const content: AdContent = JSON.parse(jsonMatch[0]);
         setAdContent(content);
-        
-        // INCREMENT USAGE AFTER SUCCESS
-        await usageService.incrementUsage(user.id, 'productAds');
-        toast.success('Ad content generated successfully!');
-        setIsGenerating(false);
+        alert('Ad content generated successfully!');
       };
       
       reader.onerror = () => {
-        setIsGenerating(false);
         throw new Error('Failed to read image');
       };
       
@@ -224,128 +141,168 @@ export const ProductAdStudioPage: React.FC = () => {
     } catch (error: any) {
       console.error('Ad generation error:', error);
       setError(error.message || 'Failed to generate ad. Please try again.');
-      toast.error('Failed to generate ad content');
+      alert('Failed to generate ad content');
+    } finally {
       setIsGenerating(false);
     }
   };
 
-  const saveAd = async () => {
-    if (!adContent || !user) {
-      toast.error('Please log in to save ad campaigns');
-      return;
-    }
-
-    setIsSaving(true);
-
-    try {
-      const { error } = await supabase
-        .from('product_ads')
-        .insert({
-          user_id: user.id,
-          product_image_url: imagePreview,
-          headline: adContent.headline,
-          script: adContent.script,
-          call_to_action: adContent.callToAction,
-          target_audience: adContent.targetAudience,
-          key_features: adContent.keyFeatures
-        });
-
-      if (error) throw error;
-      toast.success('Ad campaign saved successfully!');
-      loadSavedAds();
-    } catch (error: any) {
-      console.error('Save error:', error);
-      toast.error('Failed to save ad campaign');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   return (
-  <div className="min-h-screen bg-gray-900 text-white p-6">
-    <div className="max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Product Ad Studio</h1>
-      
-      {/* Upload Section */}
-      <div className="bg-gray-800 rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Upload Product Image</h2>
-        
-        {!imagePreview ? (
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={handleBrowseClick}
-            className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-              isDragOver ? 'border-purple-500 bg-purple-900/20' : 'border-gray-600 hover:border-gray-500'
-            }`}
-          >
-            <p className="text-gray-400">Drag & drop product image or click to browse</p>
-          </div>
-        ) : (
-          <div className="relative">
-            <img src={imagePreview} alt="Product" className="max-w-md mx-auto rounded-lg" />
-            <button
-              onClick={removeImage}
-              className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
-            >
-              Remove
-            </button>
-          </div>
-        )}
-        
-        {error && <p className="text-red-500 mt-2">{error}</p>}
-        
-        {imagePreview && !adContent && (
-          <button
-            onClick={generateAd}
-            disabled={isGenerating}
-            className="mt-4 bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg font-semibold disabled:opacity-50"
-          >
-            {isGenerating ? 'Generating...' : 'Generate Ad Content'}
-          </button>
-        )}
-      </div>
-
-      {/* Generated Ad Content */}
-      {adContent && (
-        <div className="bg-gray-800 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Generated Ad Content</h2>
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold">Headline:</h3>
-              <p>{adContent.headline}</p>
-            </div>
-            <div>
-              <h3 className="font-semibold">Script:</h3>
-              <p>{adContent.script}</p>
-            </div>
-            <div>
-              <h3 className="font-semibold">Call to Action:</h3>
-              <p>{adContent.callToAction}</p>
-            </div>
-            <div>
-              <h3 className="font-semibold">Target Audience:</h3>
-              <p>{adContent.targetAudience}</p>
-            </div>
-            <div>
-              <h3 className="font-semibold">Key Features:</h3>
-              <ul className="list-disc list-inside">
-                {adContent.keyFeatures.map((feature, i) => (
-                  <li key={i}>{feature}</li>
-                ))}
-              </ul>
-            </div>
-            <button
-              onClick={saveAd}
-              disabled={isSaving}
-              className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-semibold disabled:opacity-50"
-            >
-              {isSaving ? 'Saving...' : 'Save Campaign'}
-            </button>
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="text-center py-8 border-b border-gray-700">
+        <div className="flex justify-center mb-4">
+          <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+            <Upload className="w-6 h-6 text-white" />
           </div>
         </div>
-      )}
+        <h1 className="text-4xl font-bold mb-2">Product Ad Studio</h1>
+        <p className="text-gray-400 max-w-2xl mx-auto">
+          Upload your product image and let AI generate compelling ad copy instantly
+        </p>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Upload Section */}
+          <div className="space-y-6">
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">Upload Product Image</h2>
+              
+              {!imagePreview ? (
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={handleBrowseClick}
+                  className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+                    isDragOver ? 'border-purple-500 bg-purple-900/20' : 'border-gray-600 hover:border-gray-500'
+                  }`}
+                >
+                  <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-400 mb-2">Drag & drop product image</p>
+                  <p className="text-sm text-gray-500">or click to browse</p>
+                  <p className="text-xs text-gray-600 mt-2">JPG, PNG, GIF, WebP (max 10MB)</p>
+                </div>
+              ) : (
+                <div className="relative">
+                  <img 
+                    src={imagePreview} 
+                    alt="Product" 
+                    className="w-full rounded-lg"
+                  />
+                  <button
+                    onClick={removeImage}
+                    className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 p-2 rounded-full"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              
+              {error && (
+                <div className="mt-4 p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
+                  {error}
+                </div>
+              )}
+              
+              {imagePreview && !adContent && (
+                <button
+                  onClick={generateAd}
+                  disabled={isGenerating}
+                  className="mt-4 w-full bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isGenerating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Generating Ad Content...
+                    </>
+                  ) : (
+                    '✨ Generate Ad Content'
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Generated Content Section */}
+          <div className="space-y-6">
+            {adContent ? (
+              <div className="bg-gray-800 rounded-lg p-6">
+                <h2 className="text-xl font-semibold mb-4">Generated Ad Content</h2>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-400 mb-1">Headline</h3>
+                    <p className="text-lg font-semibold text-white">{adContent.headline}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-400 mb-1">Ad Script</h3>
+                    <p className="text-gray-300">{adContent.script}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-400 mb-1">Call to Action</h3>
+                    <p className="text-green-400 font-semibold">{adContent.callToAction}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-400 mb-1">Target Audience</h3>
+                    <p className="text-gray-300">{adContent.targetAudience}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Key Features</h3>
+                    <ul className="space-y-1">
+                      {adContent.keyFeatures.map((feature, i) => (
+                        <li key={i} className="text-gray-300 flex items-start">
+                          <span className="text-purple-500 mr-2">•</span>
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          `Headline: ${adContent.headline}\n\nScript: ${adContent.script}\n\nCTA: ${adContent.callToAction}\n\nTarget: ${adContent.targetAudience}\n\nFeatures:\n${adContent.keyFeatures.map(f => `• ${f}`).join('\n')}`
+                        );
+                        alert('Content copied to clipboard!');
+                      }}
+                      className="flex-1 bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium"
+                    >
+                      📋 Copy All
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAdContent(null);
+                        removeImage();
+                      }}
+                      className="flex-1 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium"
+                    >
+                      ✨ Generate New
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-800 rounded-lg p-6">
+                <div className="text-center py-12">
+                  <Upload className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-400 mb-2">No content generated yet</h3>
+                  <p className="text-gray-500">
+                    Upload a product image to get started
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+export default ProductAdStudioPage;
