@@ -262,9 +262,90 @@ export const ProductAdStudioPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Rest of your JSX remains exactly the same */}
-      {/* I'm not repeating it all since only the generateAd function changed */}
+  <div className="min-h-screen bg-gray-900 text-white p-6">
+    <div className="max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">Product Ad Studio</h1>
+      
+      {/* Upload Section */}
+      <div className="bg-gray-800 rounded-lg p-6 mb-6">
+        <h2 className="text-xl font-semibold mb-4">Upload Product Image</h2>
+        
+        {!imagePreview ? (
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={handleBrowseClick}
+            className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+              isDragOver ? 'border-purple-500 bg-purple-900/20' : 'border-gray-600 hover:border-gray-500'
+            }`}
+          >
+            <p className="text-gray-400">Drag & drop product image or click to browse</p>
+          </div>
+        ) : (
+          <div className="relative">
+            <img src={imagePreview} alt="Product" className="max-w-md mx-auto rounded-lg" />
+            <button
+              onClick={removeImage}
+              className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+        
+        {error && <p className="text-red-500 mt-2">{error}</p>}
+        
+        {imagePreview && !adContent && (
+          <button
+            onClick={generateAd}
+            disabled={isGenerating}
+            className="mt-4 bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg font-semibold disabled:opacity-50"
+          >
+            {isGenerating ? 'Generating...' : 'Generate Ad Content'}
+          </button>
+        )}
+      </div>
+
+      {/* Generated Ad Content */}
+      {adContent && (
+        <div className="bg-gray-800 rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">Generated Ad Content</h2>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold">Headline:</h3>
+              <p>{adContent.headline}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold">Script:</h3>
+              <p>{adContent.script}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold">Call to Action:</h3>
+              <p>{adContent.callToAction}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold">Target Audience:</h3>
+              <p>{adContent.targetAudience}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold">Key Features:</h3>
+              <ul className="list-disc list-inside">
+                {adContent.keyFeatures.map((feature, i) => (
+                  <li key={i}>{feature}</li>
+                ))}
+              </ul>
+            </div>
+            <button
+              onClick={saveAd}
+              disabled={isSaving}
+              className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-semibold disabled:opacity-50"
+            >
+              {isSaving ? 'Saving...' : 'Save Campaign'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-  );
-};
+  </div>
+);
