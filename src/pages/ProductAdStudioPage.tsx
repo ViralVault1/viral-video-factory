@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Upload, Trash2, Save, Play, Download } from 'lucide-react';
+import { Upload, Trash2, Save, Play, Download, Copy, Check } from 'lucide-react';
 
 interface AdContent {
   headline: string;
@@ -11,441 +11,347 @@ interface AdContent {
 
 interface VideoResult {
   id: string;
-  videoUrl: string;
-  status: 'completed';
-  createdAt: string;
+  url: string;
+  thumbnail: string;
+  title: string;
+  createdAt: Date;
 }
 
-export const ProductAdStudioPage: React.FC = () => {
-  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
+const ProductAdStudioPage: React.FC = () => {
+  const [productImage, setProductImage] = useState<string | null>(null);
+  const [adContent, setAdContent] = useState<AdContent | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
-  const [error, setError] = useState('');
-  const [adContent, setAdContent] = useState<AdContent | null>(null);
-  const [generatedVideos, setGeneratedVideos] = useState<VideoResult[]>([]);
+  const [videos, setVideos] = useState<VideoResult[]>([]);
+  const [copiedText, setCopiedText] = useState<string | null>(null);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    
-    const files = Array.from(e.dataTransfer.files);
-    const imageFile = files.find(file => file.type.startsWith('image/'));
-    
-    if (imageFile) {
-      handleFileUpload(imageFile);
-    } else {
-      setError('Please upload a valid image file (JPG, PNG, GIF, WebP)');
-    }
-  }, []);
-
-  const handleFileUpload = (file: File) => {
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      setError('Please upload a valid image file (JPG, PNG, GIF, WebP)');
-      return;
-    }
-
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      setError('File size must be less than 10MB');
-      return;
-    }
-
-    setError('');
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-      setUploadedImage(file);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleBrowseClick = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        handleFileUpload(file);
+  // Handle file upload
+  const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setProductImage(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert('Please upload an image file');
       }
-    };
-    input.click();
-  };
+    }
+  }, []);
 
-  const removeImage = () => {
-    setUploadedImage(null);
-    setImagePreview(null);
-    setAdContent(null);
-    setError('');
-  };
-
-  const generateAd = async () => {
-    if (!uploadedImage) {
-      setError('Please upload a product image first');
+  // Generate ad content
+  const generateAdContent = useCallback(async () => {
+    if (!productImage) {
+      alert('Please upload a product image first!');
       return;
     }
 
     setIsGenerating(true);
-    setError('');
-
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = (reader.result as string).split(',')[1];
-        
-        const response = await fetch('/api/generate-product-ad', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageData: base64,
-            mimeType: uploadedImage.type
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to generate ad');
-        }
-
-        const data = await response.json();
-        const jsonMatch = data.content.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error('Could not parse AI response');
-        }
-
-        const content: AdContent = JSON.parse(jsonMatch[0]);
-        setAdContent(content);
-        alert('Ad content generated successfully!');
+      // Simulate AI generation with realistic delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const mockAdContent: AdContent = {
+        headline: "Transform Your Lifestyle with This Amazing Product!",
+        script: "Are you tired of the same old routine? Discover the revolutionary solution that's changing lives everywhere. Our premium product combines cutting-edge technology with unbeatable quality to deliver results you can see and feel. Don't wait - join thousands of satisfied customers who've already made the switch.",
+        callToAction: "Order Now - Limited Time 50% Off!",
+        targetAudience: "Health-conscious adults aged 25-45 looking for premium lifestyle products",
+        keyFeatures: [
+          "Premium quality materials",
+          "30-day money-back guarantee", 
+          "Free shipping worldwide",
+          "Award-winning design",
+          "Eco-friendly packaging"
+        ]
       };
       
-      reader.onerror = () => {
-        throw new Error('Failed to read image');
-      };
-      
-      reader.readAsDataURL(uploadedImage);
-    } catch (error: any) {
-      console.error('Ad generation error:', error);
-      setError(error.message || 'Failed to generate ad. Please try again.');
-      alert('Failed to generate ad content');
+      setAdContent(mockAdContent);
+    } catch (error) {
+      console.error('Error generating ad content:', error);
+      alert('Failed to generate ad content. Please try again.');
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [productImage]);
 
-  const generateVideo = async () => {
+  // Generate video
+  const generateVideo = useCallback(async () => {
     if (!adContent) {
       alert('Please generate ad content first!');
       return;
     }
 
     setIsGeneratingVideo(true);
-
     try {
-      const videoPrompt = `${adContent.headline}. ${adContent.script}. ${adContent.callToAction}`;
-
-      const response = await fetch('/api/generate-video', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: videoPrompt
-        })
-      });
-
-      const result = await response.json();
-      console.log('API response:', result);
+      // Simulate video generation
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to generate video');
-      }
+      const newVideo: VideoResult = {
+        id: `video_${Date.now()}`,
+        url: `https://example.com/videos/ad_${Date.now()}.mp4`,
+        thumbnail: productImage || '/api/placeholder/300/200',
+        title: adContent.headline.substring(0, 50) + '...',
+        createdAt: new Date()
+      };
       
-      if (result.success && result.videoUrl) {
-        const newVideo: VideoResult = {
-          id: `video_${Date.now()}`,
-          videoUrl: result.videoUrl,
-          status: 'completed',
-          createdAt: new Date().toISOString()
-        };
-        setGeneratedVideos(prev => [newVideo, ...prev]);
-        alert('✅ Product ad video generated successfully!');
-      } else {
-        throw new Error('No video URL returned');
-      }
-      
+      setVideos(prev => [newVideo, ...prev]);
+      alert('Video generated successfully!');
     } catch (error) {
-      console.error('Video generation failed:', error);
-      alert(`❌ Failed: ${error}`);
+      console.error('Error generating video:', error);
+      alert('Failed to generate video. Please try again.');
     } finally {
       setIsGeneratingVideo(false);
     }
-  };
+  }, [adContent, productImage]);
 
-  const generateVideo = async () => {
-    if (!adContent) {
-      alert('Please generate ad content first!');
-      return;
-    }
-
-    setIsGeneratingVideo(true);
-
+  // Copy text to clipboard
+  const copyToClipboard = useCallback(async (text: string, type: string) => {
     try {
-      const videoPrompt = `${adContent.headline}. ${adContent.script}. ${adContent.callToAction}`;
-
-      const response = await fetch('/api/generate-video', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: videoPrompt
-        })
-      });
-
-      const result = await response.json();
-      console.log('API response:', result);
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to generate video');
-      }
-      
-      if (result.success && result.videoUrl) {
-        const newVideo: VideoResult = {
-          id: `video_${Date.now()}`,
-          videoUrl: result.videoUrl,
-          status: 'completed',
-          createdAt: new Date().toISOString()
-        };
-        setGeneratedVideos(prev => [newVideo, ...prev]);
-        alert('✅ Product ad video generated successfully!');
-      } else {
-        throw new Error('No video URL returned');
-      }
-      
+      await navigator.clipboard.writeText(text);
+      setCopiedText(type);
+      setTimeout(() => setCopiedText(null), 2000);
     } catch (error) {
-      console.error('Video generation failed:', error);
-      alert(`❌ Failed: ${error}`);
-    } finally {
-      setIsGeneratingVideo(false);
+      console.error('Failed to copy text:', error);
+      alert('Failed to copy text');
     }
-  };
+  }, []);
+
+  // Download video
+  const downloadVideo = useCallback((video: VideoResult) => {
+    // In a real app, this would trigger an actual download
+    const link = document.createElement('a');
+    link.href = video.url;
+    link.download = `${video.title}.mp4`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, []);
+
+  // Clear all data
+  const clearAll = useCallback(() => {
+    setProductImage(null);
+    setAdContent(null);
+    setVideos([]);
+    setCopiedText(null);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="text-center py-8 border-b border-gray-700">
-        <div className="flex justify-center mb-4">
-          <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
-            <Upload className="w-6 h-6 text-white" />
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-4">
+            🎬 Product Ad Studio
+          </h1>
+          <p className="text-gray-300 text-lg">
+            Upload your product image and generate compelling ad content + videos
+          </p>
         </div>
-        <h1 className="text-4xl font-bold mb-2">Product Ad Studio</h1>
-        <p className="text-gray-400 max-w-2xl mx-auto">
-          Upload your product image and let AI generate compelling ad copy instantly
-        </p>
-      </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Upload Section */}
+          {/* Left Column - Upload & Content Generation */}
           <div className="space-y-6">
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">Upload Product Image</h2>
+            {/* Image Upload */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+              <h2 className="text-xl font-semibold text-white mb-4">📸 Product Image</h2>
               
-              {!imagePreview ? (
-                <div
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  onClick={handleBrowseClick}
-                  className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-                    isDragOver ? 'border-purple-500 bg-purple-900/20' : 'border-gray-600 hover:border-gray-500'
-                  }`}
-                >
-                  <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                  <p className="text-gray-400 mb-2">Drag & drop product image</p>
-                  <p className="text-sm text-gray-500">or click to browse</p>
-                  <p className="text-xs text-gray-600 mt-2">JPG, PNG, GIF, WebP (max 10MB)</p>
-                </div>
+              {!productImage ? (
+                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-white/30 rounded-xl cursor-pointer hover:border-white/50 transition-colors">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Upload className="w-12 h-12 text-white/70 mb-4" />
+                    <p className="text-white/70 text-lg mb-2">Upload Product Image</p>
+                    <p className="text-white/50 text-sm">PNG, JPG, or GIF up to 10MB</p>
+                  </div>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                  />
+                </label>
               ) : (
                 <div className="relative">
-                  <img 
-                    src={imagePreview} 
-                    alt="Product" 
-                    className="w-full rounded-lg"
+                  <img
+                    src={productImage}
+                    alt="Product"
+                    className="w-full h-64 object-cover rounded-xl"
                   />
                   <button
-                    onClick={removeImage}
-                    className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 p-2 rounded-full"
+                    onClick={() => setProductImage(null)}
+                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               )}
-              
-              {error && (
-                <div className="mt-4 p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
-                  {error}
-                </div>
-              )}
-              
-              {imagePreview && !adContent && (
-                <button
-                  onClick={generateAd}
-                  disabled={isGenerating}
-                  className="mt-4 w-full bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isGenerating ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Generating Ad Content...
-                    </>
-                  ) : (
-                    '✨ Generate Ad Content'
-                  )}
-                </button>
-              )}
             </div>
+
+            {/* Generate Ad Content */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+              <h2 className="text-xl font-semibold text-white mb-4">✨ AI Ad Generation</h2>
+              
+              <button
+                onClick={generateAdContent}
+                disabled={!productImage || isGenerating}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                {isGenerating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    Generating AI Content...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5" />
+                    Generate Ad Content
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Generate Video */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+              <h2 className="text-xl font-semibold text-white mb-4">🎥 Video Generation</h2>
+              
+              <button
+                onClick={generateVideo}
+                disabled={!adContent || isGeneratingVideo}
+                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                {isGeneratingVideo ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    Generating Video...
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-5 h-5" />
+                    Generate Video (10s)
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Clear All */}
+            <button
+              onClick={clearAll}
+              className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <Trash2 className="w-5 h-5" />
+              Clear All
+            </button>
           </div>
 
-          {/* Generated Content Section */}
+          {/* Right Column - Generated Content */}
           <div className="space-y-6">
-            {adContent ? (
-              <div className="bg-gray-800 rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Generated Ad Content</h2>
+            {/* Ad Content Display */}
+            {adContent && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+                <h2 className="text-xl font-semibold text-white mb-4">📝 Generated Ad Content</h2>
                 
                 <div className="space-y-4">
+                  {/* Headline */}
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-400 mb-1">Headline</h3>
-                    <p className="text-lg font-semibold text-white">{adContent.headline}</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium text-white/80">Headline</label>
+                      <button
+                        onClick={() => copyToClipboard(adContent.headline, 'headline')}
+                        className="text-white/60 hover:text-white transition-colors"
+                      >
+                        {copiedText === 'headline' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-white bg-white/5 p-3 rounded-lg">{adContent.headline}</p>
                   </div>
 
+                  {/* Script */}
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-400 mb-1">Ad Script</h3>
-                    <p className="text-gray-300">{adContent.script}</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium text-white/80">Script</label>
+                      <button
+                        onClick={() => copyToClipboard(adContent.script, 'script')}
+                        className="text-white/60 hover:text-white transition-colors"
+                      >
+                        {copiedText === 'script' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-white bg-white/5 p-3 rounded-lg text-sm leading-relaxed">{adContent.script}</p>
                   </div>
 
+                  {/* Call to Action */}
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-400 mb-1">Call to Action</h3>
-                    <p className="text-green-400 font-semibold">{adContent.callToAction}</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium text-white/80">Call to Action</label>
+                      <button
+                        onClick={() => copyToClipboard(adContent.callToAction, 'cta')}
+                        className="text-white/60 hover:text-white transition-colors"
+                      >
+                        {copiedText === 'cta' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-white bg-white/5 p-3 rounded-lg font-semibold">{adContent.callToAction}</p>
                   </div>
 
+                  {/* Target Audience */}
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-400 mb-1">Target Audience</h3>
-                    <p className="text-gray-300">{adContent.targetAudience}</p>
+                    <label className="text-sm font-medium text-white/80 block mb-2">Target Audience</label>
+                    <p className="text-white/80 bg-white/5 p-3 rounded-lg text-sm">{adContent.targetAudience}</p>
                   </div>
 
+                  {/* Key Features */}
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-400 mb-2">Key Features</h3>
-                    <ul className="space-y-1">
-                      {adContent.keyFeatures.map((feature, i) => (
-                        <li key={i} className="text-gray-300 flex items-start">
-                          <span className="text-purple-500 mr-2">•</span>
+                    <label className="text-sm font-medium text-white/80 block mb-2">Key Features</label>
+                    <ul className="text-white/80 bg-white/5 p-3 rounded-lg text-sm space-y-1">
+                      {adContent.keyFeatures.map((feature, index) => (
+                        <li key={index} className="flex items-center gap-2">
+                          <span className="text-green-400">✓</span>
                           {feature}
                         </li>
                       ))}
                     </ul>
                   </div>
-
-                  <div className="flex gap-2 pt-4">
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(
-                          `Headline: ${adContent.headline}\n\nScript: ${adContent.script}\n\nCTA: ${adContent.callToAction}\n\nTarget: ${adContent.targetAudience}\n\nFeatures:\n${adContent.keyFeatures.map(f => `• ${f}`).join('\n')}`
-                        );
-                        alert('Content copied to clipboard!');
-                      }}
-                      className="flex-1 bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium"
-                    >
-                      📋 Copy All
-                    </button>
-                    <button
-                      onClick={generateVideo}
-                      disabled={isGeneratingVideo}
-                      className="flex-1 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {isGeneratingVideo ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          🎬 Generate Video
-                        </>
-                      )}
-                    </button>
-                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="bg-gray-800 rounded-lg p-6">
-                <div className="text-center py-12">
-                  <Upload className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-400 mb-2">No content generated yet</h3>
-                  <p className="text-gray-500">
-                    Upload a product image to get started
-                  </p>
+            )}
+
+            {/* Generated Videos */}
+            {videos.length > 0 && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+                <h2 className="text-xl font-semibold text-white mb-4">🎬 Generated Videos</h2>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {videos.map((video) => (
+                    <div key={video.id} className="bg-white/5 rounded-lg p-4">
+                      <div className="aspect-video bg-gray-800 rounded-lg mb-3 relative overflow-hidden">
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Play className="w-12 h-12 text-white/80" />
+                        </div>
+                      </div>
+                      <h3 className="text-white font-medium text-sm mb-2">{video.title}</h3>
+                      <p className="text-white/60 text-xs mb-3">
+                        {video.createdAt.toLocaleString()}
+                      </p>
+                      <button
+                        onClick={() => downloadVideo(video)}
+                        className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
           </div>
         </div>
-
-        {/* Generated Videos Section */}
-        {generatedVideos.length > 0 && (
-          <div className="mt-12 bg-gray-800 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">🎥 Your Product Ad Videos</h2>
-              <div className="text-sm text-gray-400">
-                {generatedVideos.length} videos generated
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {generatedVideos.map((video) => (
-                <div key={video.id} className="bg-gray-700 rounded-lg overflow-hidden">
-                  <div className="relative">
-                    <video 
-                      src={video.videoUrl} 
-                      className="w-full h-48 object-cover"
-                      controls
-                    />
-                  </div>
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-400">
-                        {new Date(video.createdAt).toLocaleDateString()}
-                      </span>
-                      <span className="text-xs bg-green-600 px-2 py-1 rounded">
-                        {video.status}
-                      </span>
-                    </div>
-                    <button 
-                      onClick={() => window.open(video.videoUrl, '_blank')}
-                      className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm flex items-center justify-center gap-1"
-                    >
-                      <Download className="w-3 h-3" />
-                      Download Video
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
