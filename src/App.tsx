@@ -15,7 +15,7 @@ import { SocialStudioPage } from './pages/SocialStudioPage';
 import { ImageGeneratorPage } from './pages/ImageGeneratorPage';
 import ImageRemixStudioPage from './pages/ImageRemixStudioPage';
 import { GifGeneratorPage } from './pages/GifGeneratorPage';
-import { ProductAdStudioPage } from './pages/ProductAdStudioPage';
+import ProductAdStudioPage from './pages/ProductAdStudioPage';
 import { ProductHuntPage } from './pages/ProductHuntPage';
 import { PricingPage } from './pages/PricingPage';
 import { LicenseRedemptionPage } from './pages/LicenseRedemptionPage';
