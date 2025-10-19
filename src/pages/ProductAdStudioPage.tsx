@@ -16,7 +16,7 @@ interface VideoResult {
   createdAt: string;
 }
 
-export const ProductAdStudioPage: React.FC = () => {
+const ProductAdStudioPage: React.FC = () => {
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
