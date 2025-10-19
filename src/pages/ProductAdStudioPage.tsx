@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Upload, Trash2, Save, Play, Download, Copy, Check } from 'lucide-react';
 
 interface AdContent {
@@ -89,7 +89,7 @@ const ProductAdStudioPage: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       // Create a mock video URL - in a real app this would be from your video generation API
-      const mockVideoUrl = createMockVideoUrl();
+      const mockVideoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
       
       const newVideo: VideoResult = {
         id: `video_${Date.now()}`,
@@ -100,7 +100,7 @@ const ProductAdStudioPage: React.FC = () => {
       };
       
       setVideos(prev => [newVideo, ...prev]);
-      alert('🎬 Video generated successfully! Click play to preview.');
+      alert('Video generated successfully! Click play to preview.');
     } catch (error) {
       console.error('Error generating video:', error);
       alert('Failed to generate video. Please try again.');
@@ -108,12 +108,6 @@ const ProductAdStudioPage: React.FC = () => {
       setIsGeneratingVideo(false);
     }
   }, [adContent, productImage]);
-
-  // Create a mock video URL (Big Buck Bunny sample video for demo)
-  const createMockVideoUrl = (): string => {
-    // Using a sample video for demonstration - in real app this would be your generated video
-    return 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-  };
 
   // Copy text to clipboard
   const copyToClipboard = useCallback(async (text: string, type: string) => {
@@ -128,14 +122,23 @@ const ProductAdStudioPage: React.FC = () => {
   }, []);
 
   // Download video
-  const downloadVideo = useCallback((video: VideoResult) => {
+  const downloadVideo = useCallback((videoData: VideoResult) => {
     // In a real app, this would trigger an actual download
     const link = document.createElement('a');
-    link.href = video.url;
-    link.download = `${video.title}.mp4`;
+    link.href = videoData.url;
+    link.download = `${videoData.title}.mp4`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }, []);
+
+  // Play video
+  const playVideo = useCallback((videoData: VideoResult) => {
+    const videoElement = document.querySelector(`video[src="${videoData.url}"]`) as HTMLVideoElement;
+    if (videoElement) {
+      videoElement.currentTime = 0;
+      videoElement.play();
+    }
   }, []);
 
   // Clear all data
@@ -152,7 +155,7 @@ const ProductAdStudioPage: React.FC = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-4">
-            🎬 Product Ad Studio
+            Product Ad Studio
           </h1>
           <p className="text-gray-300 text-lg">
             Upload your product image and generate compelling ad content + videos
@@ -164,7 +167,7 @@ const ProductAdStudioPage: React.FC = () => {
           <div className="space-y-6">
             {/* Image Upload */}
             <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
-              <h2 className="text-xl font-semibold text-white mb-4">📸 Product Image</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">Product Image</h2>
               
               {!productImage ? (
                 <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-white/30 rounded-xl cursor-pointer hover:border-white/50 transition-colors">
@@ -199,7 +202,7 @@ const ProductAdStudioPage: React.FC = () => {
 
             {/* Generate Ad Content */}
             <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
-              <h2 className="text-xl font-semibold text-white mb-4">✨ AI Ad Generation</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">AI Ad Generation</h2>
               
               <button
                 onClick={generateAdContent}
@@ -222,7 +225,7 @@ const ProductAdStudioPage: React.FC = () => {
 
             {/* Generate Video */}
             <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
-              <h2 className="text-xl font-semibold text-white mb-4">🎥 Video Generation</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">Video Generation</h2>
               
               <button
                 onClick={generateVideo}
@@ -258,7 +261,7 @@ const ProductAdStudioPage: React.FC = () => {
             {/* Ad Content Display */}
             {adContent && (
               <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
-                <h2 className="text-xl font-semibold text-white mb-4">📝 Generated Ad Content</h2>
+                <h2 className="text-xl font-semibold text-white mb-4">Generated Ad Content</h2>
                 
                 <div className="space-y-4">
                   {/* Headline */}
@@ -328,42 +331,36 @@ const ProductAdStudioPage: React.FC = () => {
             {/* Generated Videos */}
             {videos.length > 0 && (
               <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
-                <h2 className="text-xl font-semibold text-white mb-4">🎬 Generated Videos</h2>
+                <h2 className="text-xl font-semibold text-white mb-4">Generated Videos</h2>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {videos.map((video) => (
-                    <div key={video.id} className="bg-white/5 rounded-lg p-4">
+                  {videos.map((videoData) => (
+                    <div key={videoData.id} className="bg-white/5 rounded-lg p-4">
                       <div className="aspect-video bg-gray-800 rounded-lg mb-3 relative overflow-hidden">
                         <video
                           className="w-full h-full object-cover rounded-lg"
-                          poster={video.thumbnail}
+                          poster={videoData.thumbnail}
                           controls
                           preload="metadata"
                         >
-                          <source src={video.url} type="video/mp4" />
+                          <source src={videoData.url} type="video/mp4" />
                           Your browser does not support the video tag.
                         </video>
                       </div>
-                      <h3 className="text-white font-medium text-sm mb-2">{video.title}</h3>
+                      <h3 className="text-white font-medium text-sm mb-2">{videoData.title}</h3>
                       <p className="text-white/60 text-xs mb-3">
-                        Generated: {video.createdAt.toLocaleString()}
+                        Generated: {videoData.createdAt.toLocaleString()}
                       </p>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => downloadVideo(video)}
+                          onClick={() => downloadVideo(videoData)}
                           className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
                         >
                           <Download className="w-4 h-4" />
                           Download
                         </button>
                         <button
-                          onClick={() => {
-                            const video = document.querySelector(`video[src="${video.url}"]`) as HTMLVideoElement;
-                            if (video) {
-                              video.currentTime = 0;
-                              video.play();
-                            }
-                          }}
+                          onClick={() => playVideo(videoData)}
                           className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200"
                         >
                           <Play className="w-4 h-4" />
