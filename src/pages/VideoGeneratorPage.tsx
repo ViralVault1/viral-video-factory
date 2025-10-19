@@ -1,19 +1,12 @@
-import React, { useState } from 'react';
-import { Play, Wand2, Copy, Download } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Upload, Trash2, Save, Play, Download, Copy, Check } from 'lucide-react';
 
-interface VideoIdea {
-  title: string;
-  description: string;
-}
-
-interface Hook {
-  type: string;
-  text: string;
-}
-
-interface ViralResults {
-  hooks: Hook[];
-  titles: string[];
+interface AdContent {
+  headline: string;
+  script: string;
+  callToAction: string;
+  targetAudience: string;
+  keyFeatures: string[];
 }
 
 interface VideoResult {
@@ -26,185 +19,73 @@ interface VideoResult {
   script: string;
 }
 
-const VideoGeneratorPage: React.FC = () => {
-  const [ideaInput, setIdeaInput] = useState('');
-  const [youtubeUrl, setYoutubeUrl] = useState('');
-  const [transcript, setTranscript] = useState('');
-  const [script, setScript] = useState('This is the one thing you\'re doing wrong with your marketing. You\'re focusing too much on features, and not enough on the story. People don\'t buy what you do, they buy why you do it. Start with why, and watch your brand grow.');
-  const [voice, setVoice] = useState('Natural Female Voice');
-  const [music, setMusic] = useState('Upbeat Corporate');
-  const [presetStyle, setPresetStyle] = useState('Cinematic');
-  const [visualPrompt, setVisualPrompt] = useState('');
-  const [soundEffects, setSoundEffects] = useState('');
+const ProductAdStudioPage: React.FC = () => {
+  const [productImage, setProductImage] = useState<string | null>(null);
+  const [adContent, setAdContent] = useState<AdContent | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isFindingIdeas, setIsFindingIdeas] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [generatedIdeas, setGeneratedIdeas] = useState<VideoIdea[]>([]);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [generatedVideos, setGeneratedVideos] = useState<VideoResult[]>([]);
-  const [showViralOptimizer, setShowViralOptimizer] = useState(false);
-  const [viralResults, setViralResults] = useState<ViralResults>({
-    hooks: [],
-    titles: []
-  });
+  const [copiedText, setCopiedText] = useState<string | null>(null);
 
-  const handleFindIdeas = async () => {
-    if (!ideaInput.trim()) {
-      alert('Please enter a topic to find ideas.');
-      return;
-    }
-
-    setIsFindingIdeas(true);
-    setGeneratedIdeas([]);
-
-    try {
-      const response = await fetch('/api/generate-ideas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: ideaInput })
-      });
-
-      const result = await response.json();
-
-      if (result.success && result.ideas) {
-        setGeneratedIdeas(result.ideas);
+  // Handle file upload
+  const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setProductImage(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
       } else {
-        throw new Error('Failed to generate ideas');
+        alert('Please upload an image file');
       }
-    } catch (error) {
-      console.error('Idea generation failed:', error);
-      alert('Failed to generate ideas. Please try again.');
-    } finally {
-      setIsFindingIdeas(false);
     }
-  };
+  }, []);
 
-  const handleAnalyzeUrl = async () => {
-    if (!youtubeUrl.trim()) {
-      alert('Please enter a YouTube URL to analyze.');
-      return;
-    }
-    
-    setIsAnalyzing(true);
-    
-    try {
-      const response = await fetch('/api/analyze-video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: youtubeUrl, type: 'url' })
-      });
-      
-      const result = await response.json();
-      
-      if (result.success && result.ideas) {
-        setGeneratedIdeas(result.ideas);
-        setYoutubeUrl('');
-      } else {
-        alert('Analysis complete! Check the generated ideas below.');
-      }
-    } catch (error) {
-      alert('Failed to analyze video. Please try again.');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleAnalyzeTranscript = async () => {
-    if (!transcript.trim()) {
-      alert('Please enter a transcript to analyze.');
-      return;
-    }
-    
-    setIsAnalyzing(true);
-    
-    try {
-      const response = await fetch('/api/analyze-video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript: transcript, type: 'transcript' })
-      });
-      
-      const result = await response.json();
-      
-      if (result.success && result.ideas) {
-        setGeneratedIdeas(result.ideas);
-        setTranscript('');
-      } else {
-        alert('Analysis complete! Check the generated ideas below.');
-      }
-    } catch (error) {
-      alert('Failed to analyze transcript. Please try again.');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleViralOptimizer = () => {
-    if (!script.trim()) {
-      alert('Please enter a script first to optimize.');
+  // Generate ad content
+  const generateAdContent = useCallback(async () => {
+    if (!productImage) {
+      alert('Please upload a product image first!');
       return;
     }
 
-    const mockResults: ViralResults = {
-      hooks: [
-        {
-          type: "Challenge & Curiosity Gap",
-          text: "I dare you not to smile. Get ready for an explosion of cuteness as our new puppy experiences all their adorable 'firsts'!"
-        },
-        {
-          type: "Emotional Connection & Direct Value Prop",
-          text: "Prepare for a heartwarming overload! Follow our new puppy through their first week at home, filled with wobbly walks, tiny barks, and endless cuddles."
-        },
-        {
-          type: "Intrigue & Emotional Benefit",
-          text: "This video is scientifically proven to melt hearts. Witness the pure joy of our new puppy's very first week with us!"
-        }
-      ],
-      titles: [
-        "WARNING: Extreme Cuteness! Our Puppy's FIRST WEEK At Home",
-        "You Won't Believe How Cute Our New Puppy's First Week Was!",
-        "Heart-Melting Moments: Our Puppy's Adorable Firsts!"
-      ]
-    };
-
-    setViralResults(mockResults);
-    setShowViralOptimizer(true);
-  };
-
-  const handleUseHook = (hook: Hook) => {
-    const lines = script.split('\n');
-    lines[0] = `Hook: ${hook.text}`;
-    setScript(lines.join('\n'));
-    setShowViralOptimizer(false);
-  };
-
-  const handleCopyTitle = (title: string) => {
-    navigator.clipboard.writeText(title);
-    alert('Title copied to clipboard!');
-  };
-
-  const handleUseIdea = (idea: VideoIdea) => {
-    const newScript = `Hook: ${idea.title}
-
-Opening: ${idea.description.split('.')[0]}.
-
-Main Content: ${idea.description.split('.').slice(1, -1).join('. ')}.
-
-Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
-
-    setScript(newScript);
-    
-    setTimeout(() => {
-      document.getElementById('script-section')?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  };
-
-  const handleGenerateVideo = async () => {
-    if (!script.trim()) {
-      alert('Please enter a script.');
-      return;
-    }
-    
     setIsGenerating(true);
+    try {
+      // Simulate AI generation with realistic delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const mockAdContent: AdContent = {
+        headline: "Transform Your Lifestyle with This Amazing Product!",
+        script: "Are you tired of the same old routine? Discover the revolutionary solution that's changing lives everywhere. Our premium product combines cutting-edge technology with unbeatable quality to deliver results you can see and feel. Don't wait - join thousands of satisfied customers who've already made the switch.",
+        callToAction: "Order Now - Limited Time 50% Off!",
+        targetAudience: "Health-conscious adults aged 25-45 looking for premium lifestyle products",
+        keyFeatures: [
+          "Premium quality materials",
+          "30-day money-back guarantee", 
+          "Free shipping worldwide",
+          "Award-winning design",
+          "Eco-friendly packaging"
+        ]
+      };
+      
+      setAdContent(mockAdContent);
+    } catch (error) {
+      console.error('Error generating ad content:', error);
+      alert('Failed to generate ad content. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [productImage]);
+
+  // Generate video using same pattern as VideoGeneratorPage
+  const generateVideo = useCallback(async () => {
+    if (!adContent) {
+      alert('Please generate ad content first!');
+      return;
+    }
+
+    setIsGeneratingVideo(true);
     
     try {
       const response = await fetch('/api/generate-video', {
@@ -213,8 +94,8 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: script,
-          visualPrompt: visualPrompt || `${presetStyle} style scene`
+          prompt: `Product Ad: ${adContent.headline}. ${adContent.script}`,
+          visualPrompt: `Product advertisement, professional commercial style, featuring the uploaded product`
         })
       });
 
@@ -231,10 +112,10 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
           videoUrl: result.videoUrl,
           status: 'completed',
           createdAt: new Date().toISOString(),
-          script: script
+          script: `${adContent.headline}: ${adContent.script}`
         };
         setGeneratedVideos(prev => [newVideo, ...prev]);
-        alert('✅ Video generated successfully!');
+        alert('✅ Product ad video generated successfully!');
       } else {
         throw new Error('No video URL returned');
       }
@@ -243,262 +124,122 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
       console.error('Video generation failed:', error);
       alert(`❌ Failed: ${error}`);
     } finally {
-      setIsGenerating(false);
+      setIsGeneratingVideo(false);
     }
-  };
+  }, [adContent]);
+
+  // Copy text to clipboard
+  const copyToClipboard = useCallback(async (text: string, type: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedText(type);
+      setTimeout(() => setCopiedText(null), 2000);
+    } catch (error) {
+      console.error('Failed to copy text:', error);
+      alert('Failed to copy text');
+    }
+  }, []);
+
+  // Clear all data
+  const clearAll = useCallback(() => {
+    setProductImage(null);
+    setAdContent(null);
+    setGeneratedVideos([]);
+    setCopiedText(null);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="text-center py-8 border-b border-gray-700">
-        <div className="flex justify-center mb-4">
-          <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
-            <Play className="w-6 h-6 text-white" />
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-4">
+            🎬 Product Ad Studio
+          </h1>
+          <p className="text-gray-300 text-lg">
+            Upload your product image and generate compelling ad content + videos
+          </p>
         </div>
-        <h1 className="text-4xl font-bold mb-2">AI Video Generator</h1>
-        <p className="text-gray-400 max-w-2xl mx-auto">
-          Create viral videos with AI. From script to final video, automate your entire video creation workflow.
-        </p>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Upload & Content Generation */}
           <div className="space-y-6">
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center">
-                <span className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">1</span>
-                Find Inspiration (or bring your own)
-              </h2>
-              <p className="text-gray-400 mb-4 text-sm">
-                Don't know where to start? Enter a topic and our AI will find viral video ideas for you. Or, jump right in with your own script.
-              </p>
+            {/* Image Upload */}
+            <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
+              <h2 className="text-xl font-semibold text-white mb-4">📸 Product Image</h2>
               
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Find new ideas</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="new puppy"
-                      value={ideaInput}
-                      onChange={(e) => setIdeaInput(e.target.value)}
-                      className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
-                    />
-                    <button
-                      onClick={handleFindIdeas}
-                      disabled={isFindingIdeas}
-                      className="px-6 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2"
-                    >
-                      {isFindingIdeas ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      ) : (
-                        '⚙️'
-                      )}
-                      Find
-                    </button>
+              {!productImage ? (
+                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-white/30 rounded-xl cursor-pointer hover:border-white/50 transition-colors">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Upload className="w-12 h-12 text-white/70 mb-4" />
+                    <p className="text-white/70 text-lg mb-2">Upload Product Image</p>
+                    <p className="text-white/50 text-sm">PNG, JPG, or GIF up to 10MB</p>
                   </div>
-                </div>
-
-                <div className="text-center text-gray-500 text-sm">OR</div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Deconstruct a YouTube video</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      placeholder="Paste a YouTube URL to analyze..."
-                      value={youtubeUrl}
-                      onChange={(e) => setYoutubeUrl(e.target.value)}
-                      className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
-                    />
-                    <button
-                      onClick={handleAnalyzeUrl}
-                      disabled={isAnalyzing}
-                      className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors flex items-center gap-2"
-                    >
-                      {isAnalyzing ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      ) : (
-                        '🔍'
-                      )}
-                      Analyze
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Deconstruct a video transcript (from TikTok, IG, etc.)</label>
-                  <textarea
-                    placeholder="Paste the full video script or transcript here..."
-                    value={transcript}
-                    onChange={(e) => setTranscript(e.target.value)}
-                    rows={4}
-                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 resize-none"
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                  />
+                </label>
+              ) : (
+                <div className="relative">
+                  <img
+                    src={productImage}
+                    alt="Product"
+                    className="w-full h-64 object-cover rounded-xl"
                   />
                   <button
-                    onClick={handleAnalyzeTranscript}
-                    disabled={isAnalyzing}
-                    className="mt-2 px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    onClick={() => setProductImage(null)}
+                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors"
                   >
-                    {isAnalyzing ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    ) : (
-                        '✏️'
-                    )}
-                    Analyze Transcript
+                    <Trash2 className="w-4 h-4" />
                   </button>
-                </div>
-              </div>
-
-              {generatedIdeas.length > 0 && (
-                <div className="mt-6 space-y-4">
-                  {generatedIdeas.map((idea, index) => (
-                    <div key={index} className="bg-gray-700 rounded-lg p-4">
-                      <h3 className="font-semibold text-white mb-2">{idea.title}</h3>
-                      <p className="text-gray-300 text-sm mb-3">{idea.description}</p>
-                      <button
-                        onClick={() => handleUseIdea(idea)}
-                        className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-sm font-medium transition-colors"
-                      >
-                        Use this idea
-                      </button>
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
-          </div>
 
-          <div className="space-y-6">
-            <div id="script-section" className="bg-gray-800 rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold flex items-center">
-                  <span className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold mr-3">2</span>
-                  Write & Refine Your Script
-                </h2>
-                <button className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                  ✏️ Brand Kit
-                </button>
-              </div>
-              <p className="text-gray-400 mb-4 text-sm">
-                Write your script or paste one in. Use our AI tools to rewrite it for better engagement or generate viral hooks and titles.
-              </p>
-              <textarea
-                placeholder="Enter your video script here..."
-                value={script}
-                onChange={(e) => setScript(e.target.value)}
-                rows={8}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 resize-none"
-              />
-              <div className="flex gap-2 mt-2">
-                <button
-                  onClick={() => setScript(prev => prev)}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm font-medium transition-colors flex items-center gap-2"
-                >
-                  ⚙️ Rewrite
-                </button>
-                <button
-                  onClick={handleViralOptimizer}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm font-medium transition-colors flex items-center gap-2"
-                >
-                  ✨ Viral Optimizer
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-4">🎤 Voice & Audio</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Voice</label>
-                  <select
-                    value={voice}
-                    onChange={(e) => setVoice(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                  >
-                    <option>Natural Female Voice</option>
-                    <option>Natural Male Voice</option>
-                    <option>Professional Female</option>
-                    <option>Professional Male</option>
-                    <option>Energetic Female</option>
-                    <option>Energetic Male</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Background Music</label>
-                  <select
-                    value={music}
-                    onChange={(e) => setMusic(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                  >
-                    <option>Upbeat Corporate</option>
-                    <option>Chill Ambient</option>
-                    <option>Energetic Pop</option>
-                    <option>Dramatic Cinematic</option>
-                    <option>No Music</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-4">🎨 Visual Settings</h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Preset Style</label>
-                    <select
-                      value={presetStyle}
-                      onChange={(e) => setPresetStyle(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                    >
-                      <option>Cinematic</option>
-                      <option>Modern Corporate</option>
-                      <option>Social Media</option>
-                      <option>Educational</option>
-                      <option>Entertainment</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Sound Effects</label>
-                    <input
-                      type="text"
-                      placeholder="e.g., whoosh, click, applause"
-                      value={soundEffects}
-                      onChange={(e) => setSoundEffects(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Visual Prompt (Optional)</label>
-                  <textarea
-                    placeholder="Describe the visual style you want (e.g., 'modern office setting with soft lighting')"
-                    value={visualPrompt}
-                    onChange={(e) => setVisualPrompt(e.target.value)}
-                    rows={2}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 resize-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6">
+            {/* Generate Ad Content */}
+            <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
+              <h2 className="text-xl font-semibold text-white mb-4">✨ AI Ad Generation</h2>
+              
               <button
-                onClick={handleGenerateVideo}
-                disabled={isGenerating || !script.trim()}
-                className="w-full px-6 py-4 bg-white bg-opacity-20 hover:bg-opacity-30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold text-lg transition-all flex items-center justify-center gap-2"
+                onClick={generateAdContent}
+                disabled={!productImage || isGenerating}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
               >
                 {isGenerating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    Generating AI Content...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5" />
+                    Generate Ad Content
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Generate Video */}
+            <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-white mb-4">🎥 Video Generation</h2>
+              
+              <button
+                onClick={generateVideo}
+                disabled={!adContent || isGeneratingVideo}
+                className="w-full px-6 py-4 bg-white bg-opacity-20 hover:bg-opacity-30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold text-lg transition-all flex items-center justify-center gap-2"
+              >
+                {isGeneratingVideo ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                     Generating Video...
                   </>
                 ) : (
                   <>
-                    <Wand2 className="w-5 h-5" />
-                    🎬 Generate Video
+                    <Play className="w-5 h-5" />
+                    🎬 Generate Product Ad Video
                   </>
                 )}
               </button>
@@ -506,12 +247,95 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
                 ⏱️ Takes 30-60 seconds
               </p>
             </div>
+
+            {/* Clear All */}
+            <button
+              onClick={clearAll}
+              className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <Trash2 className="w-5 h-5" />
+              Clear All
+            </button>
+          </div>
+
+          {/* Right Column - Generated Content */}
+          <div className="space-y-6">
+            {/* Ad Content Display */}
+            {adContent && (
+              <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
+                <h2 className="text-xl font-semibold text-white mb-4">📝 Generated Ad Content</h2>
+                
+                <div className="space-y-4">
+                  {/* Headline */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium text-white/80">Headline</label>
+                      <button
+                        onClick={() => copyToClipboard(adContent.headline, 'headline')}
+                        className="text-white/60 hover:text-white transition-colors"
+                      >
+                        {copiedText === 'headline' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-white bg-white/5 p-3 rounded-lg">{adContent.headline}</p>
+                  </div>
+
+                  {/* Script */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium text-white/80">Script</label>
+                      <button
+                        onClick={() => copyToClipboard(adContent.script, 'script')}
+                        className="text-white/60 hover:text-white transition-colors"
+                      >
+                        {copiedText === 'script' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-white bg-white/5 p-3 rounded-lg text-sm leading-relaxed">{adContent.script}</p>
+                  </div>
+
+                  {/* Call to Action */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium text-white/80">Call to Action</label>
+                      <button
+                        onClick={() => copyToClipboard(adContent.callToAction, 'cta')}
+                        className="text-white/60 hover:text-white transition-colors"
+                      >
+                        {copiedText === 'cta' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-white bg-white/5 p-3 rounded-lg font-semibold">{adContent.callToAction}</p>
+                  </div>
+
+                  {/* Target Audience */}
+                  <div>
+                    <label className="text-sm font-medium text-white/80 block mb-2">Target Audience</label>
+                    <p className="text-white/80 bg-white/5 p-3 rounded-lg text-sm">{adContent.targetAudience}</p>
+                  </div>
+
+                  {/* Key Features */}
+                  <div>
+                    <label className="text-sm font-medium text-white/80 block mb-2">Key Features</label>
+                    <ul className="text-white/80 bg-white/5 p-3 rounded-lg text-sm space-y-1">
+                      {adContent.keyFeatures.map((feature, index) => (
+                        <li key={index} className="flex items-center gap-2">
+                          <span className="text-green-400">✓</span>
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
+        {/* Generated Videos Section - Same as VideoGeneratorPage */}
         <div className="mt-12 bg-gray-800 rounded-lg p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">🎥 Your Generated Videos</h2>
+            <h2 className="text-2xl font-bold text-white">🎥 Your Generated Product Ad Videos</h2>
             <div className="text-sm text-gray-400">
               {generatedVideos.length} videos generated
             </div>
@@ -520,9 +344,9 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
           {generatedVideos.length === 0 ? (
             <div className="text-center py-12">
               <Play className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-400 mb-2">No videos generated yet</h3>
+              <h3 className="text-xl font-semibold text-gray-400 mb-2">No product ad videos generated yet</h3>
               <p className="text-gray-500">
-                Create your first video using the generator above
+                Create your first product ad video using the generator above
               </p>
             </div>
           ) : (
@@ -551,6 +375,9 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
                         {video.status}
                       </span>
                     </div>
+                    <p className="text-white text-sm mb-3 line-clamp-2">
+                      {video.script.substring(0, 100)}...
+                    </p>
                     {video.videoUrl && (
                       <button 
                         onClick={() => window.open(video.videoUrl, '_blank')}
@@ -567,73 +394,8 @@ Call to Action: ${idea.description.split('.').slice(-1)[0]}`;
           )}
         </div>
       </div>
-
-      {showViralOptimizer && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white text-lg">✨</span>
-                  </div>
-                  <h2 className="text-2xl font-bold text-white">Viral Optimizer Results</h2>
-                </div>
-                <button
-                  onClick={() => setShowViralOptimizer(false)}
-                  className="text-gray-400 hover:text-white text-2xl"
-                >
-                  ×
-                </button>
-              </div>
-              
-              <p className="text-gray-400 mb-8 text-center">
-                Here are some AI-powered variations to boost your video's performance.
-              </p>
-
-              <div className="grid md:grid-cols-2 gap-8">
-                <div>
-                  <h3 className="text-xl font-bold text-white mb-4">Optimized Hooks</h3>
-                  <div className="space-y-4">
-                    {viralResults.hooks.map((hook: Hook, index: number) => (
-                      <div key={index} className="bg-gray-700 rounded-lg p-4">
-                        <div className="text-purple-400 text-sm font-medium mb-2">{hook.type}</div>
-                        <p className="text-gray-300 mb-3">"{hook.text}"</p>
-                        <button
-                          onClick={() => handleUseHook(hook)}
-                          className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-white font-medium transition-colors"
-                        >
-                          ✓ Use This Hook
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-xl font-bold text-white mb-4">Viral Titles</h3>
-                  <div className="space-y-4">
-                    {viralResults.titles.map((title: string, index: number) => (
-                      <div key={index} className="bg-gray-700 rounded-lg p-4 flex items-center justify-between">
-                        <p className="text-gray-300 flex-1">{title}</p>
-                        <button
-                          onClick={() => handleCopyTitle(title)}
-                          className="ml-3 p-2 text-gray-400 hover:text-white transition-colors"
-                          title="Copy to clipboard"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-export default VideoGeneratorPage;
+export default ProductAdStudioPage;
