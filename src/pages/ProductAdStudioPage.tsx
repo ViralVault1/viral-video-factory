@@ -85,19 +85,22 @@ const ProductAdStudioPage: React.FC = () => {
 
     setIsGeneratingVideo(true);
     try {
-      // Simulate video generation
+      // Simulate video generation with realistic steps
       await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Create a mock video URL - in a real app this would be from your video generation API
+      const mockVideoUrl = createMockVideoUrl();
       
       const newVideo: VideoResult = {
         id: `video_${Date.now()}`,
-        url: `https://example.com/videos/ad_${Date.now()}.mp4`,
-        thumbnail: productImage || '/api/placeholder/300/200',
+        url: mockVideoUrl,
+        thumbnail: productImage || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect width="300" height="200" fill="%236366f1"/><text x="150" y="100" text-anchor="middle" dy=".3em" fill="white" font-size="16">Generated Video</text><text x="150" y="120" text-anchor="middle" dy=".3em" fill="white" font-size="12">10 seconds</text></svg>',
         title: adContent.headline.substring(0, 50) + '...',
         createdAt: new Date()
       };
       
       setVideos(prev => [newVideo, ...prev]);
-      alert('Video generated successfully!');
+      alert('🎬 Video generated successfully! Click play to preview.');
     } catch (error) {
       console.error('Error generating video:', error);
       alert('Failed to generate video. Please try again.');
@@ -105,6 +108,12 @@ const ProductAdStudioPage: React.FC = () => {
       setIsGeneratingVideo(false);
     }
   }, [adContent, productImage]);
+
+  // Create a mock video URL (Big Buck Bunny sample video for demo)
+  const createMockVideoUrl = (): string => {
+    // Using a sample video for demonstration - in real app this would be your generated video
+    return 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  };
 
   // Copy text to clipboard
   const copyToClipboard = useCallback(async (text: string, type: string) => {
@@ -138,7 +147,7 @@ const ProductAdStudioPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -154,7 +163,7 @@ const ProductAdStudioPage: React.FC = () => {
           {/* Left Column - Upload & Content Generation */}
           <div className="space-y-6">
             {/* Image Upload */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+            <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
               <h2 className="text-xl font-semibold text-white mb-4">📸 Product Image</h2>
               
               {!productImage ? (
@@ -189,7 +198,7 @@ const ProductAdStudioPage: React.FC = () => {
             </div>
 
             {/* Generate Ad Content */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+            <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
               <h2 className="text-xl font-semibold text-white mb-4">✨ AI Ad Generation</h2>
               
               <button
@@ -212,7 +221,7 @@ const ProductAdStudioPage: React.FC = () => {
             </div>
 
             {/* Generate Video */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+            <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
               <h2 className="text-xl font-semibold text-white mb-4">🎥 Video Generation</h2>
               
               <button
@@ -248,7 +257,7 @@ const ProductAdStudioPage: React.FC = () => {
           <div className="space-y-6">
             {/* Ad Content Display */}
             {adContent && (
-              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+              <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
                 <h2 className="text-xl font-semibold text-white mb-4">📝 Generated Ad Content</h2>
                 
                 <div className="space-y-4">
@@ -318,33 +327,48 @@ const ProductAdStudioPage: React.FC = () => {
 
             {/* Generated Videos */}
             {videos.length > 0 && (
-              <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+              <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
                 <h2 className="text-xl font-semibold text-white mb-4">🎬 Generated Videos</h2>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {videos.map((video) => (
                     <div key={video.id} className="bg-white/5 rounded-lg p-4">
                       <div className="aspect-video bg-gray-800 rounded-lg mb-3 relative overflow-hidden">
-                        <img
-                          src={video.thumbnail}
-                          alt={video.title}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Play className="w-12 h-12 text-white/80" />
-                        </div>
+                        <video
+                          className="w-full h-full object-cover rounded-lg"
+                          poster={video.thumbnail}
+                          controls
+                          preload="metadata"
+                        >
+                          <source src={video.url} type="video/mp4" />
+                          Your browser does not support the video tag.
+                        </video>
                       </div>
                       <h3 className="text-white font-medium text-sm mb-2">{video.title}</h3>
                       <p className="text-white/60 text-xs mb-3">
-                        {video.createdAt.toLocaleString()}
+                        Generated: {video.createdAt.toLocaleString()}
                       </p>
-                      <button
-                        onClick={() => downloadVideo(video)}
-                        className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
-                      >
-                        <Download className="w-4 h-4" />
-                        Download
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => downloadVideo(video)}
+                          className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download
+                        </button>
+                        <button
+                          onClick={() => {
+                            const video = document.querySelector(`video[src="${video.url}"]`) as HTMLVideoElement;
+                            if (video) {
+                              video.currentTime = 0;
+                              video.play();
+                            }
+                          }}
+                          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200"
+                        >
+                          <Play className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
