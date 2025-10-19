@@ -16,7 +16,7 @@ interface VideoResult {
   createdAt: string;
 }
 
-const ProductAdStudioPage: React.FC = () => {
+export const ProductAdStudioPage: React.FC = () => {
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -142,6 +142,104 @@ const ProductAdStudioPage: React.FC = () => {
       alert('Failed to generate ad content');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const generateVideo = async () => {
+    if (!adContent) {
+      alert('Please generate ad content first!');
+      return;
+    }
+
+    setIsGeneratingVideo(true);
+
+    try {
+      const videoPrompt = `${adContent.headline}. ${adContent.script}. ${adContent.callToAction}`;
+
+      const response = await fetch('/api/generate-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: videoPrompt
+        })
+      });
+
+      const result = await response.json();
+      console.log('API response:', result);
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate video');
+      }
+      
+      if (result.success && result.videoUrl) {
+        const newVideo: VideoResult = {
+          id: `video_${Date.now()}`,
+          videoUrl: result.videoUrl,
+          status: 'completed',
+          createdAt: new Date().toISOString()
+        };
+        setGeneratedVideos(prev => [newVideo, ...prev]);
+        alert('✅ Product ad video generated successfully!');
+      } else {
+        throw new Error('No video URL returned');
+      }
+      
+    } catch (error) {
+      console.error('Video generation failed:', error);
+      alert(`❌ Failed: ${error}`);
+    } finally {
+      setIsGeneratingVideo(false);
+    }
+  };
+
+  const generateVideo = async () => {
+    if (!adContent) {
+      alert('Please generate ad content first!');
+      return;
+    }
+
+    setIsGeneratingVideo(true);
+
+    try {
+      const videoPrompt = `${adContent.headline}. ${adContent.script}. ${adContent.callToAction}`;
+
+      const response = await fetch('/api/generate-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: videoPrompt
+        })
+      });
+
+      const result = await response.json();
+      console.log('API response:', result);
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate video');
+      }
+      
+      if (result.success && result.videoUrl) {
+        const newVideo: VideoResult = {
+          id: `video_${Date.now()}`,
+          videoUrl: result.videoUrl,
+          status: 'completed',
+          createdAt: new Date().toISOString()
+        };
+        setGeneratedVideos(prev => [newVideo, ...prev]);
+        alert('✅ Product ad video generated successfully!');
+      } else {
+        throw new Error('No video URL returned');
+      }
+      
+    } catch (error) {
+      console.error('Video generation failed:', error);
+      alert(`❌ Failed: ${error}`);
+    } finally {
+      setIsGeneratingVideo(false);
     }
   };
 
@@ -274,13 +372,20 @@ const ProductAdStudioPage: React.FC = () => {
                       📋 Copy All
                     </button>
                     <button
-                      onClick={() => {
-                        setAdContent(null);
-                        removeImage();
-                      }}
-                      className="flex-1 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium"
+                      onClick={generateVideo}
+                      disabled={isGeneratingVideo}
+                      className="flex-1 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      ✨ Generate New
+                      {isGeneratingVideo ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          🎬 Generate Video
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -298,6 +403,49 @@ const ProductAdStudioPage: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Generated Videos Section */}
+        {generatedVideos.length > 0 && (
+          <div className="mt-12 bg-gray-800 rounded-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">🎥 Your Product Ad Videos</h2>
+              <div className="text-sm text-gray-400">
+                {generatedVideos.length} videos generated
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {generatedVideos.map((video) => (
+                <div key={video.id} className="bg-gray-700 rounded-lg overflow-hidden">
+                  <div className="relative">
+                    <video 
+                      src={video.videoUrl} 
+                      className="w-full h-48 object-cover"
+                      controls
+                    />
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-400">
+                        {new Date(video.createdAt).toLocaleDateString()}
+                      </span>
+                      <span className="text-xs bg-green-600 px-2 py-1 rounded">
+                        {video.status}
+                      </span>
+                    </div>
+                    <button 
+                      onClick={() => window.open(video.videoUrl, '_blank')}
+                      className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm flex items-center justify-center gap-1"
+                    >
+                      <Download className="w-3 h-3" />
+                      Download Video
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
