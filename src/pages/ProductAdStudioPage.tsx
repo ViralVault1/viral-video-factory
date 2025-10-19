@@ -11,10 +11,12 @@ interface AdContent {
 
 interface VideoResult {
   id: string;
-  url: string;
-  thumbnail: string;
-  title: string;
-  createdAt: Date;
+  videoUrl?: string;
+  imageUrl?: string;
+  audioUrl?: string;
+  status: 'processing' | 'completed' | 'failed';
+  createdAt: string;
+  script: string;
 }
 
 const ProductAdStudioPage: React.FC = () => {
@@ -22,7 +24,7 @@ const ProductAdStudioPage: React.FC = () => {
   const [adContent, setAdContent] = useState<AdContent | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
-  const [videos, setVideos] = useState<VideoResult[]>([]);
+  const [generatedVideos, setGeneratedVideos] = useState<VideoResult[]>([]);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
   // Handle file upload
@@ -76,7 +78,7 @@ const ProductAdStudioPage: React.FC = () => {
     }
   }, [productImage]);
 
-  // Generate video
+  // Generate video using same pattern as VideoGeneratorPage
   const generateVideo = useCallback(async () => {
     if (!adContent) {
       alert('Please generate ad content first!');
@@ -84,30 +86,47 @@ const ProductAdStudioPage: React.FC = () => {
     }
 
     setIsGeneratingVideo(true);
+    
     try {
-      // Simulate video generation with realistic steps
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      const response = await fetch('/api/generate-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: `Product Ad: ${adContent.headline}. ${adContent.script}`,
+          visualPrompt: `Product advertisement, professional commercial style, featuring the uploaded product`
+        })
+      });
+
+      const result = await response.json();
+      console.log('API response:', result);
       
-      // Create a mock video URL - in a real app this would be from your video generation API
-      const mockVideoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate video');
+      }
       
-      const newVideo: VideoResult = {
-        id: `video_${Date.now()}`,
-        url: mockVideoUrl,
-        thumbnail: productImage || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect width="300" height="200" fill="%236366f1"/><text x="150" y="100" text-anchor="middle" dy=".3em" fill="white" font-size="16">Generated Video</text><text x="150" y="120" text-anchor="middle" dy=".3em" fill="white" font-size="12">10 seconds</text></svg>',
-        title: adContent.headline.substring(0, 50) + '...',
-        createdAt: new Date()
-      };
+      if (result.success && result.videoUrl) {
+        const newVideo: VideoResult = {
+          id: `video_${Date.now()}`,
+          videoUrl: result.videoUrl,
+          status: 'completed',
+          createdAt: new Date().toISOString(),
+          script: `${adContent.headline}: ${adContent.script}`
+        };
+        setGeneratedVideos(prev => [newVideo, ...prev]);
+        alert('✅ Product ad video generated successfully!');
+      } else {
+        throw new Error('No video URL returned');
+      }
       
-      setVideos(prev => [newVideo, ...prev]);
-      alert('Video generated successfully! Click play to preview.');
     } catch (error) {
-      console.error('Error generating video:', error);
-      alert('Failed to generate video. Please try again.');
+      console.error('Video generation failed:', error);
+      alert(`❌ Failed: ${error}`);
     } finally {
       setIsGeneratingVideo(false);
     }
-  }, [adContent, productImage]);
+  }, [adContent]);
 
   // Copy text to clipboard
   const copyToClipboard = useCallback(async (text: string, type: string) => {
@@ -121,31 +140,11 @@ const ProductAdStudioPage: React.FC = () => {
     }
   }, []);
 
-  // Download video
-  const downloadVideo = useCallback((videoData: VideoResult) => {
-    // In a real app, this would trigger an actual download
-    const link = document.createElement('a');
-    link.href = videoData.url;
-    link.download = `${videoData.title}.mp4`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, []);
-
-  // Play video
-  const playVideo = useCallback((videoData: VideoResult) => {
-    const videoElement = document.querySelector(`video[src="${videoData.url}"]`) as HTMLVideoElement;
-    if (videoElement) {
-      videoElement.currentTime = 0;
-      videoElement.play();
-    }
-  }, []);
-
   // Clear all data
   const clearAll = useCallback(() => {
     setProductImage(null);
     setAdContent(null);
-    setVideos([]);
+    setGeneratedVideos([]);
     setCopiedText(null);
   }, []);
 
@@ -155,7 +154,7 @@ const ProductAdStudioPage: React.FC = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-4">
-            Product Ad Studio
+            🎬 Product Ad Studio
           </h1>
           <p className="text-gray-300 text-lg">
             Upload your product image and generate compelling ad content + videos
@@ -167,7 +166,7 @@ const ProductAdStudioPage: React.FC = () => {
           <div className="space-y-6">
             {/* Image Upload */}
             <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
-              <h2 className="text-xl font-semibold text-white mb-4">Product Image</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">📸 Product Image</h2>
               
               {!productImage ? (
                 <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-white/30 rounded-xl cursor-pointer hover:border-white/50 transition-colors">
@@ -202,7 +201,7 @@ const ProductAdStudioPage: React.FC = () => {
 
             {/* Generate Ad Content */}
             <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
-              <h2 className="text-xl font-semibold text-white mb-4">AI Ad Generation</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">✨ AI Ad Generation</h2>
               
               <button
                 onClick={generateAdContent}
@@ -224,26 +223,29 @@ const ProductAdStudioPage: React.FC = () => {
             </div>
 
             {/* Generate Video */}
-            <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
-              <h2 className="text-xl font-semibold text-white mb-4">Video Generation</h2>
+            <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-white mb-4">🎥 Video Generation</h2>
               
               <button
                 onClick={generateVideo}
                 disabled={!adContent || isGeneratingVideo}
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2"
+                className="w-full px-6 py-4 bg-white bg-opacity-20 hover:bg-opacity-30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold text-lg transition-all flex items-center justify-center gap-2"
               >
                 {isGeneratingVideo ? (
                   <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                     Generating Video...
                   </>
                 ) : (
                   <>
                     <Play className="w-5 h-5" />
-                    Generate Video (10s)
+                    🎬 Generate Product Ad Video
                   </>
                 )}
               </button>
+              <p className="text-center text-sm mt-2 text-white text-opacity-80">
+                ⏱️ Takes 30-60 seconds
+              </p>
             </div>
 
             {/* Clear All */}
@@ -261,7 +263,7 @@ const ProductAdStudioPage: React.FC = () => {
             {/* Ad Content Display */}
             {adContent && (
               <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
-                <h2 className="text-xl font-semibold text-white mb-4">Generated Ad Content</h2>
+                <h2 className="text-xl font-semibold text-white mb-4">📝 Generated Ad Content</h2>
                 
                 <div className="space-y-4">
                   {/* Headline */}
@@ -327,51 +329,69 @@ const ProductAdStudioPage: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* Generated Videos */}
-            {videos.length > 0 && (
-              <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
-                <h2 className="text-xl font-semibold text-white mb-4">Generated Videos</h2>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {videos.map((videoData) => (
-                    <div key={videoData.id} className="bg-white/5 rounded-lg p-4">
-                      <div className="aspect-video bg-gray-800 rounded-lg mb-3 relative overflow-hidden">
-                        <video
-                          className="w-full h-full object-cover rounded-lg"
-                          poster={videoData.thumbnail}
-                          controls
-                          preload="metadata"
-                        >
-                          <source src={videoData.url} type="video/mp4" />
-                          Your browser does not support the video tag.
-                        </video>
-                      </div>
-                      <h3 className="text-white font-medium text-sm mb-2">{videoData.title}</h3>
-                      <p className="text-white/60 text-xs mb-3">
-                        Generated: {videoData.createdAt.toLocaleString()}
-                      </p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => downloadVideo(videoData)}
-                          className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
-                        >
-                          <Download className="w-4 h-4" />
-                          Download
-                        </button>
-                        <button
-                          onClick={() => playVideo(videoData)}
-                          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-all duration-200"
-                        >
-                          <Play className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
+        </div>
+
+        {/* Generated Videos Section - Same as VideoGeneratorPage */}
+        <div className="mt-12 bg-gray-800 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-white">🎥 Your Generated Product Ad Videos</h2>
+            <div className="text-sm text-gray-400">
+              {generatedVideos.length} videos generated
+            </div>
+          </div>
+          
+          {generatedVideos.length === 0 ? (
+            <div className="text-center py-12">
+              <Play className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-400 mb-2">No product ad videos generated yet</h3>
+              <p className="text-gray-500">
+                Create your first product ad video using the generator above
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {generatedVideos.map((video) => (
+                <div key={video.id} className="bg-gray-700 rounded-lg overflow-hidden">
+                  <div className="relative">
+                    {video.videoUrl ? (
+                      <video 
+                        src={video.videoUrl} 
+                        className="w-full h-48 object-cover"
+                        controls
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-600 flex items-center justify-center">
+                        <Play className="w-12 h-12 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-400">
+                        {new Date(video.createdAt).toLocaleDateString()}
+                      </span>
+                      <span className="text-xs bg-green-600 px-2 py-1 rounded">
+                        {video.status}
+                      </span>
+                    </div>
+                    <p className="text-white text-sm mb-3 line-clamp-2">
+                      {video.script.substring(0, 100)}...
+                    </p>
+                    {video.videoUrl && (
+                      <button 
+                        onClick={() => window.open(video.videoUrl, '_blank')}
+                        className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm flex items-center justify-center gap-1"
+                      >
+                        <Download className="w-3 h-3" />
+                        Download Video
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
