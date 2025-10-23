@@ -1,0 +1,6 @@
+{
+  "image": "base64_image_data",
+  "outputType": "social_media_ad", 
+  "scriptLength": 5,
+  "includeModelPlacement": true
+}
