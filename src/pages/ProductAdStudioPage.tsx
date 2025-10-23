@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, Trash2, Save, Play, Download, Copy, Check } from 'lucide-react';
-import { generateProductAdReport } from '../services/geminiService';
+import generateProductAdReport from '../services/geminiService';
 
 interface AdContent {
   headline: string;
