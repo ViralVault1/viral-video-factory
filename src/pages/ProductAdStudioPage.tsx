@@ -44,7 +44,7 @@ const ProductAdStudioPage: React.FC = () => {
     }
   }, []);
 
-  // Generate ad content using Google Gemini API (like the working version)
+  // Generate ad content using real Gemini service
   const generateAdContent = useCallback(async () => {
     if (!productImage) {
       alert('Please upload a product image first!');
@@ -53,11 +53,15 @@ const ProductAdStudioPage: React.FC = () => {
 
     setIsGenerating(true);
     try {
-      // Call the Gemini service like the working version
+      console.log('Calling real Gemini service...');
+      
+      // Call the actual imported Gemini service
       const result = await generateProductAdReport(productImage);
       
-      if (result) {
-        // Map Gemini response to our interface format
+      console.log('Gemini service response:', result);
+      
+      if (result && result.productName) {
+        // Map the real Gemini response to our component state
         setAdContent({
           headline: result.productName,
           script: result.videoScript,
@@ -65,59 +69,26 @@ const ProductAdStudioPage: React.FC = () => {
           targetAudience: result.targetAudience,
           keyFeatures: [
             "Premium quality materials",
-            "Perfect for social media",
-            "Trending design",
-            "Limited availability"
+            "Authentic brand design",
+            "Durable construction", 
+            "Perfect fit and finish"
           ]
         });
+        
+        console.log('Successfully set ad content from Gemini');
       } else {
-        throw new Error('No analysis data returned from Gemini API');
+        throw new Error('Invalid response from Gemini service');
       }
       
     } catch (error) {
-      console.error('Gemini API analysis failed:', error);
-      alert('Failed to analyze product image. Please try again.');
+      console.error('Gemini service error:', error);
+      alert(`Failed to analyze product: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }
   }, [productImage]);
 
-  // Gemini API integration function (matches working version structure)
-  const generateProductAdReport = async (imageData: string): Promise<{
-    productName: string;
-    targetAudience: string;
-    videoScript: string;
-    videoPrompt: string;
-  } | null> => {
-    try {
-      // Split the data URL to get MIME type and base64 data
-      const [header, base64Data] = imageData.split(',');
-      const mimeType = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
-      
-      // This would call the actual Gemini service
-      // For now, simulating the API structure until the service is connected
-      const mockGeminiResponse = {
-        productName: "Premium Style Product - Elevate Your Look",
-        targetAudience: "Fashion-conscious consumers aged 20-35 who value quality and style",
-        videoScript: `[0-1s] Product reveal with dramatic lighting
-[1-3s] Close-up showcasing premium materials and craftsmanship  
-[3-4s] Lifestyle shot showing product in use
-[4-5s] Bold call-to-action with brand emphasis`,
-        videoPrompt: "Premium product advertisement with professional lighting, showcasing quality materials and modern aesthetic"
-      };
-      
-      // Add delay to simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      return mockGeminiResponse;
-      
-    } catch (error) {
-      console.error('Error calling Gemini API:', error);
-      return null;
-    }
-  };
-
-  // Generate video using same pattern as VideoGeneratorPage
+  // Generate video using same API as VideoGeneratorPage
   const generateVideo = useCallback(async () => {
     if (!adContent) {
       alert('Please generate ad content first!');
@@ -134,12 +105,12 @@ const ProductAdStudioPage: React.FC = () => {
         },
         body: JSON.stringify({
           prompt: `Product Ad: ${adContent.headline}. ${adContent.script}`,
-          visualPrompt: `Product advertisement, professional commercial style, featuring the uploaded product`
+          visualPrompt: `Product advertisement featuring the uploaded product with professional lighting and engaging visuals`
         })
       });
 
       const result = await response.json();
-      console.log('API response:', result);
+      console.log('Video API response:', result);
       
       if (!response.ok) {
         throw new Error(result.error || 'Failed to generate video');
@@ -154,14 +125,14 @@ const ProductAdStudioPage: React.FC = () => {
           script: `${adContent.headline}: ${adContent.script}`
         };
         setGeneratedVideos(prev => [newVideo, ...prev]);
-        alert('✅ Product ad video generated successfully!');
+        alert('Video generated successfully!');
       } else {
         throw new Error('No video URL returned');
       }
       
     } catch (error) {
       console.error('Video generation failed:', error);
-      alert(`❌ Failed: ${error}`);
+      alert(`Failed to generate video: ${error.message}`);
     } finally {
       setIsGeneratingVideo(false);
     }
@@ -193,7 +164,7 @@ const ProductAdStudioPage: React.FC = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-4">
-            🎬 Product Ad Studio
+            Product Ad Studio
           </h1>
           <p className="text-gray-300 text-lg">
             Upload your product image and generate compelling ad content + videos
@@ -205,7 +176,7 @@ const ProductAdStudioPage: React.FC = () => {
           <div className="space-y-6">
             {/* Image Upload */}
             <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
-              <h2 className="text-xl font-semibold text-white mb-4">📸 Product Image</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">Product Image</h2>
               
               {!productImage ? (
                 <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-white/30 rounded-xl cursor-pointer hover:border-white/50 transition-colors">
@@ -240,7 +211,7 @@ const ProductAdStudioPage: React.FC = () => {
 
             {/* Generate Ad Content */}
             <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
-              <h2 className="text-xl font-semibold text-white mb-4">✨ AI Ad Generation</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">AI Ad Generation</h2>
               
               <button
                 onClick={generateAdContent}
@@ -250,7 +221,7 @@ const ProductAdStudioPage: React.FC = () => {
                 {isGenerating ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                    Generating AI Content...
+                    Analyzing with Gemini AI...
                   </>
                 ) : (
                   <>
@@ -263,7 +234,7 @@ const ProductAdStudioPage: React.FC = () => {
 
             {/* Generate Video */}
             <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">📱 Social Media Video Generation</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">Social Media Video Generation</h2>
               
               <button
                 onClick={generateVideo}
@@ -283,7 +254,7 @@ const ProductAdStudioPage: React.FC = () => {
                 )}
               </button>
               <p className="text-center text-sm mt-2 text-white text-opacity-80">
-                ⚡ Quick 5-second ads for Instagram, TikTok & Facebook
+                Quick 5-second ads for Instagram, TikTok & Facebook
               </p>
             </div>
 
@@ -302,7 +273,7 @@ const ProductAdStudioPage: React.FC = () => {
             {/* Ad Content Display */}
             {adContent && (
               <div className="bg-white/15 backdrop-blur-lg rounded-2xl p-6 border border-white/30 shadow-lg">
-                <h2 className="text-xl font-semibold text-white mb-4">📝 Generated Ad Content</h2>
+                <h2 className="text-xl font-semibold text-white mb-4">Generated Ad Content</h2>
                 
                 <div className="space-y-4">
                   {/* Headline */}
@@ -371,10 +342,10 @@ const ProductAdStudioPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Generated Videos Section - Same as VideoGeneratorPage */}
+        {/* Generated Videos Section */}
         <div className="mt-12 bg-gray-800 rounded-lg p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">🎥 Your Generated Product Ad Videos</h2>
+            <h2 className="text-2xl font-bold text-white">Your Generated Product Ad Videos</h2>
             <div className="text-sm text-gray-400">
               {generatedVideos.length} videos generated
             </div>
