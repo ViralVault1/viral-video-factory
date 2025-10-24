@@ -135,42 +135,151 @@ const ProductAdStudioPage: React.FC = () => {
     return "[0-1s] AI-enhanced product reveal [1-3s] Smart feature highlights [3-4s] Benefits demonstration [4-5s] Optimized call-to-action";
   };
 
-  // Smart content generation until AI agents are available
+  // Smart content generation with basic image analysis
   const generateSmartProductContent = async (): Promise<AdContent> => {
     // Simulate analysis time
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Generate varied content that works well for different products
-    const contentVariations = [
-      {
-        headline: "Premium Quality Product - Elevate Your Experience",
-        script: "[0-1s] Stunning product reveal with dramatic lighting [1-3s] Close-up showcasing premium materials and craftsmanship [3-4s] Lifestyle shot demonstrating real-world benefits [4-5s] Bold call-to-action with urgency",
-        targetAudience: "Quality-conscious consumers who value premium materials and superior craftsmanship",
-        keyFeatures: ["Premium materials", "Expert craftsmanship", "Modern design", "Exceptional durability"]
-      },
-      {
-        headline: "The Essential Item You've Been Looking For",
-        script: "[0-1s] Dynamic product introduction with energy [1-3s] Quick feature highlights with smooth transitions [3-4s] Problem-solving demonstration [4-5s] Clear value proposition and CTA",
-        targetAudience: "Practical buyers seeking reliable solutions for everyday needs",
-        keyFeatures: ["Practical functionality", "Reliable performance", "Great value", "User-friendly design"]
-      },
-      {
-        headline: "Innovation Meets Style - Discover the Difference",
-        script: "[0-1s] Eye-catching reveal with modern aesthetics [1-3s] Innovative features showcase [3-4s] Style and functionality balance [4-5s] Exclusive offer presentation",
-        targetAudience: "Tech-savvy consumers who appreciate innovative design and cutting-edge features",
-        keyFeatures: ["Innovative technology", "Sleek design", "Advanced features", "Future-ready"]
-      }
-    ];
-    
-    // Select random variation for diversity
-    const selectedVariation = contentVariations[Math.floor(Math.random() * contentVariations.length)];
+    // Attempt basic image analysis
+    const imageAnalysis = await analyzeImageBasically(productImage!);
     
     return {
-      headline: selectedVariation.headline,
-      script: selectedVariation.script,
+      headline: imageAnalysis.headline,
+      script: imageAnalysis.script,
+      callToAction: imageAnalysis.callToAction,
+      targetAudience: imageAnalysis.targetAudience,
+      keyFeatures: imageAnalysis.keyFeatures
+    };
+  };
+
+  // Basic image analysis based on image characteristics
+  const analyzeImageBasically = async (imageData: string): Promise<AdContent> => {
+    // Convert image to analyze basic characteristics
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (ctx) {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          
+          // Analyze image characteristics
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const analysis = analyzeImageCharacteristics(imageData);
+          
+          resolve(generateContentBasedOnAnalysis(analysis));
+        } else {
+          resolve(generateGenericContent());
+        }
+      };
+      
+      img.onerror = () => {
+        resolve(generateGenericContent());
+      };
+      
+      img.src = imageData;
+    });
+  };
+
+  // Analyze basic image characteristics
+  const analyzeImageCharacteristics = (imageData: ImageData) => {
+    const data = imageData.data;
+    let totalR = 0, totalG = 0, totalB = 0;
+    let darkPixels = 0, lightPixels = 0;
+    let metallicHints = 0;
+    
+    // Sample every 10th pixel for performance
+    for (let i = 0; i < data.length; i += 40) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      
+      totalR += r;
+      totalG += g;
+      totalB += b;
+      
+      const brightness = (r + g + b) / 3;
+      if (brightness < 100) darkPixels++;
+      if (brightness > 200) lightPixels++;
+      
+      // Check for metallic characteristics (similar RGB values, medium brightness)
+      if (Math.abs(r - g) < 30 && Math.abs(g - b) < 30 && brightness > 80 && brightness < 180) {
+        metallicHints++;
+      }
+    }
+    
+    const pixelCount = data.length / 4;
+    const avgR = totalR / (pixelCount / 10);
+    const avgG = totalG / (pixelCount / 10);
+    const avgB = totalB / (pixelCount / 10);
+    
+    const isDark = darkPixels > lightPixels;
+    const isMetallic = metallicHints > (pixelCount / 40);
+    const avgBrightness = (avgR + avgG + avgB) / 3;
+    
+    return {
+      isDark,
+      isMetallic,
+      avgBrightness,
+      dominantColor: avgR > avgG && avgR > avgB ? 'red' : 
+                     avgG > avgR && avgG > avgB ? 'green' : 
+                     avgB > avgR && avgB > avgG ? 'blue' : 'neutral',
+      complexity: pixelCount > 100000 ? 'high' : 'medium'
+    };
+  };
+
+  // Generate content based on image analysis
+  const generateContentBasedOnAnalysis = (analysis: any): AdContent => {
+    if (analysis.isMetallic && analysis.isDark) {
+      // Industrial/metal products
+      return {
+        headline: "Professional Grade Industrial Solution",
+        script: "[0-1s] Heavy-duty industrial equipment reveal [1-3s] Showcase durability and precision engineering [3-4s] Professional application demonstration [4-5s] Built to last - order now",
+        callToAction: "Get Professional Grade Quality Today!",
+        targetAudience: "Industrial professionals and facility managers who need reliable, heavy-duty equipment",
+        keyFeatures: ["Industrial grade materials", "Heavy-duty construction", "Professional reliability", "Built to last"]
+      };
+    } else if (analysis.avgBrightness > 150) {
+      // Bright/light products
+      return {
+        headline: "Clean, Modern Design That Stands Out",
+        script: "[0-1s] Sleek product reveal with clean aesthetics [1-3s] Highlight modern design and functionality [3-4s] Perfect for contemporary spaces [4-5s] Upgrade your style today",
+        callToAction: "Transform Your Space - Order Now!",
+        targetAudience: "Design-conscious consumers who appreciate modern aesthetics and clean lines",
+        keyFeatures: ["Modern design", "Clean aesthetics", "Contemporary style", "Premium finish"]
+      };
+    } else if (analysis.dominantColor === 'red') {
+      // Red-dominant products
+      return {
+        headline: "Bold Statement Piece - Make Your Mark",
+        script: "[0-1s] Eye-catching reveal in striking color [1-3s] Bold design that commands attention [3-4s] Perfect conversation starter [4-5s] Stand out from the crowd",
+        callToAction: "Make a Bold Statement - Shop Now!",
+        targetAudience: "Confident individuals who love to stand out and make bold design choices",
+        keyFeatures: ["Eye-catching design", "Bold color choice", "Conversation starter", "Unique style"]
+      };
+    } else {
+      // Default for complex/varied products
+      return {
+        headline: "The Quality Solution You've Been Searching For",
+        script: "[0-1s] Professional product showcase [1-3s] Quality craftsmanship and attention to detail [3-4s] Versatile functionality for your needs [4-5s] Experience the difference",
+        callToAction: "Discover Quality - Order Today!",
+        targetAudience: "Discerning customers who value quality craftsmanship and reliable performance",
+        keyFeatures: ["Quality craftsmanship", "Reliable performance", "Versatile functionality", "Attention to detail"]
+      };
+    }
+  };
+
+  // Fallback for when image analysis fails
+  const generateGenericContent = (): AdContent => {
+    return {
+      headline: "Premium Quality Product",
+      script: "[0-1s] Product reveal [1-3s] Feature highlights [3-4s] Benefits demonstration [4-5s] Call to action",
       callToAction: "Shop Now - Limited Time Offer!",
-      targetAudience: selectedVariation.targetAudience,
-      keyFeatures: selectedVariation.keyFeatures
+      targetAudience: "Quality-conscious consumers",
+      keyFeatures: ["Premium quality", "Great value", "Reliable performance", "Customer satisfaction"]
     };
   };
 
