@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, Trash2, Save, Play, Download, Copy, Check } from 'lucide-react';
-import generateProductAdReport from '../services/geminiService';
+import { generateProductAdReport } from '../services/geminiService';
 
 interface AdContent {
   headline: string;
@@ -55,7 +55,7 @@ const ProductAdStudioPage: React.FC = () => {
     try {
       console.log('Calling real Gemini service...');
       
-      // Call the actual imported Gemini service
+      // Call the actual imported Gemini service function
       const result = await generateProductAdReport(productImage);
       
       console.log('Gemini service response:', result);
