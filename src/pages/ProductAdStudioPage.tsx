@@ -123,7 +123,8 @@ const ProductAdStudioPage: React.FC = () => {
       
     } catch (error) {
       console.error('Content generation error:', error);
-      alert(`Failed to analyze product: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to analyze product: ${errorMessage}`);
     } finally {
       setIsGenerating(false);
     }
@@ -260,7 +261,8 @@ const ProductAdStudioPage: React.FC = () => {
       
     } catch (error) {
       console.error('Video generation failed:', error);
-      alert(`Failed to generate video: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to generate video: ${errorMessage}`);
     } finally {
       setIsGeneratingVideo(false);
     }
@@ -349,7 +351,7 @@ const ProductAdStudioPage: React.FC = () => {
                 {isGenerating ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                    Analyzing with Gemini AI...
+                    Analyzing with AI...
                   </>
                 ) : (
                   <>
