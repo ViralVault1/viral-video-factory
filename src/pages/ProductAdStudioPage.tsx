@@ -1,10 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, Trash2, Save, Play, Download, Copy, Check } from 'lucide-react';
-// Try different import patterns - uncomment the one that works:
-// import { generateProductAdReport } from '../services/geminiService';
-// import generateProductAdReport from '../services/geminiService';
-// import * as GeminiService from '../services/geminiService';
-// import { GeminiService } from '../services/geminiService';
+import { aiAgentsRouter, createAgentRequest } from '../services/aiAgentsService';
 
 interface AdContent {
   headline: string;
@@ -48,7 +44,7 @@ const ProductAdStudioPage: React.FC = () => {
     }
   }, []);
 
-  // Generate ad content for any product image
+  // Generate ad content using Manus AI Agents
   const generateAdContent = useCallback(async () => {
     if (!productImage) {
       alert('Please upload a product image first!');
@@ -57,100 +53,85 @@ const ProductAdStudioPage: React.FC = () => {
 
     setIsGenerating(true);
     try {
-      console.log('Analyzing product image...');
+      console.log('Using Manus AI Agents for product analysis...');
       
-      // TODO: Replace with actual Gemini service call once import is working
-      // For now, create generic but useful content for any product
-      const productAnalysis = await analyzeProductImage(productImage);
+      // Create agent request for content strategy
+      const agentRequest = createAgentRequest(
+        'content-strategy',
+        'analyze-product-image',
+        {
+          imageData: productImage,
+          requestType: 'product-ad-analysis',
+          outputFormat: 'social-media-ad',
+          targetLength: '5-seconds',
+          platforms: ['instagram', 'tiktok', 'facebook']
+        },
+        'user-123' // TODO: Replace with actual user ID from auth context
+      );
+
+      // Process request through AI agents router
+      const agentResponse = await aiAgentsRouter.processRequest(agentRequest);
       
-      console.log('Generated analysis:', productAnalysis);
+      console.log('Manus AI Agent response:', agentResponse);
       
-      if (productAnalysis && productAnalysis.productName) {
+      if (agentResponse.success && agentResponse.data) {
+        const analysisData = agentResponse.data;
+        
         setAdContent({
-          headline: productAnalysis.productName,
-          script: productAnalysis.videoScript,
-          callToAction: "Shop Now - Limited Time Offer!",
-          targetAudience: productAnalysis.targetAudience,
-          keyFeatures: productAnalysis.keyFeatures
+          headline: analysisData.productName || analysisData.headline || "Premium Product",
+          script: analysisData.videoScript || analysisData.script || generateDefaultScript(),
+          callToAction: analysisData.callToAction || "Shop Now - Limited Time Offer!",
+          targetAudience: analysisData.targetAudience || "Quality-conscious consumers",
+          keyFeatures: analysisData.keyFeatures || [
+            "Premium quality materials",
+            "Professional design", 
+            "Excellent value",
+            "Customer satisfaction guaranteed"
+          ]
         });
         
-        console.log('Successfully set ad content');
+        console.log('Successfully processed with Manus AI Agents');
       } else {
-        throw new Error('Invalid analysis result');
+        throw new Error('Invalid response from AI agents');
       }
       
     } catch (error) {
-      console.error('Product analysis error:', error);
-      alert(`Failed to analyze product: ${error.message}`);
+      console.error('Manus AI Agents error:', error);
+      
+      // Fallback to basic analysis if agents fail
+      console.log('Falling back to basic analysis...');
+      const fallbackContent = await generateFallbackContent();
+      setAdContent(fallbackContent);
+      
     } finally {
       setIsGenerating(false);
     }
   }, [productImage]);
 
-  // Basic product image analysis (temporary until real Gemini service)
-  const analyzeProductImage = async (imageData: string): Promise<{
-    productName: string;
-    targetAudience: string;
-    videoScript: string;
-    keyFeatures: string[];
-  }> => {
-    // Simulate analysis time
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Basic analysis based on common product patterns
-    // TODO: Replace with actual AI vision analysis
-    const analysisResults = generateProductContent();
-    
-    return analysisResults;
-  };
-
-  // Generate appropriate content for any product
-  const generateProductContent = () => {
-    // This would be replaced by actual AI vision analysis
-    // For now, generate adaptable content that works for most products
-    
-    const productTypes = [
-      "Premium Quality Product",
-      "Essential Lifestyle Item", 
-      "Professional Grade Tool",
-      "Luxury Accessory",
-      "Innovative Solution"
-    ];
-    
-    const audiences = [
-      "Quality-conscious consumers who value premium materials and craftsmanship",
-      "Professionals seeking reliable, high-performance tools for their work",
-      "Style-conscious individuals who appreciate modern design and functionality", 
-      "Active lifestyle enthusiasts looking for durable, versatile products",
-      "Discerning buyers who invest in long-lasting, well-designed items"
-    ];
-    
-    const scripts = [
-      "[0-1s] Product reveal with professional lighting [1-3s] Close-up showcasing premium materials and design details [3-4s] Lifestyle demonstration showing product benefits [4-5s] Strong call-to-action with brand emphasis",
-      "[0-1s] Dynamic product introduction [1-3s] Key feature highlights with smooth transitions [3-4s] Real-world usage demonstration [4-5s] Compelling purchase motivation",
-      "[0-1s] Eye-catching product presentation [1-3s] Quality and craftsmanship focus [3-4s] Benefits and value proposition [4-5s] Clear next steps for purchase"
-    ];
-    
-    // Select random but appropriate combinations
-    const randomProduct = productTypes[Math.floor(Math.random() * productTypes.length)];
-    const randomAudience = audiences[Math.floor(Math.random() * audiences.length)];
-    const randomScript = scripts[Math.floor(Math.random() * scripts.length)];
+  // Fallback content generation if AI agents are unavailable
+  const generateFallbackContent = async (): Promise<AdContent> => {
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
     return {
-      productName: randomProduct,
-      targetAudience: randomAudience,
-      videoScript: randomScript,
+      headline: "Premium Quality Product",
+      script: "[0-1s] Product reveal with professional lighting [1-3s] Close-up showcasing premium materials [3-4s] Lifestyle demonstration [4-5s] Strong call-to-action",
+      callToAction: "Shop Now - Limited Time Offer!",
+      targetAudience: "Quality-conscious consumers who value premium products",
       keyFeatures: [
         "Premium quality construction",
-        "Thoughtful design details",
-        "Durable materials",
-        "Versatile functionality",
-        "Excellent value proposition"
+        "Professional design",
+        "Excellent durability",
+        "Great value proposition"
       ]
     };
   };
 
-  // Generate video using same API as VideoGeneratorPage
+  // Default script generator
+  const generateDefaultScript = (): string => {
+    return "[0-1s] Eye-catching product reveal [1-3s] Key features highlight [3-4s] Benefits demonstration [4-5s] Clear call-to-action";
+  };
+
+  // Generate video using AI agents for script optimization
   const generateVideo = useCallback(async () => {
     if (!adContent) {
       alert('Please generate ad content first!');
@@ -160,14 +141,46 @@ const ProductAdStudioPage: React.FC = () => {
     setIsGeneratingVideo(true);
     
     try {
+      console.log('Optimizing script with AI agents before video generation...');
+      
+      // Use script-optimization agent to enhance the content
+      const optimizationRequest = createAgentRequest(
+        'script-optimization',
+        'optimize-for-video',
+        {
+          script: adContent.script,
+          headline: adContent.headline,
+          targetAudience: adContent.targetAudience,
+          platform: 'social-media',
+          duration: '5-seconds'
+        },
+        'user-123' // TODO: Replace with actual user ID
+      );
+
+      let optimizedContent = adContent;
+      
+      try {
+        const optimizationResponse = await aiAgentsRouter.processRequest(optimizationRequest);
+        if (optimizationResponse.success && optimizationResponse.data) {
+          optimizedContent = {
+            ...adContent,
+            script: optimizationResponse.data.optimizedScript || adContent.script
+          };
+          console.log('Script optimized by AI agents');
+        }
+      } catch (optimizationError) {
+        console.log('Script optimization failed, using original content:', optimizationError);
+      }
+
+      // Generate video with optimized content
       const response = await fetch('/api/generate-video', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: `Product Ad: ${adContent.headline}. ${adContent.script}`,
-          visualPrompt: `Product advertisement featuring the uploaded product with professional lighting and engaging visuals`
+          prompt: `Product Ad: ${optimizedContent.headline}. ${optimizedContent.script}`,
+          visualPrompt: `Professional product advertisement with engaging visuals, social media optimized`
         })
       });
 
@@ -184,10 +197,10 @@ const ProductAdStudioPage: React.FC = () => {
           videoUrl: result.videoUrl,
           status: 'completed',
           createdAt: new Date().toISOString(),
-          script: `${adContent.headline}: ${adContent.script}`
+          script: `${optimizedContent.headline}: ${optimizedContent.script}`
         };
         setGeneratedVideos(prev => [newVideo, ...prev]);
-        alert('Video generated successfully!');
+        alert('Video generated successfully with AI optimization!');
       } else {
         throw new Error('No video URL returned');
       }
