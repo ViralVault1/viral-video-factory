@@ -1,6 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, Trash2, Save, Play, Download, Copy, Check } from 'lucide-react';
-import { generateProductAdReport } from '../services/geminiService';
+// Try different import patterns - uncomment the one that works:
+// import { generateProductAdReport } from '../services/geminiService';
+// import generateProductAdReport from '../services/geminiService';
+// import * as GeminiService from '../services/geminiService';
+// import { GeminiService } from '../services/geminiService';
 
 interface AdContent {
   headline: string;
